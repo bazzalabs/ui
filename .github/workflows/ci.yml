@@ -41,7 +41,7 @@ jobs:
 
       # oxlint loads the `bazza/*` rules from `tooling/lint` as JS plugins, so
       # it needs the workspace installed above.
-      - name: Lint parts in packages/react (oxlint)
+      - name: Lint packages/react and packages/menu-core (oxlint)
         run: bun run lint:oxlint
 
       # Lists every allowlisted file and inline exception (also in the job

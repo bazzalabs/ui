@@ -38,7 +38,7 @@ This implementation is not a static triangle-only algorithm. It is a hybrid of:
 
 The subsystem is split into four layers:
 
-1. Geometry and intent math (`utils/aim-guard.ts`)
+1. Geometry and intent math (`aim-guard/aim-guard.ts` in `@bazza-ui/menu-core`)
 2. Shared guard state and lifecycle (`hooks/use-aim-guard.tsx`)
 3. Trigger-side event orchestration (`components/submenu-trigger/submenu-trigger.tsx`)
 4. Popup-side guard finalization (`components/popup/popup.tsx`)
@@ -47,7 +47,7 @@ The subsystem is split into four layers:
 
 | Module | Responsibility |
 | --- | --- |
-| `packages/react/src/internal/popup-menu/utils/aim-guard.ts` | Anchor detection, heading smoothing, projected hit-test |
+| `packages/menu-core/src/aim-guard/aim-guard.ts` | Anchor detection, heading smoothing, projected hit-test |
 | `packages/react/src/internal/popup-menu/utils/use-mouse-trail.ts` | Pointer trail buffer, recorded only while a trigger holds it (hover or leave monitor) |
 | `packages/react/src/internal/popup-menu/hooks/use-aim-guard.tsx` | Global guard state, refs, timer, activation/clear API |
 | `packages/react/src/internal/popup-menu/hooks/use-popup-menu-item.ts` | Bridges guard refs into listbox item behavior |
@@ -86,7 +86,7 @@ This prevents over-blocking unrelated menu levels and lets the popup side confid
 
 ## 6. Geometry Engine
 
-Implemented in `packages/react/src/internal/popup-menu/utils/aim-guard.ts`.
+Implemented in `packages/menu-core/src/aim-guard/aim-guard.ts`.
 
 ### 6.1 `resolveAnchorSide(rect, triggerRect, mx, my?)`
 
@@ -341,7 +341,7 @@ Implemented tests cover:
 
 Primary files:
 
-- `packages/react/src/internal/popup-menu/utils/aim-guard.test.ts`
+- `packages/menu-core/src/aim-guard/aim-guard.test.ts`
 - `packages/react/src/internal/popup-menu/popup-menu.test.tsx`
 - `packages/react/src/internal/popup-menu/utils/use-mouse-trail.test.tsx`
 - `packages/react/src/internal/popup-menu/pointer-trail.test.tsx`
@@ -378,7 +378,8 @@ When modifying aim guard logic, verify:
 Recommended validation command:
 
 ```bash
-bun run test packages/react/src/internal/popup-menu/popup-menu.test.tsx packages/react/src/internal/popup-menu/utils/aim-guard.test.ts
+bun run test --filter @bazza-ui/menu-core
+cd packages/react && bunx vitest run src/internal/popup-menu/popup-menu.test.tsx
 ```
 
 ## 20. Summary

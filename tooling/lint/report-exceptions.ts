@@ -1,5 +1,5 @@
 /**
- * Prints every lint exception in `packages/react`: each rule's allowlist in
+ * Prints every lint exception in `packages/react` and `packages/menu-core`: each rule's allowlist in
  * `.oxlintrc.json`, rules turned off by pattern, and every inline
  * `oxlint-disable` comment with its reason. The counts are for people to
  * watch and burn down, not a gate.
@@ -16,7 +16,8 @@ import { join } from 'node:path'
 import { directiveProblem, parseDirective } from './bazza-plugin.mjs'
 import { comments, readOxlintConfig, repoRoot } from './source-text.ts'
 
-/** The extensions oxlint lints in `packages/react` (see `.oxlintrc.json`). */
+/** The packages `lint:oxlint` lints, and the extensions it lints in them. */
+const packages = ['packages/react', 'packages/menu-core']
 const extensions = ['ts', 'tsx', 'mts', 'cts', 'js', 'jsx', 'mjs', 'cjs']
 
 export interface InlineException {
@@ -138,7 +139,7 @@ export function formatReport(
   const entries = allowlists.reduce((sum, a) => sum + a.files.length, 0)
   const files = new Set(allowlists.flatMap((a) => a.files)).size
   const lines = [
-    `Lint exceptions in packages/react: ${entries} allowlist entries across ${files} file(s), ${inline.length} inline.`,
+    `Lint exceptions in ${packages.join(' and ')}: ${entries} allowlist entries across ${files} file(s), ${inline.length} inline.`,
     '',
     'Allowlisted files, by rule (fix a file, then delete its line in .oxlintrc.json):',
   ]
@@ -178,7 +179,7 @@ export function formatReport(
   return lines
 }
 
-/** Tracked source files in `packages/react` that exist in the working tree. */
+/** Tracked source files in the linted packages that exist in the working tree. */
 function sourceFiles(): string[] {
   const out = execFileSync(
     'git',
@@ -186,7 +187,7 @@ function sourceFiles(): string[] {
       'ls-files',
       '-z',
       '--',
-      ...extensions.map((ext) => `packages/react/*.${ext}`),
+      ...packages.flatMap((pkg) => extensions.map((ext) => `${pkg}/*.${ext}`)),
     ],
     { cwd: repoRoot, encoding: 'utf8' },
   )

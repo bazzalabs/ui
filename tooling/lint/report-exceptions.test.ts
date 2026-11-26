@@ -229,7 +229,7 @@ describe('brokenExceptions and formatReport', () => {
       (file) => file === 'here.ts',
     )
     expect(lines[0]).toBe(
-      'Lint exceptions in packages/react: 3 allowlist entries across 2 file(s), 2 inline.',
+      'Lint exceptions in packages/react and packages/menu-core: 3 allowlist entries across 2 file(s), 2 inline.',
     )
     expect(lines).toContain('    gone.ts  (file no longer exists)')
     expect(lines).toContain('  **/*.test.ts: bazza/use-client')

@@ -29,7 +29,9 @@ const SPECIFIER =
 
 const undeclared = new Map<string, Set<string>>()
 let files = 0
-for await (const file of new Glob('dist/**/*.{js,cjs,mjs}').scan(ROOT)) {
+for await (const file of new Glob(
+  'dist/**/*.{js,cjs,mjs,d.ts,d.cts,d.mts}',
+).scan(ROOT)) {
   files++
   const code = await Bun.file(`${ROOT}${file}`).text()
   for (const match of code.matchAll(SPECIFIER)) {
