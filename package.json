@@ -12,7 +12,7 @@
     "clean": "zsh -c 'setopt nullglob && rm -rf **/node_modules **/dist **/.turbo **/.next **/.next-dev'",
     "check": "biome check . && bun run lint:oxlint",
     "check:fix": "biome check --fix . && bun run lint:oxlint --fix",
-    "lint:oxlint": "oxlint --disable-nested-config packages/react",
+    "lint:oxlint": "oxlint --disable-nested-config packages/react packages/menu-core",
     "lint:exceptions": "bun tooling/lint/report-exceptions.ts",
     "format": "biome format .",
     "format:fix": "biome format --write .",

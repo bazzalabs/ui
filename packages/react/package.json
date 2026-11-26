@@ -87,6 +87,7 @@
     "@floating-ui/react": "^0.27.16"
   },
   "devDependencies": {
+    "@bazza-ui/menu-core": "workspace:*",
     "@bazza-ui/typescript-config": "workspace:*",
     "@tanstack/react-form": "^1.27.7",
     "@testing-library/jest-dom": "^6.9.1",

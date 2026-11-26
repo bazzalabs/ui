@@ -1,6 +1,7 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  // oxlint lints how parts in `packages/react` are written. Biome owns
+  // oxlint lints how parts in `packages/react` are written, and keeps
+  // `packages/menu-core` free of React and Base UI. Biome owns
   // formatting and general linting, so oxlint's categories are off and only
   // the rules named below run: the `bazza/*` rules in `tooling/lint`, plus
   // built-ins Biome has no active equivalent for.
@@ -79,6 +80,37 @@
     // Which parts of `src` may import which: "Layers" in packages/react/AGENTS.md.
     // An override's `no-restricted-imports` replaces the options of earlier ones
     // for its files, so each one repeats the Base UI patterns above.
+    {
+      // menu-core: the bottom layer, below all of packages/react. No React, no
+      // Base UI, nothing from packages/react. Its tests follow the same rule.
+      "files": ["packages/menu-core/**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}"],
+      "rules": {
+        "bazza/disable-needs-reason": "error",
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["react", "react/**", "react-dom", "react-dom/**"],
+                "message": "`@bazza-ui/menu-core` is framework-free: it never imports React. Keep the React part in packages/react and give menu-core a plain callback or value. See \"Layers\" in packages/react/AGENTS.md."
+              },
+              {
+                "group": ["@base-ui/**", "@base-ui-components/**"],
+                "message": "`@bazza-ui/menu-core` never imports Base UI. Keep the Base UI part in packages/react. See \"Layers\" in packages/react/AGENTS.md."
+              },
+              {
+                "group": [
+                  "@bazza-ui/react",
+                  "@bazza-ui/react/**",
+                  "**/react/src/**"
+                ],
+                "message": "`@bazza-ui/menu-core` is the bottom layer: it imports nothing from packages/react. Move what both need into menu-core. See \"Layers\" in packages/react/AGENTS.md."
+              }
+            ]
+          }
+        ]
+      }
+    },
     {
       // utils: imports nothing else in src.
       "files": ["packages/react/src/utils/**/*.{ts,tsx}"],
