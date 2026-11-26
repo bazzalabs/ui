@@ -1,5 +1,6 @@
 import { createSelector, ReactStore } from '@base-ui/utils/store'
 import { useRefWithInit } from '@base-ui/utils/useRefWithInit'
+import type { FilterFn, SearchNormalizer } from '@bazza-ui/menu-core'
 import {
   createChangeEventDetails,
   createGenericEventDetails,
@@ -24,13 +25,7 @@ export type { OpenMethod }
 // Types
 // ============================================================================
 
-export type FilterFn = (
-  value: string,
-  search: string,
-  keywords?: string[],
-) => number
-
-export type SearchNormalizer = (search: string) => string
+export type { FilterFn, SearchNormalizer }
 
 export interface ItemRegistration {
   value: string

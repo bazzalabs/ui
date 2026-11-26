@@ -2,11 +2,12 @@
 
 The data-first popup-menu system in `@bazza-ui/react`: consumers describe menu content as declarative node definitions; the library resolves them into menu nodes, then renders, filters, deep-searches, and identifies rows.
 
-Where it lives (`packages/react/src/internal/popup-menu/`):
+Where it lives:
 
-- `menu-tree/` — the resolved-node model and the resolver (identity, reconcile, graft)
-- `data-first/` — the pipeline that renders defs: list, subpages, filtering/deep search, async
-- `components/`, `contexts/`, `hooks/` — the JSX parts and their plumbing
+- `packages/menu-core/src/tree/` — node def kinds, the Menu Node model and the resolver (identity, reconcile, graft), with no React
+- `packages/menu-core/src/data/` — the pipeline over defs: browse, flatten, filtering/deep search, scoring, sorting, display, async helpers, with no React
+- `packages/react/src/internal/popup-menu/menu-tree/` and `data-first/` — the React layer over those: React-typed defs and nodes, the list and subpages, async loaders; their pure modules re-export from `@bazza-ui/menu-core`
+- `packages/react/src/internal/popup-menu/components/`, `contexts/`, `hooks/` — the JSX parts and their plumbing
 
 ## Language
 
@@ -20,7 +21,7 @@ _Avoid_: resolved node (as a noun — "resolution" stays as the process), wrappe
 Submenu and subpage render callbacks receive only resolver-owned child Menu Nodes as `nodes`; authored fields are available through `child.def`.
 
 **Menu Tree**:
-The single resolved node tree owned by one menu root, and the `MenuTreeResolver` that maintains it. Created once per root; re-supplied content reconciles into it rather than rebuilding it.
+The single tree of Menu Nodes owned by one menu root, and the `MenuTreeResolver` that maintains it. Created once per root; re-supplied content reconciles into it rather than rebuilding it.
 _Avoid_: node graph, model
 
 **Display Node**:
@@ -81,10 +82,10 @@ _Avoid_: list store, selection engine
 
 These terms described the string-based identity model and no longer exist in the code. They appear here only so the names are not reintroduced with new meanings.
 
-- **Row Id Strategy** (`rowIdStrategy`: `qualified` / `explicit` / `hybrid`) and `getQualifiedRowId` — superseded by the `getResolvedId` seam. `hybrid` has no successor: it made ids depend on render context, which the resolved-node model forbids by construction.
+- **Row Id Strategy** (`rowIdStrategy`: `qualified` / `explicit` / `hybrid`) and `getQualifiedRowId` — superseded by the `getResolvedId` seam. `hybrid` has no successor: it made ids depend on render context, which the Menu Node model forbids by construction.
 - **Row ID** / `getRowId` — replaced by Resolved ID / `getResolvedId`.
 - **Segment** / `pathSegment` — replaced by Definition Key / `definitionKey`.
 - **Display Path** (`displayPath`) — the segments of the submenus enclosing the surface a row was displayed in. Contextual by nature; deleted along with the strategy machinery that consumed it.
 - **Identity Scheme** — any derivation of a row, page, loader, or deduplication key that bypasses the Menu Tree and recomputes identity from defs, values, or paths. Every scheme is replaced by the Resolved ID. Removed schemes: the subpage page ID (`getSubpagePageId`, `SubpageDef.pageId`), the async loader key (`getAsyncLoaderIdForBranch`), the deep-search dedup composite key, and the `__root__` sentinel (`ROOT_SUBPAGE_ID`).
 - **Detached Node** — the placeholder produced when an out-of-tree def was passed to `renderNode`. Render callbacks now receive only Menu Nodes; the case is inexpressible.
-- **Publication** — a token/withdrawal handoff of resolved nodes between a root list and sibling subpages, prototyped in an abandoned branch. Never entered the glossary; recorded so the name is not reused.
+- **Publication** — a token/withdrawal handoff of Menu Nodes between a root list and sibling subpages, prototyped in an abandoned branch. Never entered the glossary; recorded so the name is not reused.

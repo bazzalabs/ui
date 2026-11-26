@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { NodeDef } from '../../data-first/types.js'
-import { createMenuTreeResolver } from '../resolver.js'
+import type { AnyNodeDef as NodeDef } from './node-def-map.js'
+import { createMenuTreeResolver } from './resolver.js'
 
 const item = (value: string, id?: string): NodeDef =>
   ({ kind: 'item', value, id, render: () => null }) as NodeDef
@@ -57,7 +57,7 @@ describe('createMenuTreeResolver', () => {
       originalSubmenu,
     ])
 
-    expect(resolver.rootNodes[1]).toBe(submenuNode)
+    expect(resolver.rootNodes[1]!).toBe(submenuNode)
   })
 
   it('reconciles a fresh content tree by id while swapping defs', () => {
@@ -72,8 +72,8 @@ describe('createMenuTreeResolver', () => {
     const newStatus = submenu('Status', [newBacklog])
     resolver.setContent([newStatus])
 
-    expect(resolver.rootNodes[0]).toBe(oldStatusNode)
-    expect(oldStatusNode.children[0]).toBe(oldBacklogNode)
+    expect(resolver.rootNodes[0]!).toBe(oldStatusNode)
+    expect(oldStatusNode.children[0]!).toBe(oldBacklogNode)
     expect(oldStatusNode.def).toBe(newStatus)
     expect(oldBacklogNode.def).toBe(newBacklog)
     expect(resolver.getNodeForDef(oldBacklog)).toBeUndefined()
@@ -91,8 +91,8 @@ describe('createMenuTreeResolver', () => {
 
     resolver.setContent([stable, freshOther])
 
-    expect(resolver.rootNodes[0]).toBe(stableNode)
-    expect(stableNode.children[0]).toBe(childNode)
+    expect(resolver.rootNodes[0]!).toBe(stableNode)
+    expect(stableNode.children[0]!).toBe(childNode)
     expect(resolver.rootNodes[1]!.def).toBe(freshOther)
   })
 
@@ -111,9 +111,11 @@ describe('createMenuTreeResolver', () => {
     expect(resolver.getNodeById('b')).toBeUndefined()
     expect(resolver.getNodeForDef(a)).toBeUndefined()
     expect(resolver.getNodeForDef(freshA)).toBe(aNode)
-    expect(resolver.getNodeForDef(c)).toBe(resolver.rootNodes[0])
-    expect(resolver.rootNodes.map((node) => node.def.value)).toEqual(['C', 'A'])
-    expect(resolver.rootNodes[1]).toBe(aNode)
+    expect(resolver.getNodeForDef(c)).toBe(resolver.rootNodes[0]!)
+    expect(
+      resolver.rootNodes.map((node) => (node.def as { value: string }).value),
+    ).toEqual(['C', 'A'])
+    expect(resolver.rootNodes[1]!).toBe(aNode)
     expect(resolver.rootNodes.map((node) => node.index)).toEqual([0, 1])
   })
 
@@ -126,7 +128,7 @@ describe('createMenuTreeResolver', () => {
 
     const renamedChild = item('Backlog')
     resolver.setContent([submenu('Workflow', [renamedChild])])
-    expect(resolver.rootNodes[0]).not.toBe(oldNode)
+    expect(resolver.rootNodes[0]!).not.toBe(oldNode)
     expect(resolver.getNodeById('status/backlog')).toBeUndefined()
     expect(resolver.getNodeById('workflow/backlog')?.def).toBe(renamedChild)
 
@@ -136,7 +138,7 @@ describe('createMenuTreeResolver', () => {
     const explicitNode = resolver.rootNodes[0]!
     const renamedExplicit = submenu('Workflow', [item('Backlog')], 'status-id')
     resolver.setContent([renamedExplicit])
-    expect(resolver.rootNodes[0]).toBe(explicitNode)
+    expect(resolver.rootNodes[0]!).toBe(explicitNode)
     expect(explicitNode.definitionPath).toEqual(['status-id'])
     expect(explicitNode.children[0]!.definitionPath).toEqual([
       'status-id',
@@ -153,9 +155,9 @@ describe('createMenuTreeResolver', () => {
     const fresh = [item('Same'), item('Same')]
     resolver.setContent(fresh)
 
-    expect(resolver.rootNodes[0]).toBe(before[0])
-    expect(resolver.rootNodes[1]).toBe(before[1])
-    expect(resolver.getNodeById('same')).toBe(before[0])
+    expect(resolver.rootNodes[0]!).toBe(before[0]!)
+    expect(resolver.rootNodes[1]!).toBe(before[1]!)
+    expect(resolver.getNodeById('same')).toBe(before[0]!)
   })
 
   it('replaces a node when its kind changes at a stable id', () => {
@@ -165,9 +167,9 @@ describe('createMenuTreeResolver', () => {
     const replacement = submenu('New', [item('Child')], 'x')
     resolver.setContent([replacement])
 
-    expect(resolver.rootNodes[0]).not.toBe(oldNode)
+    expect(resolver.rootNodes[0]!).not.toBe(oldNode)
     expect(resolver.rootNodes[0]!.kind).toBe('submenu')
-    expect(resolver.getNodeById('x')).toBe(resolver.rootNodes[0])
+    expect(resolver.getNodeById('x')).toBe(resolver.rootNodes[0]!)
   })
 
   it('does not disturb grafts when a ref-equal node is reordered', () => {
@@ -181,13 +183,13 @@ describe('createMenuTreeResolver', () => {
     resolver.setContent([item('Other'), status])
 
     expect(statusNode.index).toBe(1)
-    expect(statusNode.children[1]).toBe(extraNode)
+    expect(statusNode.children[1]!).toBe(extraNode)
   })
 
   it('invalidates graft memo after content-driven reconciliation', () => {
     const status = submenu('Status', [item('Backlog')])
     const extra = item('Extra')
-    const graftDefs = [status.nodes![0]!, extra]
+    const graftDefs = [(status as { nodes: NodeDef[] }).nodes[0]!, extra]
     const resolver = createMenuTreeResolver()
     resolver.setContent([status])
     const statusNode = resolver.rootNodes[0]!
@@ -226,15 +228,15 @@ describe('createMenuTreeResolver', () => {
 
     resolver.graft(statusNode, [backlog, inReview])
 
-    expect(statusNode.children[0]).toBe(backlogNode)
-    expect(statusNode.children[1]).toMatchObject({
+    expect(statusNode.children[0]!).toBe(backlogNode)
+    expect(statusNode.children[1]!).toMatchObject({
       definitionPath: ['status', 'in-review'],
       id: 'status/in-review',
       parent: statusNode,
       depth: statusNode.depth + 1,
     })
     expect(resolver.getNodeById('status/in-review')).toBe(
-      statusNode.children[1],
+      statusNode.children[1]!,
     )
   })
 
@@ -253,9 +255,9 @@ describe('createMenuTreeResolver', () => {
     // Same array reference → graft memo fast path (children array untouched).
     resolver.graft(statusNode, graftDefs)
     expect(statusNode.children).toBe(childrenBefore)
-    expect(statusNode.children[1]).toBe(grafted)
+    expect(statusNode.children[1]!).toBe(grafted)
     resolver.setContent(root)
-    expect(statusNode.children[1]).toBe(grafted)
+    expect(statusNode.children[1]!).toBe(grafted)
 
     resolver.setContent([submenu('Status', [item('Backlog')])])
     expect(resolver.getNodeById('status/in-review')).toBeUndefined()
@@ -263,7 +265,7 @@ describe('createMenuTreeResolver', () => {
       resolver.rootNodes[0]!.children[0]!.def,
       inReview,
     ])
-    expect(resolver.rootNodes[0]!.children[1]).not.toBe(grafted)
+    expect(resolver.rootNodes[0]!.children[1]!).not.toBe(grafted)
     expect(resolver.rootNodes[0]!.children[1]!.id).toBe('status/in-review')
   })
 
@@ -322,12 +324,12 @@ describe('createMenuTreeResolver', () => {
     const resolver = createMenuTreeResolver()
     resolver.setContent([item('A')])
     const first = resolver.rootNodes
-    const node = first[0]
+    const node = first[0]!
 
     resolver.setContent([item('A')])
 
     expect(resolver.rootNodes).not.toBe(first)
-    expect(resolver.rootNodes[0]).toBe(node)
+    expect(resolver.rootNodes[0]!).toBe(node)
   })
 
   it('returns a new array when a node is added or removed', () => {
@@ -348,11 +350,11 @@ describe('createMenuTreeResolver', () => {
 
 describe('duplicate detection', () => {
   const duplicateWarnings = (warn: ReturnType<typeof vi.spyOn>) =>
-    warn.mock.calls.filter(([message]) =>
+    warn.mock.calls.filter(([message]: unknown[]) =>
       String(message).startsWith('[PopupMenu] Duplicate Resolved ID'),
     )
   const keyWarnings = (warn: ReturnType<typeof vi.spyOn>) =>
-    warn.mock.calls.filter(([message]) =>
+    warn.mock.calls.filter(([message]: unknown[]) =>
       String(message).startsWith('[PopupMenu] Duplicate Definition Key'),
     )
 
@@ -558,8 +560,8 @@ describe('getResolvedId seam', () => {
 
     resolver.setContent([submenu('Status', [item('Backlog')])])
 
-    expect(resolver.rootNodes[0]).toBe(statusNode)
-    expect(resolver.rootNodes[0]!.children[0]).toBe(backlogNode)
+    expect(resolver.rootNodes[0]!).toBe(statusNode)
+    expect(resolver.rootNodes[0]!.children[0]!).toBe(backlogNode)
     expect(resolver.getNodeById('x-status/backlog')).toBe(backlogNode)
   })
 
@@ -605,7 +607,7 @@ describe('getResolvedId seam', () => {
 
     resolver.setContent([item('First'), item('Second')])
 
-    expect(resolver.rootNodes[0]).toBe(before[0])
-    expect(resolver.rootNodes[1]).toBe(before[1])
+    expect(resolver.rootNodes[0]!).toBe(before[0]!)
+    expect(resolver.rootNodes[1]!).toBe(before[1]!)
   })
 })
