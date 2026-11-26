@@ -1,6 +1,7 @@
 'use client'
 
 import { useRender } from '@base-ui/react/use-render'
+import type { CheckboxItemFields } from '@bazza-ui/menu-core'
 import * as React from 'react'
 import {
   createChangeEventDetails,
@@ -19,7 +20,6 @@ import {
 } from '../../contexts/component-name-context.js'
 import { usePopupMenuContext } from '../../contexts/popup-menu-context.js'
 import type {
-  CheckedChangeEventDetails,
   CheckedChangeReason,
   SelectionCommitReason,
 } from '../../events.js'
@@ -55,82 +55,8 @@ export interface PopupMenuCheckboxItemState extends Record<string, unknown> {
 }
 
 export interface PopupMenuCheckboxItemProps
-  extends ComponentProps<'div', PopupMenuCheckboxItem.State> {
-  /**
-   * The controlled checked state.
-   */
-  checked?: boolean
-
-  /**
-   * The default checked state for uncontrolled mode.
-   * @default false
-   */
-  defaultChecked?: boolean
-
-  /**
-   * Callback fired when the checked state changes.
-   * The second parameter contains event details including the reason for the change.
-   */
-  onCheckedChange?: (
-    checked: boolean,
-    eventDetails: CheckedChangeEventDetails,
-  ) => void
-
-  /**
-   * Unique value for this item used for filtering.
-   * If not provided, will be inferred from textContent.
-   */
-  value?: string
-
-  /**
-   * Additional keywords to match against when filtering.
-   * Useful for aliases or synonyms.
-   */
-  keywords?: string[]
-
-  /**
-   * Whether this item is disabled.
-   * Disabled items are not selectable and are skipped during keyboard navigation.
-   * @default false
-   */
-  disabled?: boolean
-
-  /**
-   * Callback when this item is selected (via click or Enter key).
-   */
-  onSelect?: () => void
-
-  /**
-   * Whether to force render this item regardless of filter results.
-   * @default false
-   */
-  forceMount?: boolean
-
-  /**
-   * Whether clicking this item should close the menu.
-   * @default false
-   */
-  closeOnClick?: boolean
-
-  /**
-   * Keyboard shortcut to trigger this item.
-   * When the menu is focused and the user presses this key, the item will be selected.
-   * Should be a single character (e.g., "1", "a", etc.).
-   */
-  shortcut?: string
-
-  /**
-   * Forces this row's relative order during score-based sorting.
-   * Lower values appear earlier.
-   * @default 0
-   */
-  forceOrder?: number
-
-  /**
-   * Overrides this row's computed fuzzy-match score.
-   */
-  forceScore?: number
-}
+  extends CheckboxItemFields,
+    Omit<ComponentProps<'div', PopupMenuCheckboxItem.State>, 'onSelect'> {}
 
 const stateAttributesMapping = {
   checked: (value: unknown): Record<string, string> | null =>

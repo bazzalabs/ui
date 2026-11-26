@@ -6194,7 +6194,7 @@
       "CheckboxGroupDef": {
         "name": "CheckboxGroupDef",
         "kind": "interface",
-        "doc": "Checkbox group node definition.\nRepresents a group of checkbox items whose checked state the group owns as one array of values.\nProps derived from PopupMenuCheckboxGroupProps.",
+        "doc": "Checkbox group node definition.\nRepresents a group of checkbox items whose checked state the group owns as one array of values.\nIts group fields other than `id` and `value` are the ones PopupMenuCheckboxGroupProps takes, with the same types and docs.",
         "props": [
           {
             "name": "kind",
@@ -6355,7 +6355,7 @@
       "CheckboxItemDef": {
         "name": "CheckboxItemDef",
         "kind": "interface",
-        "doc": "Checkbox item node definition.\nRepresents a toggleable checkbox menu item.\nProps derived from PopupMenuCheckboxItemProps.",
+        "doc": "Checkbox item node definition.\nRepresents a toggleable checkbox menu item.\nIts checkbox item fields other than `value` are the ones PopupMenuCheckboxItemProps takes, with the same types and docs.",
         "props": [
           {
             "name": "kind",
@@ -7141,7 +7141,7 @@
       "ItemDef": {
         "name": "ItemDef",
         "kind": "interface",
-        "doc": "Item node definition.\nRepresents a selectable menu item.\nProps derived from PopupMenuItemProps.",
+        "doc": "Item node definition.\nRepresents a selectable menu item.\nIts item fields (`keywords`, `disabled`, `onSelect`, `closeOnClick`, `shortcut`, `forceOrder`, `forceScore`) are the ones PopupMenuItemProps takes, with the same types and docs; `value` is required here.",
         "props": [
           {
             "name": "kind",
@@ -7335,6 +7335,12 @@
             "name": "kind",
             "type": "\"link-item\"",
             "required": true
+          },
+          {
+            "name": "href",
+            "type": "string",
+            "required": true,
+            "description": "The URL this item navigates to."
           },
           {
             "name": "render",
@@ -7848,7 +7854,7 @@
       "RadioGroupDef": {
         "name": "RadioGroupDef",
         "kind": "interface",
-        "doc": "Radio group node definition.\nRepresents a group of radio items where only one can be selected.\nProps derived from PopupMenuRadioGroupProps.",
+        "doc": "Radio group node definition.\nRepresents a group of radio items where only one can be selected.\nIts group fields other than `id` are the ones PopupMenuRadioGroupProps takes, with the same types and docs.",
         "props": [
           {
             "name": "kind",
@@ -7987,7 +7993,7 @@
       "RadioItemDef": {
         "name": "RadioItemDef",
         "kind": "interface",
-        "doc": "Radio item node definition.\nRepresents a selectable radio menu item for use within RadioGroupDef.\nProps derived from PopupMenuRadioItemProps.",
+        "doc": "Radio item node definition.\nRepresents a selectable radio menu item for use within RadioGroupDef.\nIts radio item fields (`keywords`, `disabled`, `onSelect`, `closeOnClick`, `shortcut`, `forceOrder`, `forceScore`) are the ones PopupMenuRadioItemProps takes, with the same types and docs; `value` is required here.",
         "props": [
           {
             "name": "kind",
@@ -8382,7 +8388,7 @@
       "SubmenuDef": {
         "name": "SubmenuDef",
         "kind": "interface",
-        "doc": "Submenu node definition.\nRepresents a submenu trigger that opens a nested menu.\nProps derived from PopupMenuSubmenuTriggerProps.",
+        "doc": "Submenu node definition.\nRepresents a submenu trigger that opens a nested menu.\nIts trigger fields other than `id` are the ones PopupMenuSubmenuTriggerProps takes, with the same types and docs; `value` is required here.",
         "props": [
           {
             "name": "kind",
@@ -8634,7 +8640,7 @@
       "SubpageDef": {
         "name": "SubpageDef",
         "kind": "interface",
-        "doc": "Subpage node definition.\nRepresents a trigger row that opens a page in the same popup.\nProps derived from PopupMenuSubpageTriggerProps.",
+        "doc": "Subpage node definition.\nRepresents a trigger row that opens a page in the same popup.\nIts trigger fields other than `id` are the ones PopupMenuSubpageTriggerProps takes, with the same types and docs; `value` is required here.",
         "props": [
           {
             "name": "kind",
@@ -11448,7 +11454,7 @@
             "type": "string | undefined",
             "formattedType": "string",
             "required": false,
-            "description": "Explicit unique identifier for this item in the store.\nWhen provided (e.g., from data-first API's computed composite ID),\nthis takes priority over `value` for store registration."
+            "description": "Explicit unique identifier for this item in the store.\nWhen provided (e.g., the Resolved ID the data-first API passes),\nthis takes priority over `value` for store registration."
           },
           {
             "name": "value",
@@ -16396,7 +16402,7 @@
             "type": "string | undefined",
             "formattedType": "string",
             "required": false,
-            "description": "Explicit unique identifier for this item in the store.\nWhen provided (e.g., from data-first API's computed composite ID),\nthis takes priority over `value` for store registration."
+            "description": "Explicit unique identifier for this item in the store.\nWhen provided (e.g., the Resolved ID the data-first API passes),\nthis takes priority over `value` for store registration."
           },
           {
             "name": "value",

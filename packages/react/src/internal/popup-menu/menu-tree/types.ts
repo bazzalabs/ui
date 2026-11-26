@@ -1,3 +1,4 @@
+import type { MenuNode } from '@bazza-ui/menu-core'
 import type { NodeDef } from '../data-first/types.js'
 
 export type PopupMenuIdScope = 'menu' | 'surface'
@@ -14,32 +15,8 @@ export type PopupMenuIdScope = 'menu' | 'surface'
  * reference sees the current def, not necessarily the exact object/type it was
  * looked up with.
  */
-export interface PopupMenuNode<D extends NodeDef = NodeDef> {
-  /** The originating def. Replaced in place when content is re-supplied. */
-  def: D
-  /** Mirror of `def.kind`, stable for the node's lifetime. */
-  kind: D['kind']
-  /**
-   * This node's path component: explicit `def.id` verbatim when present,
-   * otherwise the slugified `value` (kinds without a display value use
-   * their required `id`).
-   */
-  definitionKey: string
-  /**
-   * Definition Path: Definition Keys from the menu root to this node,
-   * including its own key, root-first. Only submenu and subpage ancestors
-   * contribute keys (groups, radio-groups, checkbox-groups, and tree-items are path-transparent).
-   */
-  definitionPath: string[]
-  /** Resolved ID selected by the root's identity policy. */
-  id: string
-  parent: PopupMenuNode | null
-  children: PopupMenuNode[]
-  /** Def-tree depth counting every node kind; roots are 0. */
-  depth: number
-  /** Sibling index in the def tree (position within `parent.children`). */
-  index: number
-}
+export interface PopupMenuNode<D extends NodeDef = NodeDef>
+  extends MenuNode<D, PopupMenuNode> {}
 
 /**
  * A menu node before its resolved ID is assigned — the argument to `GetResolvedIdFn`.

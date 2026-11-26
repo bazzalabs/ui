@@ -2,6 +2,7 @@
 
 import { Popover } from '@base-ui/react/popover'
 import { useRender } from '@base-ui/react/use-render'
+import type { SubmenuTriggerFields } from '@bazza-ui/menu-core'
 import * as React from 'react'
 import {
   resolveClassName,
@@ -88,77 +89,8 @@ const stateAttributesMapping = {
 }
 
 export interface PopupMenuSubmenuTriggerProps
-  extends ComponentProps<'div', PopupMenuSubmenuTrigger.State> {
-  /**
-   * Explicit unique identifier for this item in the store.
-   * When provided (e.g., from data-first API's computed composite ID),
-   * this takes priority over `value` for store registration.
-   */
-  id?: string
-
-  /**
-   * Unique value for this item used for filtering.
-   * If not provided, will be inferred from textContent.
-   */
-  value?: string
-
-  /**
-   * Additional keywords to match against when filtering.
-   * Useful for aliases or synonyms.
-   */
-  keywords?: string[]
-
-  /**
-   * Whether this item is disabled.
-   * Disabled items are not selectable and are skipped during keyboard navigation.
-   */
-  disabled?: boolean
-
-  /**
-   * Whether to force render this item regardless of filter results.
-   * @default false
-   */
-  forceMount?: boolean
-
-  /**
-   * Whether the submenu opens when this trigger is highlighted.
-   * @default true
-   */
-  openOnHighlight?: boolean
-
-  /**
-   * Delay before opening the submenu (in milliseconds).
-   * Can be a number (applies to both pointer and keyboard) or an object
-   * with separate `pointer` and `keyboard` values.
-   * @default { pointer: 0, keyboard: 150 }
-   */
-  delay?: number | { pointer?: number; keyboard?: number }
-
-  /**
-   * Delay before closing the submenu when pointer leaves (in milliseconds).
-   * @default 0
-   */
-  closeDelay?: number
-
-  /**
-   * Whether the submenu closes when the pointer leaves the trigger without aiming at the submenu popup.
-   * When `false`, the submenu stays open until closed by another path (sibling highlight, keyboard, outside click, etc.).
-   * @default true
-   */
-  closeOnPointerLeave?: boolean
-
-  /**
-   * Forces this row's relative order during score-based sorting.
-   * Lower values appear earlier.
-   * @default 0
-   */
-  forceOrder?: number
-
-  /**
-   * Overrides this row's computed fuzzy-match score.
-   */
-  forceScore?: number
-}
+  extends SubmenuTriggerFields,
+    ComponentProps<'div', PopupMenuSubmenuTrigger.State> {}
 
 type SubmenuSafeTriangleDebugState = 'hidden' | 'hover' | 'activated' | 'missed'
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useRender } from '@base-ui/react/use-render'
+import type { LinkItemFields } from '@bazza-ui/menu-core'
 import * as React from 'react'
 import {
   resolveClassName,
@@ -27,39 +28,8 @@ export interface PopupMenuLinkItemState extends Record<string, unknown> {
 }
 
 export interface PopupMenuLinkItemProps
-  extends ComponentProps<'a', PopupMenuLinkItem.State> {
-  /**
-   * Unique value for this item used for filtering.
-   * If not provided, will be inferred from textContent.
-   */
-  value?: string
-  /**
-   * Additional keywords to match against when filtering.
-   * Useful for aliases or synonyms.
-   */
-  keywords?: string[]
-  /**
-   * Whether this item is disabled.
-   * Disabled items do not navigate and are skipped during keyboard navigation.
-   */
-  disabled?: boolean
-  /** Callback when this item is selected (via click, Enter key, or shortcut). */
-  onSelect?: () => void
-  /** Whether to force render this item regardless of filter results. @default false */
-  forceMount?: boolean
-  /**
-   * Whether clicking this item should close the menu. Defaults to false because
-   * full-page navigation unmounts the menu anyway.
-   * @default false
-   */
-  closeOnClick?: boolean
-  /** Keyboard shortcut to trigger this item. */
-  shortcut?: string
-  /** Forces this row's relative order during score-based sorting. @default 0 */
-  forceOrder?: number
-  /** Overrides this row's computed fuzzy-match score. */
-  forceScore?: number
-}
+  extends LinkItemFields,
+    Omit<ComponentProps<'a', PopupMenuLinkItem.State>, 'onSelect'> {}
 
 const stateAttributesMapping = {
   highlighted: (value: unknown): Record<string, string> | null =>

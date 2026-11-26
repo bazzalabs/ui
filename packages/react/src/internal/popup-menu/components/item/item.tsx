@@ -1,6 +1,7 @@
 'use client'
 
 import { useRender } from '@base-ui/react/use-render'
+import type { ItemFields } from '@bazza-ui/menu-core'
 import * as React from 'react'
 import {
   resolveClassName,
@@ -33,68 +34,8 @@ export interface PopupMenuItemState extends Record<string, unknown> {
 }
 
 export interface PopupMenuItemProps
-  extends ComponentProps<'div', PopupMenuItem.State> {
-  /**
-   * Unique value for this item used for filtering.
-   * If not provided, will be inferred from textContent.
-   */
-  value?: string
-
-  /**
-   * Additional keywords to match against when filtering.
-   * Useful for aliases or synonyms.
-   */
-  keywords?: string[]
-
-  /**
-   * Whether this item is disabled.
-   * Disabled items are not selectable and are skipped during keyboard navigation.
-   */
-  disabled?: boolean
-
-  /**
-   * Whether this item can be activated via Enter or click.
-   * Non-activatable items are still highlightable via keyboard/pointer.
-   * @default true
-   */
-  activatable?: boolean
-
-  /**
-   * Callback when this item is selected (via click or Enter key).
-   */
-  onSelect?: () => void
-
-  /**
-   * Whether to force render this item regardless of filter results.
-   * @default false
-   */
-  forceMount?: boolean
-
-  /**
-   * Whether clicking this item should close the menu.
-   * @default true
-   */
-  closeOnClick?: boolean
-
-  /**
-   * Keyboard shortcut to trigger this item.
-   * When the menu is focused and the user presses this key, the item will be selected.
-   * Should be a single character (e.g., "1", "a", etc.).
-   */
-  shortcut?: string
-
-  /**
-   * Forces this row's relative order during score-based sorting.
-   * Lower values appear earlier.
-   * @default 0
-   */
-  forceOrder?: number
-
-  /**
-   * Overrides this row's computed fuzzy-match score.
-   */
-  forceScore?: number
-}
+  extends ItemFields,
+    Omit<ComponentProps<'div', PopupMenuItem.State>, 'onSelect'> {}
 
 const stateAttributesMapping = {
   highlighted: (value: unknown): Record<string, string> | null =>
