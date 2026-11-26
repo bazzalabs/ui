@@ -20,6 +20,12 @@ import {
   useListboxContext,
   useSurfaceContext,
 } from '../../../listbox/index.js'
+import {
+  type ListboxStore,
+  reapplyAutoHighlight,
+  type SurfaceSettings,
+  syncSurfaceSettings,
+} from '../../../listbox/store/ListboxStore.js'
 import { POINTER_EVENT_DEBOUNCE_MS } from '../../constants.js'
 import { CheckboxSelectionContext } from '../../contexts/checkbox-selection-context.js'
 import {
@@ -148,6 +154,39 @@ function DataSurfaceAsyncCoordinatorScope({
 }
 
 /**
+ * Syncs the Surface's settings into its store in the layout effects of the
+ * commit that renders them. Rendered as the Surface's first child, so they
+ * run before the List's (which flushes the rows) and before a data-first list
+ * publishes its Collection; outside the Surface's element, so they run while
+ * a subpage hides it too.
+ */
+function SurfaceConfigSync({
+  store,
+  settings,
+  orderedItems,
+  orderedItemsChangedRef,
+}: {
+  store: ListboxStore
+  settings: SurfaceSettings
+  orderedItems: string[] | undefined
+  /** Set when the store takes new `orderedItems`, for the Surface's highlight. */
+  orderedItemsChangedRef: React.RefObject<boolean>
+}) {
+  React.useLayoutEffect(
+    () => syncSurfaceSettings(store, settings),
+    [store, settings],
+  )
+  // `setOrderedItems` without its highlight, which needs the commit's items
+  // registered: the Surface moves it in a passive effect.
+  React.useLayoutEffect(() => {
+    if (!orderedItems || orderedItems === store.context.orderedItems) return
+    store.context.orderedItems = orderedItems
+    orderedItemsChangedRef.current = true
+  }, [store, orderedItems, orderedItemsChangedRef])
+  return null
+}
+
+/**
  * Provides search context and manages item registration for popup menu.
  * Place inside PopupMenu.Popup to enable search functionality.
  * Renders a `<div>` element.
@@ -258,49 +297,48 @@ export const PopupMenuSurface = React.forwardRef<
     onSearchChange?.(search)
   })
 
-  // Update store context with surface configuration
+  // The settings reach the store in this commit's layout effects, from
+  // `SurfaceConfigSync` (rendered first, below).
+  const settings: SurfaceSettings = React.useMemo(
+    () => ({
+      context: {
+        // A data-first Surface's list filters.
+        filter: isDataMode ? false : filter,
+        loop,
+        autoHighlightFirst,
+        clearSearchOnClose,
+        resetScrollOnSearch,
+        listId,
+        inputId,
+        onSearchChange: handleSearchChange,
+      },
+      normalizeSearch,
+      virtualization,
+    }),
+    [
+      filter,
+      isDataMode,
+      normalizeSearch,
+      loop,
+      autoHighlightFirst,
+      clearSearchOnClose,
+      resetScrollOnSearch,
+      listId,
+      inputId,
+      handleSearchChange,
+      virtualization,
+    ],
+  )
+
+  // What needs the commit's items registered, which they do in passive
+  // effects, runs in the Surface's own, after theirs. A string
+  // `autoHighlightFirst` is applied again whenever a setting changes (see
+  // `reapplyAutoHighlight` for the one-line fix).
   React.useEffect(() => {
-    store.context.filter = isDataMode ? false : filter
-    store.setSearchNormalizer(normalizeSearch)
-    store.context.loop = loop
-    store.context.autoHighlightFirst = autoHighlightFirst
-    store.context.clearSearchOnClose = clearSearchOnClose
-    store.context.resetScrollOnSearch = resetScrollOnSearch
-    store.context.listId = listId
-    store.context.inputId = inputId
-    store.context.onSearchChange = handleSearchChange
-
-    // Configure virtualization if enabled via props
-    // Note: We only manage virtualization when explicitly provided via props.
-    // When virtualization is undefined, we don't clear it - this allows child
-    // components (like VirtualizedDataListContent) to manage virtualization
-    // independently without being overwritten by Surface.
-    if (virtualization) {
-      store.setVirtualized(virtualization.virtualized)
-      store.setVirtualItems(virtualization.items)
-      store.setOnHighlightChange(virtualization.onHighlightChange)
-    }
-
-    // Apply auto-highlight after context is updated
-    // This handles the case where autoHighlightFirst is a string value
-    // (the open observer only handles boolean true for backwards compatibility)
-    if (typeof autoHighlightFirst === 'string') {
+    if (reapplyAutoHighlight(settings.context.autoHighlightFirst)) {
       store.applyAutoHighlight()
     }
-  }, [
-    store,
-    filter,
-    normalizeSearch,
-    loop,
-    autoHighlightFirst,
-    clearSearchOnClose,
-    resetScrollOnSearch,
-    listId,
-    inputId,
-    handleSearchChange,
-    virtualization,
-    isDataMode,
-  ])
+  }, [store, settings])
 
   const popupMenuContext = usePopupMenuContext()
   const deepSearchConfig: DeepSearchConfig = React.useMemo(() => {
@@ -387,12 +425,13 @@ export const PopupMenuSurface = React.forwardRef<
     isSubpageSurfaceInThisPopup,
   ])
 
-  // Sync consumer-provided ordered items to store
-  // This is separate from the config effect since orderedItems changes on each search
+  // New `orderedItems` move the highlight to the first of them, once their
+  // items have registered.
+  const orderedItemsChangedRef = React.useRef(false)
   React.useEffect(() => {
-    if (orderedItems) {
-      store.setOrderedItems(orderedItems)
-    }
+    if (!orderedItems || !orderedItemsChangedRef.current) return
+    orderedItemsChangedRef.current = false
+    store.highlightFirstOrderedItem()
   }, [store, orderedItems])
 
   // Sync controlled search prop to store
@@ -758,6 +797,12 @@ export const PopupMenuSurface = React.forwardRef<
   // search-hidden state, and its label setter.
   return (
     <SurfaceContext.Provider value={contextValue}>
+      <SurfaceConfigSync
+        store={store}
+        settings={settings}
+        orderedItems={orderedItems}
+        orderedItemsChangedRef={orderedItemsChangedRef}
+      />
       <CheckboxSelectionContext.Provider value={selectionStore}>
         <GroupContext.Provider value={null}>{element}</GroupContext.Provider>
       </CheckboxSelectionContext.Provider>
