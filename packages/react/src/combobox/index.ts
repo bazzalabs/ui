@@ -18,6 +18,8 @@ export type {
   ComboboxPositionerContextValue,
 } from './contexts/combobox-positioner-context.js'
 export { useComboboxPositionerContext } from './contexts/combobox-positioner-context.js'
+// Icon
+export type { ComboboxIconProps, ComboboxIconState } from './icon/icon.js'
 // Input
 export { ComboboxInputDataAttributes } from './input/input.data-attrs.js'
 export type {
@@ -75,8 +77,6 @@ export type {
   PopupMenuGroupLabelState as ComboboxGroupLabelState,
   PopupMenuGroupProps as ComboboxGroupProps,
   PopupMenuGroupState as ComboboxGroupState,
-  PopupMenuIconProps as ComboboxIconProps,
-  PopupMenuIconState as ComboboxIconState,
   PopupMenuList as ComboboxList,
   PopupMenuListChildrenState as ComboboxListChildrenState,
   PopupMenuListProps as ComboboxListProps,

@@ -2,16 +2,18 @@
 
 import { Dialog } from '@base-ui/react/dialog'
 import * as React from 'react'
-import { PopupSurfaceIdContext } from '../../internal/popup-menu/contexts/popup-surface-id-context.js'
-import { SubpageStackContext } from '../../internal/popup-menu/contexts/subpage-stack-context.js'
 import {
   DataPopupContext,
   type DataSurfaceContextValue,
+  PopupSurfaceIdContext,
+  SubpageStackContext,
+  usePopupMenuContext,
+  useSubpageStackState,
+} from '../../internal/popup-menu/index.js'
+import {
+  DataSubpagesContent,
   type ResolvedNodesSlot,
-} from '../../internal/popup-menu/data-first/context.js'
-import { DataSubpagesContent } from '../../internal/popup-menu/data-first/data-subpages.js'
-import { useSubpageStackState } from '../../internal/popup-menu/hooks/use-subpage-stack-state.js'
-import { usePopupMenuContext } from '../../internal/popup-menu/index.js'
+} from '../../internal/popup-menu/members.js'
 import type { ComponentRenderFn } from '../../utils/types.js'
 
 export interface CommandMenuPopupState extends Dialog.Popup.State {

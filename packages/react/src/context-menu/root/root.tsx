@@ -4,18 +4,16 @@ import { Popover } from '@base-ui/react/popover'
 import * as React from 'react'
 import type { VirtualItem } from '../../internal/listbox/index.js'
 import {
+  type GetResolvedIdFn,
   type PopupMenuDebugOptions,
   type PopupMenuHighlightChangeHandler,
+  type PopupMenuIdScope,
   PopupMenuProviders,
   type PopupMenuRootActions,
   type UsePopupMenuRootParams,
   usePopupMenuRoot,
   type VirtualAnchor,
 } from '../../internal/popup-menu/index.js'
-import type {
-  GetResolvedIdFn,
-  PopupMenuIdScope,
-} from '../../internal/popup-menu/menu-tree/types.js'
 import { REASONS } from '../../utils/events/index.js'
 import type {
   ContextMenuHighlightChangeEventDetails,

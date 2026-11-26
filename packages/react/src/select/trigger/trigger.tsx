@@ -3,7 +3,7 @@
 import { Popover } from '@base-ui/react/popover'
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
-import { usePopupMenuContext } from '../../internal/popup-menu/contexts/popup-menu-context.js'
+import { usePopupMenuContext } from '../../internal/popup-menu/index.js'
 import { REASONS } from '../../utils/events/index.js'
 import { mergeElementProps } from '../../utils/merge-element-props.js'
 import {

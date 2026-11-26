@@ -1196,6 +1196,163 @@ export const parts = [useDirection, Popover, useRender]
     ])
   })
 
+  it.each([
+    // utils: nothing else in src
+    ['packages/react/src/utils/x.ts', '../internal/listbox/index.js', true],
+    [
+      'packages/react/src/utils/events/x.ts',
+      '../../internal/popup-menu/index.js',
+      true,
+    ],
+    ['packages/react/src/utils/x.ts', './events/index.js', false],
+    // internal/listbox: utils only
+    [
+      'packages/react/src/internal/listbox/store/x.ts',
+      '../../popup-menu/events.js',
+      true,
+    ],
+    [
+      'packages/react/src/internal/listbox/store/x.ts',
+      '../../../utils/events/index.js',
+      false,
+    ],
+    // any other engine folder: never a member
+    [
+      'packages/react/src/internal/new-thing/x.ts',
+      '../../combobox/index.js',
+      true,
+    ],
+    [
+      'packages/react/src/internal/new-thing/x.ts',
+      '../listbox/index.js',
+      false,
+    ],
+    // internal/popup-menu: utils and listbox, deep paths included
+    [
+      'packages/react/src/internal/popup-menu/components/x/x.tsx',
+      '../../../../combobox/contexts/combobox-context.js',
+      true,
+    ],
+    [
+      'packages/react/src/internal/popup-menu/components/x/x.tsx',
+      '../../../listbox/store/ListboxStore.js',
+      false,
+    ],
+    // members: the engine through its index or members.ts, families through their index
+    [
+      'packages/react/src/combobox/x/x.tsx',
+      '../../internal/popup-menu/index.js',
+      false,
+    ],
+    [
+      'packages/react/src/combobox/x/x.tsx',
+      '../../internal/popup-menu/members.js',
+      false,
+    ],
+    [
+      'packages/react/src/combobox/x/x.tsx',
+      '../../internal/listbox/index.js',
+      false,
+    ],
+    [
+      'packages/react/src/combobox/x/x.tsx',
+      '../../internal/popup-menu/contexts/x.js',
+      true,
+    ],
+    ['packages/react/src/combobox/x/x.tsx', '../../select/index.js', true],
+    ['packages/react/src/command-menu/x/x.tsx', '../../kbd/index.js', false],
+    ['packages/react/src/command-menu/x/x.tsx', '../../kbd/hooks/x.js', true],
+    // loaders: like members
+    [
+      'packages/react/src/loaders/x.tsx',
+      '../internal/popup-menu/data-first/types.js',
+      true,
+    ],
+    [
+      'packages/react/src/loaders/x.tsx',
+      '../internal/popup-menu/index.js',
+      false,
+    ],
+    // independent families: utils and other families' index
+    [
+      'packages/react/src/kbd/root/x.tsx',
+      '../../internal/popup-menu/index.js',
+      true,
+    ],
+    ['packages/react/src/kbd/root/x.tsx', '../../utils/keybinding/x.js', false],
+    // tests may import any layer
+    [
+      'packages/react/src/combobox/x/x.test.tsx',
+      '../../internal/popup-menu/contexts/x.js',
+      false,
+    ],
+  ])('layers: %s importing %s is forbidden: %s', async (file, specifier, forbidden) => {
+    const findings = await lintIgnoringPartRules({
+      [file]: `import { x } from '${specifier}'
+export const y = x
+`,
+    })
+    expect(rules(findings)).toEqual(
+      forbidden ? ['eslint(no-restricted-imports)'] : [],
+    )
+  })
+
+  // Every member, so dropping one from a `files` glob or an engine group fails here.
+  const members = [
+    'dropdown-menu',
+    'context-menu',
+    'command-menu',
+    'suggestion-menu',
+    'select',
+    'combobox',
+  ]
+  it.each(
+    members.flatMap((member) => [
+      // the member deep-importing the engine, as an import and as a re-export
+      [
+        `packages/react/src/${member}/x/x.tsx`,
+        `import { x } from '../../internal/popup-menu/contexts/x.js'\nexport const y = x\n`,
+        true,
+      ],
+      [
+        `packages/react/src/${member}/index.ts`,
+        `export { x } from '../internal/popup-menu/contexts/x.js'\n`,
+        true,
+      ],
+      [
+        `packages/react/src/${member}/x/x.tsx`,
+        `import { x } from '../../internal/popup-menu/index.js'\nexport const y = x\n`,
+        false,
+      ],
+      // the engine importing the member
+      [
+        'packages/react/src/internal/popup-menu/components/x/x.tsx',
+        `import { x } from '../../../../${member}/index.js'\nexport const y = x\n`,
+        true,
+      ],
+      [
+        'packages/react/src/internal/listbox/store/x.ts',
+        `import { x } from '../../../${member}/index.js'\nexport const y = x\n`,
+        true,
+      ],
+    ]),
+  )('layers, per member: %s with %j is forbidden: %s', async (file, source, forbidden) => {
+    const findings = await lintIgnoringPartRules({ [file]: source })
+    expect(rules(findings)).toEqual(
+      forbidden ? ['eslint(no-restricted-imports)'] : [],
+    )
+  })
+
+  it.each([
+    'kbd',
+    'video-player',
+  ])('layers: the engine never imports %s', async (family) => {
+    const findings = await lintIgnoringPartRules({
+      'packages/react/src/internal/popup-menu/components/x/x.tsx': `import { x } from '../../../../${family}/index.js'\nexport const y = x\n`,
+    })
+    expect(rules(findings)).toEqual(['eslint(no-restricted-imports)'])
+  })
+
   it('reports raw controlled store reads in shipped source, not in tests', async () => {
     const source = `export function isOpen(store: { state: { open: boolean } }) {
   return store.state.open

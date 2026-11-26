@@ -14,7 +14,7 @@ import type {
   HighlightChangeReason,
   PopupMenuOpenChangeEventDetails,
   PopupMenuOpenChangeReason,
-} from '../../popup-menu/events.js'
+} from '../events.js'
 import { commandScore } from '../utils/command-score.js'
 import { normalizeValue } from '../utils/normalize.js'
 

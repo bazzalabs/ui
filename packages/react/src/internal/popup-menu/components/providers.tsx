@@ -67,6 +67,11 @@ export interface PopupMenuProvidersProps {
    * the menu is open, so the root popup neither takes nor returns focus.
    */
   externalFocus?: boolean
+  /**
+   * Internal: the popup is laid out around an input embedded in it, so Popup
+   * and List render `data-input-embedded`.
+   */
+  inputEmbedded?: boolean
   /** Register a surface for closeAll tracking */
   registerSurface: (
     depth: number,
@@ -140,6 +145,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
     explicitTabBehavior = false,
     tabWithoutZones = 'close',
     externalFocus = false,
+    inputEmbedded = false,
     registerSurface,
     virtualization,
     debug,
@@ -169,6 +175,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
       explicitTabBehavior,
       tabWithoutZones,
       externalFocus,
+      inputEmbedded,
       registerSurface,
       virtualization,
       virtualAnchor,
@@ -186,6 +193,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
       explicitTabBehavior,
       tabWithoutZones,
       externalFocus,
+      inputEmbedded,
       registerSurface,
       virtualization,
       virtualAnchor,

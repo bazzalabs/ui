@@ -11,6 +11,7 @@ function OpenCombobox(props: {
   children?: React.ReactNode
   input?: ConformanceTargetProps
   clear?: ConformanceTargetProps
+  icon?: ConformanceTargetProps
   positioner?: ConformanceTargetProps & { layout?: 'input-embedded' }
   withWrapper?: ConformanceTargetProps
   surface?: ConformanceTargetProps
@@ -26,6 +27,7 @@ function OpenCombobox(props: {
         input
       )}
       <Combobox.Clear {...props.clear} />
+      {props.icon ? <Combobox.Icon {...props.icon} /> : null}
       <Combobox.Portal>
         <Combobox.Positioner {...props.positioner}>
           <Combobox.Popup>
@@ -58,6 +60,11 @@ describeConformance('Combobox', [
     name: 'Combobox.Clear',
     render: (p) => <OpenCombobox clear={p} />,
     state: { hasValue: true },
+  },
+  {
+    name: 'Combobox.Icon',
+    render: (p) => <OpenCombobox icon={p} />,
+    state: { open: true },
   },
   {
     name: 'Combobox.Positioner',

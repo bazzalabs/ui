@@ -15,8 +15,6 @@ export {
   // Structure
   PopupMenuGroup as Group,
   PopupMenuGroupLabel as GroupLabel,
-  // Icon
-  PopupMenuIcon as Icon,
   PopupMenuList as List,
   PopupMenuPopup as Popup,
   // Positioning & Container
@@ -28,6 +26,7 @@ export {
 } from '../internal/popup-menu/index.js'
 export { ComboboxClear as Clear } from './clear/clear.js'
 export { useComboboxPositionerContext } from './contexts/combobox-positioner-context.js'
+export { ComboboxIcon as Icon } from './icon/icon.js'
 export { ComboboxInput as Input } from './input/input.js'
 export { ComboboxInputWrapper as InputWrapper } from './input-wrapper/input-wrapper.js'
 export { ComboboxItem as Item } from './item/item.js'

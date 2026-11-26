@@ -75,6 +75,240 @@
       ],
       "rules": { "bazza/data-attrs-enum": "error" }
     },
+    // --- Layers ------------------------------------------------------------------
+    // Which parts of `src` may import which: "Layers" in packages/react/AGENTS.md.
+    // An override's `no-restricted-imports` replaces the options of earlier ones
+    // for its files, so each one repeats the Base UI patterns above.
+    {
+      // utils: imports nothing else in src.
+      "files": ["packages/react/src/utils/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@base-ui/react/internals/**"],
+                "message": "Base UI's `internals` are private and can change in any release. Use a public `@base-ui/react/<component>` or `@base-ui/utils/<helper>` export, or copy what you need into `src/utils`. See \"Lint\" in packages/react/AGENTS.md."
+              },
+              {
+                "group": ["@base-ui-components/**"],
+                "message": "`@base-ui-components/*` is the old package name. Import from `@base-ui/react` or `@base-ui/utils`. See \"Lint\" in packages/react/AGENTS.md."
+              },
+              {
+                "group": [
+                  "**/internal/**",
+                  "**/dropdown-menu/**",
+                  "**/context-menu/**",
+                  "**/command-menu/**",
+                  "**/suggestion-menu/**",
+                  "**/select/**",
+                  "**/combobox/**",
+                  "**/loaders/**",
+                  "**/kbd/**",
+                  "**/video-player/**"
+                ],
+                "message": "`src/utils` is the bottom layer: it imports nothing else in `src`. Move what both sides need into `src/utils`. See \"Layers\" in packages/react/AGENTS.md."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      // The engine (every folder under internal, popup-menu included): never a
+      // member, loader or family. The stricter listbox override below replaces
+      // this for its files.
+      "files": ["packages/react/src/internal/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@base-ui/react/internals/**"],
+                "message": "Base UI's `internals` are private and can change in any release. Use a public `@base-ui/react/<component>` or `@base-ui/utils/<helper>` export, or copy what you need into `src/utils`. See \"Lint\" in packages/react/AGENTS.md."
+              },
+              {
+                "group": ["@base-ui-components/**"],
+                "message": "`@base-ui-components/*` is the old package name. Import from `@base-ui/react` or `@base-ui/utils`. See \"Lint\" in packages/react/AGENTS.md."
+              },
+              {
+                "group": [
+                  "**/dropdown-menu/**",
+                  "**/context-menu/**",
+                  "**/command-menu/**",
+                  "**/suggestion-menu/**",
+                  "**/select/**",
+                  "**/combobox/**",
+                  "**/loaders/**",
+                  "**/kbd/**",
+                  "**/video-player/**"
+                ],
+                "message": "The engine (`src/internal`) never imports a member, a loader, `kbd` or `video-player`. Give the engine a generic option the member sets (like `externalFocus` on the popup-menu context), or move the shared code into `src/utils`. See \"Layers\" in packages/react/AGENTS.md."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      // internal/listbox: utils only.
+      "files": ["packages/react/src/internal/listbox/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@base-ui/react/internals/**"],
+                "message": "Base UI's `internals` are private and can change in any release. Use a public `@base-ui/react/<component>` or `@base-ui/utils/<helper>` export, or copy what you need into `src/utils`. See \"Lint\" in packages/react/AGENTS.md."
+              },
+              {
+                "group": ["@base-ui-components/**"],
+                "message": "`@base-ui-components/*` is the old package name. Import from `@base-ui/react` or `@base-ui/utils`. See \"Lint\" in packages/react/AGENTS.md."
+              },
+              {
+                "group": ["**/popup-menu/**"],
+                "message": "`internal/listbox` sits below `internal/popup-menu` and never imports it. Move what both need into `internal/listbox` (popup-menu can re-export it) or `src/utils`. See \"Layers\" in packages/react/AGENTS.md."
+              },
+              {
+                "group": [
+                  "**/dropdown-menu/**",
+                  "**/context-menu/**",
+                  "**/command-menu/**",
+                  "**/suggestion-menu/**",
+                  "**/select/**",
+                  "**/combobox/**",
+                  "**/loaders/**",
+                  "**/kbd/**",
+                  "**/video-player/**"
+                ],
+                "message": "The engine (`src/internal`) never imports a member, a loader, `kbd` or `video-player`. Give the engine a generic option the member sets (like `externalFocus` on the popup-menu context), or move the shared code into `src/utils`. See \"Layers\" in packages/react/AGENTS.md."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      // Members and loaders: the engine through its index (or members.ts), utils,
+      // and other families through their index.
+      "files": [
+        "packages/react/src/{dropdown-menu,context-menu,command-menu,suggestion-menu,select,combobox,loaders}/**/*.{ts,tsx}"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@base-ui/react/internals/**"],
+                "message": "Base UI's `internals` are private and can change in any release. Use a public `@base-ui/react/<component>` or `@base-ui/utils/<helper>` export, or copy what you need into `src/utils`. See \"Lint\" in packages/react/AGENTS.md."
+              },
+              {
+                "group": ["@base-ui-components/**"],
+                "message": "`@base-ui-components/*` is the old package name. Import from `@base-ui/react` or `@base-ui/utils`. See \"Lint\" in packages/react/AGENTS.md."
+              },
+              {
+                "group": [
+                  "**/internal/**",
+                  "!**/internal/popup-menu/index.js",
+                  "!**/internal/popup-menu/members.js",
+                  "!**/internal/listbox/index.js"
+                ],
+                "message": "Members and loaders import the engine only through `internal/popup-menu/index.js`, `internal/popup-menu/members.js` or `internal/listbox/index.js`. For a name `index.js` doesn't export, add it to `members.ts`. See \"Layers\" in packages/react/AGENTS.md."
+              },
+              {
+                "group": [
+                  "**/dropdown-menu/**",
+                  "**/context-menu/**",
+                  "**/command-menu/**",
+                  "**/suggestion-menu/**",
+                  "**/select/**",
+                  "**/combobox/**",
+                  "**/loaders/**"
+                ],
+                "message": "Nothing imports a member or a loader: they are the top layer. Move what both need into the engine or `src/utils`. See \"Layers\" in packages/react/AGENTS.md."
+              },
+              {
+                "group": [
+                  "**/kbd/**",
+                  "**/video-player/**",
+                  "!**/kbd/index.js",
+                  "!**/video-player/index.js"
+                ],
+                "message": "Import another family only through its `index.js`, or move what both need into `src/utils` (as `use-hotkey` lives in `src/utils/keybinding`). See \"Layers\" in packages/react/AGENTS.md."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      // Independent families: utils and other families' index.
+      "files": ["packages/react/src/{kbd,video-player}/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@base-ui/react/internals/**"],
+                "message": "Base UI's `internals` are private and can change in any release. Use a public `@base-ui/react/<component>` or `@base-ui/utils/<helper>` export, or copy what you need into `src/utils`. See \"Lint\" in packages/react/AGENTS.md."
+              },
+              {
+                "group": ["@base-ui-components/**"],
+                "message": "`@base-ui-components/*` is the old package name. Import from `@base-ui/react` or `@base-ui/utils`. See \"Lint\" in packages/react/AGENTS.md."
+              },
+              {
+                "group": [
+                  "**/internal/**",
+                  "**/dropdown-menu/**",
+                  "**/context-menu/**",
+                  "**/command-menu/**",
+                  "**/suggestion-menu/**",
+                  "**/select/**",
+                  "**/combobox/**",
+                  "**/loaders/**"
+                ],
+                "message": "`kbd` and `video-player` are independent families: they import `src/utils` and other families' `index.js` only. See \"Layers\" in packages/react/AGENTS.md."
+              },
+              {
+                "group": [
+                  "**/kbd/**",
+                  "**/video-player/**",
+                  "!**/kbd/index.js",
+                  "!**/video-player/index.js"
+                ],
+                "message": "Import another family only through its `index.js`, or move what both need into `src/utils`. See \"Layers\" in packages/react/AGENTS.md."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      // Tests may import any layer: back to the Base UI patterns alone.
+      "files": ["packages/react/src/**/*.test.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@base-ui/react/internals/**"],
+                "message": "Base UI's `internals` are private and can change in any release. Use a public `@base-ui/react/<component>` or `@base-ui/utils/<helper>` export, or copy what you need into `src/utils`. See \"Lint\" in packages/react/AGENTS.md."
+              },
+              {
+                "group": ["@base-ui-components/**"],
+                "message": "`@base-ui-components/*` is the old package name. Import from `@base-ui/react` or `@base-ui/utils`. See \"Lint\" in packages/react/AGENTS.md."
+              }
+            ]
+          }
+        ]
+      }
+    },
     {
       "files": ["packages/react/src/**/*.test.{ts,tsx}"],
       "rules": {

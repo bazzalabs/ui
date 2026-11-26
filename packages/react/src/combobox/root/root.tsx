@@ -3,7 +3,6 @@
 import { Popover, type PopoverRootProps } from '@base-ui/react/popover'
 import * as React from 'react'
 import type { VirtualItem } from '../../internal/listbox/index.js'
-import type { PopupMenuOpenChangeReason } from '../../internal/popup-menu/events.js'
 import {
   type PopupMenuDebugOptions,
   type PopupMenuHighlightChangeHandler,
@@ -12,6 +11,7 @@ import {
   type UsePopupMenuRootParams,
   usePopupMenuRoot,
 } from '../../internal/popup-menu/index.js'
+import type { PopupMenuOpenChangeReason } from '../../internal/popup-menu/members.js'
 import { REASONS } from '../../utils/events/index.js'
 import {
   defaultItemEquality,
@@ -786,6 +786,7 @@ export function ComboboxRoot<
         virtualization={virtualization}
         menuType="dropdown"
         externalFocus
+        inputEmbedded={layout === 'input-embedded'}
         componentName="combobox"
         debug={debug}
       >

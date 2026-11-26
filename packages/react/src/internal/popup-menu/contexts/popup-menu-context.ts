@@ -75,6 +75,11 @@ export interface PopupMenuContextValue {
    * The root popup then neither moves focus in on open nor returns it on close.
    */
   externalFocus: boolean
+  /**
+   * Internal: the popup is laid out around an input embedded in it (Combobox's
+   * `layout="input-embedded"`). Popup and List render `data-input-embedded`.
+   */
+  inputEmbedded: boolean
   /** Register a surface (submenu) for closeAll tracking. Returns unregister function. */
   registerSurface: (
     depth: number,

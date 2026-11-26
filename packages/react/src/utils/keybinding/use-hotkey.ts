@@ -1,9 +1,9 @@
 'use client'
 
 import * as React from 'react'
-import type { KeyChord } from '../utils/parse-keybinding.js'
-import { parseKeybinding } from '../utils/parse-keybinding.js'
-import { isApplePlatform } from '../utils/platform.js'
+import type { KeyChord } from './parse-keybinding.js'
+import { parseKeybinding } from './parse-keybinding.js'
+import { isApplePlatform } from './platform.js'
 
 /**
  * Options for the useHotkey global keydown listener.

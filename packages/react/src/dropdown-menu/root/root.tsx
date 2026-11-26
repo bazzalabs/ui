@@ -4,17 +4,15 @@ import { Popover, type PopoverRootProps } from '@base-ui/react/popover'
 import { useCallback, useImperativeHandle, useRef } from 'react'
 import type { VirtualItem } from '../../internal/listbox/index.js'
 import {
+  type GetResolvedIdFn,
   type PopupMenuDebugOptions,
   type PopupMenuHighlightChangeHandler,
+  type PopupMenuIdScope,
   PopupMenuProviders,
   type PopupMenuRootActions,
   type UsePopupMenuRootParams,
   usePopupMenuRoot,
 } from '../../internal/popup-menu/index.js'
-import type {
-  GetResolvedIdFn,
-  PopupMenuIdScope,
-} from '../../internal/popup-menu/menu-tree/types.js'
 import type {
   DropdownMenuHighlightChangeEventDetails,
   DropdownMenuOpenChangeEventDetails,

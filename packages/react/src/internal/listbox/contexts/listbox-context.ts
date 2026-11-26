@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import type { HighlightChangeEventDetails } from '../../popup-menu/events.js'
+import type { HighlightChangeEventDetails } from '../events.js'
 import type { ListboxStore, VirtualItem } from '../store/ListboxStore.js'
 
 /**
