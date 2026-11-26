@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { DropdownMenu } from '../../dropdown-menu/index.js'
 
@@ -2636,6 +2637,338 @@ describe('PopupMenu', () => {
       expect(screen.getByTestId('item-apple')).toBeInTheDocument()
       expect(screen.getByTestId('item-banana')).toBeInTheDocument()
       expect(screen.getByTestId('item-carrot')).toBeInTheDocument()
+    })
+  })
+
+  describe('IME composition', () => {
+    function MenuWithSearchSpies({
+      onValueChange,
+      onSearchChange,
+    }: {
+      onValueChange: (value: string) => void
+      onSearchChange?: (search: string) => void
+    }) {
+      return (
+        <DropdownMenu.Root defaultOpen>
+          <DropdownMenu.Trigger data-testid="trigger">
+            Open
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal keepMounted>
+            <DropdownMenu.Positioner>
+              <DropdownMenu.Popup>
+                <DropdownMenu.Surface onSearchChange={onSearchChange}>
+                  <DropdownMenu.Input
+                    data-testid="search-input"
+                    onValueChange={onValueChange}
+                  />
+                  <DropdownMenu.List>
+                    <DropdownMenu.Item data-testid="item-apple" value="apple">
+                      Apple
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Item data-testid="item-carrot" value="carrot">
+                      Carrot
+                    </DropdownMenu.Item>
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      )
+    }
+
+    function MenuWithControlledInput({
+      onValueChange,
+      defaultOpen = true,
+    }: {
+      onValueChange: (value: string) => void
+      defaultOpen?: boolean
+    }) {
+      const [value, setValue] = React.useState('')
+      return (
+        <DropdownMenu.Root defaultOpen={defaultOpen}>
+          <DropdownMenu.Trigger data-testid="trigger">
+            Open
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner>
+              <DropdownMenu.Popup>
+                <DropdownMenu.Surface>
+                  <DropdownMenu.Input
+                    data-testid="search-input"
+                    value={value}
+                    onValueChange={(next) => {
+                      onValueChange(next)
+                      setValue(next)
+                    }}
+                  />
+                  <DropdownMenu.List>
+                    <DropdownMenu.Item data-testid="item-apple" value="apple">
+                      Apple
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Item data-testid="item-carrot" value="carrot">
+                      Carrot
+                    </DropdownMenu.Item>
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      )
+    }
+
+    /** Sets the DOM value without React seeing it, like an IME edit. */
+    function setNativeValue(input: HTMLElement, value: string) {
+      Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        'value',
+      )?.set?.call(input, value)
+    }
+
+    it('filters only once the composition ends', async () => {
+      const onValueChange = vi.fn()
+      const onSearchChange = vi.fn()
+      render(
+        <MenuWithSearchSpies
+          onValueChange={onValueChange}
+          onSearchChange={onSearchChange}
+        />,
+      )
+      const input = await screen.findByTestId('search-input')
+
+      fireEvent.compositionStart(input)
+      fireEvent.change(input, { target: { value: 'c' } })
+      fireEvent.change(input, { target: { value: 'ca' } })
+
+      // The input shows the composing text, but rows don't filter yet.
+      expect(input).toHaveValue('ca')
+      expect(screen.getByTestId('item-apple')).toBeInTheDocument()
+      expect(screen.getByTestId('item-carrot')).toBeInTheDocument()
+      expect(onValueChange).not.toHaveBeenCalled()
+      expect(onSearchChange).not.toHaveBeenCalled()
+
+      fireEvent.compositionEnd(input)
+
+      expect(input).toHaveValue('ca')
+      expect(screen.queryByTestId('item-apple')).not.toBeInTheDocument()
+      expect(screen.getByTestId('item-carrot')).toBeInTheDocument()
+      expect(onValueChange.mock.calls).toEqual([['ca']])
+      expect(onSearchChange.mock.calls).toEqual([['ca']])
+    })
+
+    it('commits a controlled value only once the composition ends', async () => {
+      const onValueChange = vi.fn()
+      render(<MenuWithControlledInput onValueChange={onValueChange} />)
+      const input = await screen.findByTestId('search-input')
+
+      fireEvent.compositionStart(input)
+      fireEvent.change(input, { target: { value: 'c' } })
+      fireEvent.change(input, { target: { value: 'ca' } })
+
+      expect(input).toHaveValue('ca')
+      expect(screen.getByTestId('item-apple')).toBeInTheDocument()
+      expect(onValueChange).not.toHaveBeenCalled()
+
+      fireEvent.compositionEnd(input)
+
+      expect(input).toHaveValue('ca')
+      expect(screen.queryByTestId('item-apple')).not.toBeInTheDocument()
+      expect(screen.getByTestId('item-carrot')).toBeInTheDocument()
+      expect(onValueChange.mock.calls).toEqual([['ca']])
+    })
+
+    it('commits once when the final input comes after compositionend', async () => {
+      const onValueChange = vi.fn()
+      const onSearchChange = vi.fn()
+      render(
+        <MenuWithSearchSpies
+          onValueChange={onValueChange}
+          onSearchChange={onSearchChange}
+        />,
+      )
+      const input = await screen.findByTestId('search-input')
+
+      // WebKit order: the IME writes "ca", fires compositionend, then input.
+      fireEvent.compositionStart(input)
+      fireEvent.change(input, { target: { value: 'c' } })
+      setNativeValue(input, 'ca')
+      fireEvent.compositionEnd(input)
+      fireEvent.change(input, { target: { value: 'ca' } })
+
+      expect(input).toHaveValue('ca')
+      expect(onValueChange.mock.calls).toEqual([['ca']])
+      expect(onSearchChange.mock.calls).toEqual([['ca']])
+    })
+
+    it('does not commit a composition cancelled back to the committed value', async () => {
+      const onValueChange = vi.fn()
+      render(<MenuWithSearchSpies onValueChange={onValueChange} />)
+      const input = await screen.findByTestId('search-input')
+
+      fireEvent.change(input, { target: { value: 'c' } })
+      expect(onValueChange.mock.calls).toEqual([['c']])
+
+      fireEvent.compositionStart(input)
+      fireEvent.change(input, { target: { value: 'ca' } })
+      fireEvent.change(input, { target: { value: 'c' } })
+      fireEvent.compositionEnd(input)
+
+      expect(onValueChange.mock.calls).toEqual([['c']])
+    })
+
+    it('filters on every change outside a composition', async () => {
+      const onValueChange = vi.fn()
+      const onSearchChange = vi.fn()
+      render(
+        <MenuWithSearchSpies
+          onValueChange={onValueChange}
+          onSearchChange={onSearchChange}
+        />,
+      )
+      const input = await screen.findByTestId('search-input')
+
+      fireEvent.compositionStart(input)
+      fireEvent.change(input, { target: { value: 'c' } })
+      fireEvent.compositionEnd(input)
+      expect(screen.queryByTestId('item-apple')).not.toBeInTheDocument()
+
+      fireEvent.change(input, { target: { value: '' } })
+      expect(screen.getByTestId('item-apple')).toBeInTheDocument()
+      fireEvent.change(input, { target: { value: 'a' } })
+      expect(screen.getByTestId('item-apple')).toBeInTheDocument()
+      expect(screen.getByTestId('item-carrot')).toBeInTheDocument()
+      fireEvent.change(input, { target: { value: 'ap' } })
+      expect(screen.getByTestId('item-apple')).toBeInTheDocument()
+      expect(screen.queryByTestId('item-carrot')).not.toBeInTheDocument()
+
+      expect(onValueChange.mock.calls).toEqual([['c'], [''], ['a'], ['ap']])
+      expect(onSearchChange.mock.calls).toEqual([['c'], [''], ['a'], ['ap']])
+    })
+
+    it('commits every change to a controlled value after the search was cleared on close', async () => {
+      const user = userEvent.setup()
+      const onValueChange = vi.fn()
+      render(
+        <MenuWithControlledInput
+          onValueChange={onValueChange}
+          defaultOpen={false}
+        />,
+      )
+
+      await user.click(screen.getByTestId('trigger'))
+      const input = await screen.findByTestId('search-input')
+      fireEvent.change(input, { target: { value: 'ca' } })
+      // Closing clears the search after the exit, but not the controlled value.
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() => {
+        expect(screen.queryByTestId('search-input')).not.toBeInTheDocument()
+      })
+
+      await user.click(screen.getByTestId('trigger'))
+      const reopened = await screen.findByTestId('search-input')
+      expect(reopened).toHaveValue('ca')
+      onValueChange.mockClear()
+
+      fireEvent.change(reopened, { target: { value: '' } })
+      expect(onValueChange.mock.calls).toEqual([['']])
+      expect(reopened).toHaveValue('')
+    })
+
+    it('commits an edit that repeats the composed text once the composition is over', async () => {
+      function MenuWithValue({
+        value,
+        onValueChange,
+      }: {
+        value: string
+        onValueChange: (value: string) => void
+      }) {
+        return (
+          <DropdownMenu.Root defaultOpen>
+            <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Positioner>
+                <DropdownMenu.Popup>
+                  <DropdownMenu.Surface>
+                    <DropdownMenu.Input
+                      data-testid="search-input"
+                      value={value}
+                      onValueChange={onValueChange}
+                    />
+                    <DropdownMenu.List>
+                      <DropdownMenu.Item value="apple">Apple</DropdownMenu.Item>
+                    </DropdownMenu.List>
+                  </DropdownMenu.Surface>
+                </DropdownMenu.Popup>
+              </DropdownMenu.Positioner>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
+        )
+      }
+      const onValueChange = vi.fn()
+      const { rerender } = render(
+        <MenuWithValue value="" onValueChange={onValueChange} />,
+      )
+      const input = await screen.findByTestId('search-input')
+
+      // Chrome order: no input event follows compositionend.
+      fireEvent.compositionStart(input)
+      fireEvent.change(input, { target: { value: 'か' } })
+      fireEvent.compositionEnd(input)
+      expect(onValueChange.mock.calls).toEqual([['か']])
+      rerender(<MenuWithValue value="か" onValueChange={onValueChange} />)
+      await act(() => new Promise((resolve) => setTimeout(resolve, 0)))
+
+      // The app resets the value without an edit; the user pastes the text.
+      rerender(<MenuWithValue value="" onValueChange={onValueChange} />)
+      expect(input).toHaveValue('')
+      fireEvent.change(input, { target: { value: 'か' } })
+
+      expect(onValueChange.mock.calls).toEqual([['か'], ['か']])
+    })
+
+    it('ignores composing text that arrives after the menu closed', async () => {
+      const user = userEvent.setup()
+      const onValueChange = vi.fn()
+      render(<MenuWithSearchSpies onValueChange={onValueChange} />)
+      const input = await screen.findByTestId('search-input')
+
+      fireEvent.compositionStart(input)
+      fireEvent.change(input, { target: { value: 'ca' } })
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() => {
+        expect(input).not.toBeVisible()
+      })
+
+      // The IME keeps writing into the closed menu's input.
+      fireEvent.change(input, { target: { value: 'car' } })
+      fireEvent.compositionEnd(input)
+      expect(onValueChange).not.toHaveBeenCalled()
+    })
+
+    it('drops a composition cut off by the menu closing', async () => {
+      const user = userEvent.setup()
+      const onValueChange = vi.fn()
+      render(<MenuWithSearchSpies onValueChange={onValueChange} />)
+      const input = await screen.findByTestId('search-input')
+
+      // The menu closes mid-composition; no compositionend arrives.
+      fireEvent.compositionStart(input)
+      fireEvent.change(input, { target: { value: 'ca' } })
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() => {
+        expect(input).not.toBeVisible()
+      })
+
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() => {
+        expect(input).toBeVisible()
+      })
+      expect(input).toHaveValue('')
+
+      fireEvent.change(input, { target: { value: 'ap' } })
+      expect(onValueChange.mock.calls).toEqual([['ap']])
+      expect(screen.queryByTestId('item-carrot')).not.toBeInTheDocument()
     })
   })
 
