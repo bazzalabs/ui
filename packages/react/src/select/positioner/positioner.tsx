@@ -4,6 +4,7 @@ import { useDirection } from '@base-ui/react/internals/direction-context'
 import { Popover, type PopoverPositionerProps } from '@base-ui/react/popover'
 import * as React from 'react'
 import { usePopupMenuContext } from '../../internal/popup-menu/index.js'
+import { useMenuElement } from '../../internal/popup-menu/members.js'
 import { clamp } from '../../utils/clamp.js'
 import { REASONS } from '../../utils/events/index.js'
 import { composeStyle } from '../../utils/resolve-state-props.js'
@@ -428,16 +429,18 @@ export const SelectPositioner = React.forwardRef<
     ],
   )
 
+  const registerPositioner = useMenuElement('positioner')
   const mergedRef = React.useCallback(
     (node: HTMLDivElement | null) => {
       positionerRef.current = node
+      registerPositioner(node)
       if (typeof forwardedRef === 'function') {
         forwardedRef(node)
       } else if (forwardedRef) {
         forwardedRef.current = node
       }
     },
-    [forwardedRef],
+    [forwardedRef, registerPositioner],
   )
 
   // Hidden (but laid out) while measuring so the pass doesn't flash.

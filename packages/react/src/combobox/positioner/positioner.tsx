@@ -2,7 +2,9 @@
 
 import { Popover, type PopoverPositionerProps } from '@base-ui/react/popover'
 import { useRender } from '@base-ui/react/use-render'
+import { useMergedRefs } from '@base-ui/utils/useMergedRefs'
 import * as React from 'react'
+import { useMenuElement } from '../../internal/popup-menu/members.js'
 import { composeStyle } from '../../utils/resolve-state-props.js'
 import { useComboboxContext } from '../contexts/combobox-context.js'
 import {
@@ -157,6 +159,10 @@ export const ComboboxPositioner = React.forwardRef<
   } = props
 
   const comboboxContext = useComboboxContext()
+  const positionerRef = useMergedRefs(
+    forwardedRef,
+    useMenuElement('positioner'),
+  )
 
   // Use prop if provided, otherwise fall back to Root's layout
   const layout = layoutProp ?? comboboxContext.layout
@@ -189,7 +195,7 @@ export const ComboboxPositioner = React.forwardRef<
   if (isInputEmbedded) {
     return (
       <Popover.Positioner
-        ref={forwardedRef}
+        ref={positionerRef}
         side={side}
         align={effectiveAlign}
         sideOffset={effectiveSideOffset}
@@ -282,7 +288,7 @@ export const ComboboxPositioner = React.forwardRef<
   return (
     <ComboboxPositionerContext.Provider value={contextValue}>
       <Popover.Positioner
-        ref={forwardedRef}
+        ref={positionerRef}
         side={side}
         align={effectiveAlign}
         sideOffset={effectiveSideOffset}

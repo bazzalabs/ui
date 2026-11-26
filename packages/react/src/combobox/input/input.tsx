@@ -6,6 +6,7 @@ import {
   useFocusOwner,
   usePopupMenuContext,
 } from '../../internal/popup-menu/index.js'
+import { useMenuElement } from '../../internal/popup-menu/members.js'
 import { resolveLabelFromItems } from '../../utils/items.js'
 import {
   resolveClassName,
@@ -179,9 +180,12 @@ export const ComboboxInput = React.forwardRef<
       ? { position: 'relative', zIndex: 1 }
       : undefined
 
+  // The input opens and anchors the popup: a press on it isn't an outside press
+  const triggerRef = useMenuElement('trigger')
+
   const element = useRender({
     render,
-    ref: mergedRef,
+    ref: [mergedRef, triggerRef],
     state,
     props: {
       ...rest,

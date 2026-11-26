@@ -12,6 +12,7 @@ import {
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
 import { usePopupMenuContext } from '../../contexts/popup-menu-context.js'
+import { useMenuElement } from '../../hooks/use-menu-element.js'
 import { PopupMenuIconDataAttributes } from './icon.data-attrs.js'
 
 export { PopupMenuIconDataAttributes }
@@ -51,9 +52,13 @@ export const PopupMenuIcon = React.forwardRef<
   const componentName = useMaybeComponentName()
   const slotAttr = getSlotAttribute(componentName, 'icon')
 
+  // The icon toggles the popup (Combobox.Icon), so a press on it is a press on
+  // a trigger, not an outside press.
+  const triggerRef = useMenuElement('trigger')
+
   return useRender({
     render,
-    ref: forwardedRef,
+    ref: [forwardedRef, triggerRef],
     state,
     stateAttributesMapping,
     props: {

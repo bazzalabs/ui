@@ -43,6 +43,7 @@ import type {
   DataSurfaceProps,
   DeepSearchConfig,
 } from '../../data-first/types.js'
+import { useMenuElement } from '../../hooks/use-menu-element.js'
 import { isPopupMenuNode } from '../../menu-tree/resolve.js'
 import { CheckboxSelectionStore } from '../../store/CheckboxSelectionStore.js'
 import { getTabbables } from '../../utils/tabbables.js'
@@ -403,6 +404,7 @@ export const PopupMenuSurface = React.forwardRef<
 
   // Ref to the surface element for finding focusable elements
   const surfaceRef = React.useRef<HTMLDivElement | null>(null)
+  const elementRef = useMenuElement('surface')
 
   // Record open time when surface opens
   React.useEffect(() => {
@@ -729,7 +731,7 @@ export const PopupMenuSurface = React.forwardRef<
 
   const element = useRender({
     render,
-    ref: [surfaceRef, forwardedRef],
+    ref: [surfaceRef, forwardedRef, elementRef],
     props: {
       ...rest,
       ...(slotAttr ? { [slotAttr]: '' } : {}),

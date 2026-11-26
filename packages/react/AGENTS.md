@@ -211,6 +211,10 @@ Tests that register directly with the store flush before asserting on state.
 
 Read an item's registration with `getRegistration(store, id)` and a shortcut's item with `getShortcutItemId(store, key)` (functions in `store/ListboxStore.ts`, not store methods), never `context.items` or `context.shortcuts`. Under a data-first list those maps don't hold its rows: the store is in a temporary external-collection mode (removed by UI-679), kept off the published `ListboxStore` type in `#` members reached through those module functions. The list publishes its row Collection with `setExternalCollection(store, …)` from a layout effect that runs after its rows', and its rows (marked by `CollectionRowsContext`) don't register: they `bindRow(store, …)` with their element and part props in the commit that renders them, element or not, and a microtask flushes binds the list doesn't publish. Navigation, row metadata and positions come from the Collection and the bound rows; rows that still register (a JSX `Item` next to the data rows, or a `Separator`, `Group`, `Empty` or `Loading` part) go in among them by document position.
 
+## Tree membership
+
+Whether a node is part of a menu tree (an outside press, a focus move to an exempt element, which popup claims pointer ownership) is read from the tree's `ElementRegistry` (`@bazza-ui/menu-core`), never from attribute selectors such as `closest('[data-open]')`: another popup on the page carries those too. A part that renders a trigger, positioner, popup, surface or backdrop registers its element with the ref callback `useMenuElement(role)` (`internal/popup-menu/hooks/use-menu-element.ts`; members import it from `members.js`), merged with its other refs. A popup passes the id of the surface it opens with: `useMenuElement('popup', surfaceId)`. Code that checks membership reads the registry with `getElementRegistry(openChainStore)`. A new part that a press shouldn't count as outside, as the Combobox input doesn't, registers too. A menu root nests its registry in an outer tree's while it's open (`usePopupMenuRoot`), and a popup claims presses on content it portals out (`usePressClaim`, an `onPointerDownCapture` that goes after `{...rest}`), so neither counts as an outside press of the outer tree.
+
 ## Layers
 
 `src` is layered, and imports only go down (ADR 0006). From the bottom:
@@ -259,5 +263,7 @@ A budget is the entry's measured gzip size plus 5% headroom. Don't raise one to 
 3. Say in the pull request description which entries grew, by how much, and why.
 
 Lower a budget the same way when a change shrinks an entry, so the headroom doesn't hide later growth.
+
+Every budget is currently raised by 1000 B for the v4 engine's registry and cells, to be re-tightened when Base UI is dropped.
 
 Because `bench:size` bundles from `src`, it can't see what tsdown leaves out of `dist`. The same CI job builds the package and runs `bun run bench:dist-imports`, which fails when a `dist` file imports a package `@bazza-ui/react` doesn't declare as a dependency or peer dependency, such as a private workspace package tsdown should have bundled.

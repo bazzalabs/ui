@@ -1,8 +1,10 @@
 'use client'
 
 import { Dialog } from '@base-ui/react/dialog'
+import { useMergedRefs } from '@base-ui/utils/useMergedRefs'
 import * as React from 'react'
 import { useMaybePopupMenuContext } from '../../internal/popup-menu/index.js'
+import { useMenuElement } from '../../internal/popup-menu/members.js'
 
 export interface CommandMenuTriggerProps extends Dialog.Trigger.Props {}
 export type CommandMenuTriggerState = Dialog.Trigger.State
@@ -17,10 +19,11 @@ export const CommandMenuTrigger = React.forwardRef<
   const { disabled, ...rest } = props
   const popupMenuContext = useMaybePopupMenuContext()
   const isDisabled = disabled || popupMenuContext?.disabled || false
+  const triggerRef = useMergedRefs(forwardedRef, useMenuElement('trigger'))
 
   return (
     <Dialog.Trigger
-      ref={forwardedRef}
+      ref={triggerRef}
       {...rest}
       disabled={isDisabled}
       data-command-menu-trigger=""
