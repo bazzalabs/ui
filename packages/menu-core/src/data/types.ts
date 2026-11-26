@@ -1,3 +1,4 @@
+import type { ContainerKind } from '../tree/container.js'
 import type {
   DisplayCheckboxGroupNode,
   DisplayGroupNode,
@@ -29,6 +30,10 @@ export type RowMenuNode<N extends { def: AnyNodeDef } = AnyMenuNode> =
 /** A Branch's Menu Node: a submenu or subpage. */
 export type BranchMenuNode<N extends { def: AnyNodeDef } = AnyMenuNode> =
   MenuNodeOfKind<N, 'submenu' | 'subpage'>
+
+/** A Container's Menu Node: a group, radio group, or checkbox group. */
+export type ContainerMenuNode<N extends { def: AnyNodeDef } = AnyMenuNode> =
+  MenuNodeOfKind<N, ContainerKind>
 
 /** A Menu Node a Breadcrumb can hold: a Branch or a tree item. */
 export type BreadcrumbMenuNode<N extends { def: AnyNodeDef } = AnyMenuNode> =

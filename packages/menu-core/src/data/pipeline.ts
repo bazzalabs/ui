@@ -4,9 +4,19 @@
 
 import type { FilterFn } from '../text/filter.js'
 import type { IncludeInDeepSearch } from '../tree/branch-config.js'
-import type { AnyMenuNode, MenuNodeOfKind } from '../tree/menu-node.js'
+import { type ContainerSelection, selectionOf } from '../tree/container.js'
+import type { AnyMenuNode } from '../tree/menu-node.js'
 import { getBrowseNodesPreserve } from './browse.js'
-import { buildDisplayRowNode, buildDisplayRowNodes } from './display.js'
+import {
+  type ContainerSearchBehaviors,
+  membershipOf,
+  rowContainerOf,
+} from './container.js'
+import {
+  buildDisplayContainerNode,
+  buildDisplayRowNode,
+  buildDisplayRowNodes,
+} from './display.js'
 import { flattenNodes } from './flatten.js'
 import { scoreNodes } from './score.js'
 import {
@@ -23,30 +33,17 @@ import {
 import type {
   BreadcrumbNode,
   CheckboxGroupBehavior,
+  ContainerMenuNode,
   DisabledBranchBehavior,
   FlattenedNode,
   GroupBehavior,
-  GroupRenderContext,
-  PipelineDisplayCheckboxGroupNode,
-  PipelineDisplayGroupNode,
   PipelineDisplayNode,
-  PipelineDisplayRadioGroupNode,
   PipelineDisplayRowNode,
   PipelineDisplayTypes,
   PipelineMenuNode,
   RadioGroupBehavior,
   ScoredNode,
 } from './types.js'
-
-type GroupMenuNode<N extends PipelineMenuNode<N>> = MenuNodeOfKind<N, 'group'>
-type RadioGroupMenuNode<N extends PipelineMenuNode<N>> = MenuNodeOfKind<
-  N,
-  'radio-group'
->
-type CheckboxGroupMenuNode<N extends PipelineMenuNode<N>> = MenuNodeOfKind<
-  N,
-  'checkbox-group'
->
 
 // Full Pipeline
 // ============================================================================
@@ -99,330 +96,49 @@ export interface FilterNodesResult<
   isDeepSearching: boolean
 }
 
-/**
- * Filters nodes with 'flatten' group behavior.
- * Groups are invisible, items shown in flat list.
- * Radio group behavior is controlled by radioGroupSearchBehavior.
- * Checkbox group behavior is controlled by checkboxGroupSearchBehavior.
- */
-function filterNodesFlatten<N extends PipelineMenuNode<N>>(
-  options: SearchFilterNodesOptions<N>,
-): FilterNodesResult<N> {
-  const {
-    query,
-    nodes,
-    highlightedId,
-    deepSearch = true,
-    includeInDeepSearch = true,
-    disabledBranchBehavior = 'exclude',
-    minLength = 0,
-    radioGroupSearchBehavior = 'preserve',
-    checkboxGroupSearchBehavior = 'preserve',
-    filter,
-  } = options
-
-  // Determine if deep search should activate
-  const shouldDeepSearch = deepSearch && query.length >= minLength
-
-  // Flatten nodes
-  const flattened = flattenNodes(nodes, {
-    deep: shouldDeepSearch,
-    includeInDeepSearch,
-    disabledBranchBehavior,
-  })
-
-  // For preserve-show-all, we need to track ALL radio group items before scoring
-  // Maps radio group ID -> all flattened nodes for that group
-  const allRadioGroupItems = new Map<
-    string,
-    {
-      radioGroupDef: RadioGroupMenuNode<N>['def']
-      menuNode: RadioGroupMenuNode<N>
-      items: FlattenedNode<PipelineDisplayTypes<N>>[]
-      breadcrumbs: BreadcrumbNode<PipelineDisplayTypes<N>>[]
-    }
-  >()
-
-  if (radioGroupSearchBehavior === 'preserve-show-all') {
-    for (const flatNode of flattened) {
-      if (flatNode.radioGroup) {
-        const existing = allRadioGroupItems.get(flatNode.radioGroup.id)
-        if (existing) {
-          existing.items.push(flatNode)
-        } else {
-          allRadioGroupItems.set(flatNode.radioGroup.id, {
-            radioGroupDef: flatNode.radioGroup.radioGroupDef,
-            menuNode: flatNode.radioGroup.menuNode,
-            items: [flatNode],
-            breadcrumbs: flatNode.breadcrumbs,
-          })
-        }
-      }
-    }
-  }
-
-  // For preserve-show-all, track ALL checkbox group items before scoring.
-  const allCheckboxGroupItems = new Map<
-    string,
-    {
-      checkboxGroupDef: CheckboxGroupMenuNode<N>['def']
-      menuNode: CheckboxGroupMenuNode<N>
-      items: FlattenedNode<PipelineDisplayTypes<N>>[]
-      breadcrumbs: BreadcrumbNode<PipelineDisplayTypes<N>>[]
-    }
-  >()
-
-  if (checkboxGroupSearchBehavior === 'preserve-show-all') {
-    for (const flatNode of flattened) {
-      if (flatNode.checkboxGroup) {
-        const existing = allCheckboxGroupItems.get(flatNode.checkboxGroup.id)
-        if (existing) {
-          existing.items.push(flatNode)
-        } else {
-          allCheckboxGroupItems.set(flatNode.checkboxGroup.id, {
-            checkboxGroupDef: flatNode.checkboxGroup.checkboxGroupDef,
-            menuNode: flatNode.checkboxGroup.menuNode,
-            items: [flatNode],
-            breadcrumbs: flatNode.breadcrumbs,
-          })
-        }
-      }
-    }
-  }
-
-  // Score nodes
-  const scored = scoreNodes(flattened, query, filter)
-
-  // Separate radio group items from regular items
-  const radioGroupItems = new Map<
-    string,
-    {
-      radioGroupDef: RadioGroupMenuNode<N>['def']
-      menuNode: RadioGroupMenuNode<N>
-      items: ScoredNode<PipelineDisplayTypes<N>>[]
-      breadcrumbs: BreadcrumbNode<PipelineDisplayTypes<N>>[]
-    }
-  >()
-  const checkboxGroupItems = new Map<
-    string,
-    {
-      checkboxGroupDef: CheckboxGroupMenuNode<N>['def']
-      menuNode: CheckboxGroupMenuNode<N>
-      items: ScoredNode<PipelineDisplayTypes<N>>[]
-      breadcrumbs: BreadcrumbNode<PipelineDisplayTypes<N>>[]
-    }
-  >()
-  const regularItems: ScoredNode<PipelineDisplayTypes<N>>[] = []
-
-  for (const scoredNode of scored) {
-    if (scoredNode.radioGroup) {
-      // For 'flatten' behavior, treat radio items as regular items
-      if (radioGroupSearchBehavior === 'flatten') {
-        regularItems.push(scoredNode)
-      } else {
-        // For 'preserve' and 'preserve-show-all', group them
-        const existing = radioGroupItems.get(scoredNode.radioGroup.id)
-        if (existing) {
-          existing.items.push(scoredNode)
-        } else {
-          radioGroupItems.set(scoredNode.radioGroup.id, {
-            radioGroupDef: scoredNode.radioGroup.radioGroupDef,
-            menuNode: scoredNode.radioGroup.menuNode,
-            items: [scoredNode],
-            breadcrumbs: scoredNode.breadcrumbs,
-          })
-        }
-      }
-    } else if (scoredNode.checkboxGroup) {
-      if (checkboxGroupSearchBehavior === 'flatten') {
-        regularItems.push(scoredNode)
-      } else {
-        const existing = checkboxGroupItems.get(scoredNode.checkboxGroup.id)
-        if (existing) {
-          existing.items.push(scoredNode)
-        } else {
-          checkboxGroupItems.set(scoredNode.checkboxGroup.id, {
-            checkboxGroupDef: scoredNode.checkboxGroup.checkboxGroupDef,
-            menuNode: scoredNode.checkboxGroup.menuNode,
-            items: [scoredNode],
-            breadcrumbs: scoredNode.breadcrumbs,
-          })
-        }
-      }
-    } else {
-      regularItems.push(scoredNode)
-    }
-  }
-
-  // Sort regular items by score
-  const sorted = sortByScore(regularItems)
-
-  // Partition (items first, then submenus)
-  const partitioned = partitionByKind(sorted)
-
-  // Deduplicate
-  const unique = deduplicateNodes(partitioned)
-
-  // Build display nodes for regular items
-  const regularDisplayNodes: PipelineDisplayRowNode<N>[] = buildDisplayRowNodes(
-    unique,
-    query,
-    highlightedId,
-  )
-
-  // Build display nodes for radio groups
-  const radioGroupDisplayNodes: PipelineDisplayRadioGroupNode<N>[] = []
-
-  if (radioGroupSearchBehavior !== 'flatten') {
-    for (const [
-      radioGroupId,
-      { items: matchingItems, breadcrumbs },
-    ] of radioGroupItems) {
-      let itemsToDisplay: ScoredNode<PipelineDisplayTypes<N>>[]
-
-      if (radioGroupSearchBehavior === 'preserve-show-all') {
-        // Include ALL items from this radio group, not just matching ones
-        const allItems = allRadioGroupItems.get(radioGroupId)
-        if (allItems) {
-          // Create scored nodes for all items, using 0 for non-matching
-          const matchingScores = new Map(
-            matchingItems.map((item) => [item.node.id, item.score]),
-          )
-
-          itemsToDisplay = allItems.items.map((flatNode) => ({
-            node: flatNode.node,
-            score: matchingScores.get(flatNode.node.id) ?? 0,
-            breadcrumbs: flatNode.breadcrumbs,
-            group: flatNode.group,
-            radioGroup: flatNode.radioGroup,
-            checkboxGroup: flatNode.checkboxGroup,
-          }))
-        } else {
-          itemsToDisplay = matchingItems
-        }
-      } else {
-        // 'preserve' - only show matching items
-        itemsToDisplay = matchingItems
-      }
-
-      // Sort items by forced order, then score.
-      itemsToDisplay.sort(compareScoredNodesByForceOrderAndScore)
-
-      const bestScore = Math.max(...itemsToDisplay.map((item) => item.score), 0)
-      const isDeepSearchResult = breadcrumbs.length > 0
-
-      const groupContext: GroupRenderContext<PipelineDisplayTypes<N>> = {
-        search: query ? { query, bestScore } : null,
-        matchCount: matchingItems.length,
-        breadcrumbs,
-        isDeepSearchResult,
-      }
-
-      radioGroupDisplayNodes.push({
-        kind: 'radio-group',
-        node: radioGroupItems.get(radioGroupId)!.menuNode,
-        context: groupContext,
-        items: itemsToDisplay.map((item) =>
-          buildDisplayRowNode(item, query, highlightedId),
-        ),
-        bestScore,
-      })
-    }
-  }
-
-  const checkboxGroupDisplayNodes: PipelineDisplayCheckboxGroupNode<N>[] = []
-
-  if (checkboxGroupSearchBehavior !== 'flatten') {
-    for (const [
-      checkboxGroupId,
-      { items: matchingItems, breadcrumbs, menuNode },
-    ] of checkboxGroupItems) {
-      let itemsToDisplay: ScoredNode<PipelineDisplayTypes<N>>[]
-      if (checkboxGroupSearchBehavior === 'preserve-show-all') {
-        const allItems = allCheckboxGroupItems.get(checkboxGroupId)
-        if (allItems) {
-          const matchingScores = new Map(
-            matchingItems.map((item) => [item.node.id, item.score]),
-          )
-          itemsToDisplay = allItems.items.map((flatNode) => ({
-            node: flatNode.node,
-            score: matchingScores.get(flatNode.node.id) ?? 0,
-            breadcrumbs: flatNode.breadcrumbs,
-            group: flatNode.group,
-            radioGroup: flatNode.radioGroup,
-            checkboxGroup: flatNode.checkboxGroup,
-          }))
-        } else {
-          itemsToDisplay = matchingItems
-        }
-      } else {
-        itemsToDisplay = matchingItems
-      }
-      itemsToDisplay.sort(compareScoredNodesByForceOrderAndScore)
-      const bestScore = Math.max(...itemsToDisplay.map((item) => item.score), 0)
-      const groupContext: GroupRenderContext<PipelineDisplayTypes<N>> = {
-        search: query ? { query, bestScore } : null,
-        matchCount: matchingItems.length,
-        breadcrumbs,
-        isDeepSearchResult: breadcrumbs.length > 0,
-      }
-      checkboxGroupDisplayNodes.push({
-        kind: 'checkbox-group',
-        node: menuNode,
-        context: groupContext,
-        items: itemsToDisplay.map((item) =>
-          buildDisplayRowNode(item, query, highlightedId),
-        ),
-        bestScore,
-      })
-    }
-  }
-
-  // Merge regular items, radio groups, and checkbox groups, sorted by forced order then score.
-  type SortableNode = {
-    node: PipelineDisplayNode<N>
-    score: number
-    forceOrder: number
-    kindRank: number
-  }
-
-  const allNodes: SortableNode[] = [
-    ...regularDisplayNodes.map((r) => ({
-      node: r as PipelineDisplayNode<N>,
-      score: getDisplayRowScore(r),
-      forceOrder: getDisplayRowForceOrder(r),
-      kindRank: getRowKindSortRank(r.node.kind),
-    })),
-    ...radioGroupDisplayNodes.map((r) => ({
-      node: r as PipelineDisplayNode<N>,
-      score: r.bestScore,
-      forceOrder: getMinForceOrderFromDisplayRows(r.items),
-      kindRank: 0,
-    })),
-    ...checkboxGroupDisplayNodes.map((r) => ({
-      node: r as PipelineDisplayNode<N>,
-      score: r.bestScore,
-      forceOrder: getMinForceOrderFromDisplayRows(r.items),
-      kindRank: 0,
-    })),
-  ]
-
-  allNodes.sort(sortByForceOrderThenKindThenScore)
-
-  return {
-    displayNodes: allNodes.map((n) => n.node),
-    isDeepSearching: shouldDeepSearch,
-  }
+/** What a Container collects during a search. */
+interface ContainerMatches<N extends PipelineMenuNode<N>> {
+  menuNode: ContainerMenuNode<N>
+  /** The rows that matched the query. */
+  matching: ScoredNode<PipelineDisplayTypes<N>>[]
+  breadcrumbs: BreadcrumbNode<PipelineDisplayTypes<N>>[]
 }
 
 /**
- * Filters nodes with 'preserve' group behavior.
- * Groups are shown as containers with their matching items.
- * Groups and ungrouped items are mixed by score.
- * Radio group behavior is controlled by radioGroupSearchBehavior.
- * Checkbox group behavior is controlled by checkboxGroupSearchBehavior.
+ * Display order of Containers with equal sort keys, and with `sortGroups`
+ * off: groups, then radio groups, then checkbox groups, each in the order
+ * their first row was found.
  */
-function filterNodesPreserve<N extends PipelineMenuNode<N>>(
+const selectionRank: Readonly<Record<ContainerSelection, number>> = {
+  none: 0,
+  single: 1,
+  multiple: 2,
+}
+
+/**
+ * Keys a Container's rows. Containers of different selection modes that
+ * share an id stay apart; two of the same mode that share an id (from
+ * different branches during deep search) are shown as one.
+ */
+function containerKey<N extends PipelineMenuNode<N>>(
+  menuNode: ContainerMenuNode<N>,
+): string {
+  return `${selectionOf(menuNode.def.kind)}:${menuNode.def.id}`
+}
+
+/**
+ * Filters nodes for a search. Each Container's rows either stay in their
+ * Container or join the loose rows, by the search behavior of its selection
+ * mode: `groupSearchBehavior` for groups, `radioGroupSearchBehavior` for
+ * radio groups, `checkboxGroupSearchBehavior` for checkbox groups.
+ *
+ * - `groupSearchBehavior: 'flatten'`: loose rows are sorted by score, items
+ *   before branches, and deduplicated; they come before the Containers, and
+ *   everything is sorted by forced order, kind, then score.
+ * - `groupSearchBehavior: 'preserve'`: Containers come before loose rows, and
+ *   everything is sorted the same way when `sortGroups` is on.
+ */
+function filterNodesSearch<N extends PipelineMenuNode<N>>(
   options: SearchFilterNodesOptions<N>,
 ): FilterNodesResult<N> {
   const {
@@ -433,338 +149,148 @@ function filterNodesPreserve<N extends PipelineMenuNode<N>>(
     includeInDeepSearch = true,
     disabledBranchBehavior = 'exclude',
     minLength = 0,
-    sortGroups = true,
+    groupSearchBehavior = 'preserve',
     radioGroupSearchBehavior = 'preserve',
     checkboxGroupSearchBehavior = 'preserve',
+    sortGroups = true,
     filter,
   } = options
+
+  const behaviors: ContainerSearchBehaviors = {
+    none: groupSearchBehavior,
+    single: radioGroupSearchBehavior,
+    multiple: checkboxGroupSearchBehavior,
+  }
+  const behaviorOf = (menuNode: ContainerMenuNode<N>) =>
+    behaviors[selectionOf(menuNode.def.kind)]
 
   // Determine if deep search should activate
   const shouldDeepSearch = deepSearch && query.length >= minLength
 
-  // Flatten nodes (tracking group, radio group, and checkbox group membership)
+  // Flatten nodes, tracking the Container each row is in
   const flattened = flattenNodes(nodes, {
     deep: shouldDeepSearch,
     includeInDeepSearch,
     disabledBranchBehavior,
   })
 
-  // For preserve-show-all, we need to track ALL radio group items before scoring
-  const allRadioGroupItems = new Map<
+  // A 'preserve-show-all' Container shows every row once any row matches, so
+  // collect all of its rows before scoring.
+  const allContainerRows = new Map<
     string,
-    {
-      radioGroupDef: RadioGroupMenuNode<N>['def']
-      menuNode: RadioGroupMenuNode<N>
-      items: FlattenedNode<PipelineDisplayTypes<N>>[]
-      breadcrumbs: BreadcrumbNode<PipelineDisplayTypes<N>>[]
-    }
+    FlattenedNode<PipelineDisplayTypes<N>>[]
   >()
-
-  if (radioGroupSearchBehavior === 'preserve-show-all') {
-    for (const flatNode of flattened) {
-      if (flatNode.radioGroup) {
-        const existing = allRadioGroupItems.get(flatNode.radioGroup.id)
-        if (existing) {
-          existing.items.push(flatNode)
-        } else {
-          allRadioGroupItems.set(flatNode.radioGroup.id, {
-            radioGroupDef: flatNode.radioGroup.radioGroupDef,
-            menuNode: flatNode.radioGroup.menuNode,
-            items: [flatNode],
-            breadcrumbs: flatNode.breadcrumbs,
-          })
-        }
-      }
-    }
-  }
-
-  const allCheckboxGroupItems = new Map<
-    string,
-    {
-      checkboxGroupDef: CheckboxGroupMenuNode<N>['def']
-      menuNode: CheckboxGroupMenuNode<N>
-      items: FlattenedNode<PipelineDisplayTypes<N>>[]
-      breadcrumbs: BreadcrumbNode<PipelineDisplayTypes<N>>[]
-    }
-  >()
-
-  if (checkboxGroupSearchBehavior === 'preserve-show-all') {
-    for (const flatNode of flattened) {
-      if (flatNode.checkboxGroup) {
-        const existing = allCheckboxGroupItems.get(flatNode.checkboxGroup.id)
-        if (existing) {
-          existing.items.push(flatNode)
-        } else {
-          allCheckboxGroupItems.set(flatNode.checkboxGroup.id, {
-            checkboxGroupDef: flatNode.checkboxGroup.checkboxGroupDef,
-            menuNode: flatNode.checkboxGroup.menuNode,
-            items: [flatNode],
-            breadcrumbs: flatNode.breadcrumbs,
-          })
-        }
-      }
-    }
+  for (const flatNode of flattened) {
+    const menuNode = rowContainerOf(flatNode)
+    if (!menuNode || behaviorOf(menuNode) !== 'preserve-show-all') continue
+    const key = containerKey(menuNode)
+    const rows = allContainerRows.get(key)
+    if (rows) rows.push(flatNode)
+    else allContainerRows.set(key, [flatNode])
   }
 
   // Score nodes
   const scored = scoreNodes(flattened, query, filter)
 
-  // Partition into groups, radio groups, and ungrouped
-  const groupedItems = new Map<
-    string,
-    {
-      groupDef: GroupMenuNode<N>['def']
-      menuNode: GroupMenuNode<N>
-      items: ScoredNode<PipelineDisplayTypes<N>>[]
-      breadcrumbs: BreadcrumbNode<PipelineDisplayTypes<N>>[]
-    }
-  >()
-  const radioGroupedItems = new Map<
-    string,
-    {
-      radioGroupDef: RadioGroupMenuNode<N>['def']
-      menuNode: RadioGroupMenuNode<N>
-      items: ScoredNode<PipelineDisplayTypes<N>>[]
-      breadcrumbs: BreadcrumbNode<PipelineDisplayTypes<N>>[]
-    }
-  >()
-  const checkboxGroupedItems = new Map<
-    string,
-    {
-      checkboxGroupDef: CheckboxGroupMenuNode<N>['def']
-      menuNode: CheckboxGroupMenuNode<N>
-      items: ScoredNode<PipelineDisplayTypes<N>>[]
-      breadcrumbs: BreadcrumbNode<PipelineDisplayTypes<N>>[]
-    }
-  >()
-  const ungroupedItems: ScoredNode<PipelineDisplayTypes<N>>[] = []
-
+  // Partition into Containers and loose rows
+  const containers = new Map<string, ContainerMatches<N>>()
+  const looseRows: ScoredNode<PipelineDisplayTypes<N>>[] = []
   for (const scoredNode of scored) {
-    if (scoredNode.radioGroup) {
-      // For 'flatten' behavior, treat radio items as ungrouped
-      if (radioGroupSearchBehavior === 'flatten') {
-        ungroupedItems.push(scoredNode)
-      } else {
-        const existing = radioGroupedItems.get(scoredNode.radioGroup.id)
-        if (existing) {
-          existing.items.push(scoredNode)
-        } else {
-          radioGroupedItems.set(scoredNode.radioGroup.id, {
-            radioGroupDef: scoredNode.radioGroup.radioGroupDef,
-            menuNode: scoredNode.radioGroup.menuNode,
-            items: [scoredNode],
-            breadcrumbs: scoredNode.breadcrumbs,
-          })
-        }
-      }
-    } else if (scoredNode.checkboxGroup) {
-      if (checkboxGroupSearchBehavior === 'flatten') {
-        ungroupedItems.push(scoredNode)
-      } else {
-        const existing = checkboxGroupedItems.get(scoredNode.checkboxGroup.id)
-        if (existing) {
-          existing.items.push(scoredNode)
-        } else {
-          checkboxGroupedItems.set(scoredNode.checkboxGroup.id, {
-            checkboxGroupDef: scoredNode.checkboxGroup.checkboxGroupDef,
-            menuNode: scoredNode.checkboxGroup.menuNode,
-            items: [scoredNode],
-            breadcrumbs: scoredNode.breadcrumbs,
-          })
-        }
-      }
-    } else if (scoredNode.group) {
-      const existing = groupedItems.get(scoredNode.group.id)
-      if (existing) {
-        existing.items.push(scoredNode)
-      } else {
-        groupedItems.set(scoredNode.group.id, {
-          groupDef: scoredNode.group.groupDef,
-          menuNode: scoredNode.group.menuNode,
-          items: [scoredNode],
-          breadcrumbs: scoredNode.breadcrumbs,
-        })
-      }
+    const menuNode = rowContainerOf(scoredNode)
+    if (!menuNode || behaviorOf(menuNode) === 'flatten') {
+      looseRows.push(scoredNode)
+      continue
+    }
+    const key = containerKey(menuNode)
+    const existing = containers.get(key)
+    if (existing) {
+      existing.matching.push(scoredNode)
     } else {
-      ungroupedItems.push(scoredNode)
+      containers.set(key, {
+        menuNode,
+        matching: [scoredNode],
+        breadcrumbs: scoredNode.breadcrumbs,
+      })
     }
   }
 
-  // Build display nodes for groups (with items sorted by score)
-  const groupDisplayNodes: PipelineDisplayGroupNode<N>[] = []
-  for (const [_groupId, { items, breadcrumbs }] of groupedItems) {
-    // Sort items within group by forced order, then score.
-    items.sort(compareScoredNodesByForceOrderAndScore)
+  // Build display nodes for Containers
+  const containerDisplayNodes = [...containers.entries()]
+    .sort(
+      ([, a], [, b]) =>
+        selectionRank[selectionOf(a.menuNode.def.kind)] -
+        selectionRank[selectionOf(b.menuNode.def.kind)],
+    )
+    .map(([key, { menuNode, matching, breadcrumbs }]) => {
+      let rows = matching
+      const allRows =
+        behaviorOf(menuNode) === 'preserve-show-all'
+          ? allContainerRows.get(key)
+          : undefined
+      if (allRows) {
+        // Include every row of the Container, scoring non-matching ones 0
+        const matchingScores = new Map(
+          matching.map((item) => [item.node.id, item.score]),
+        )
+        rows = allRows.map((flatNode) => ({
+          node: flatNode.node,
+          score: matchingScores.get(flatNode.node.id) ?? 0,
+          breadcrumbs: flatNode.breadcrumbs,
+          ...membershipOf(flatNode),
+        }))
+      }
 
-    const bestScore = Math.max(...items.map((item) => item.score), 0)
-    const isDeepSearchResult = breadcrumbs.length > 0
+      // Sort rows by forced order, then score.
+      rows.sort(compareScoredNodesByForceOrderAndScore)
 
-    const groupContext: GroupRenderContext<PipelineDisplayTypes<N>> = {
-      search: query ? { query, bestScore } : null,
-      matchCount: items.length,
-      breadcrumbs,
-      isDeepSearchResult,
-    }
-
-    groupDisplayNodes.push({
-      kind: 'group',
-      node: groupedItems.get(_groupId)!.menuNode,
-      context: groupContext,
-      items: items.map((item) =>
+      const bestScore = Math.max(...rows.map((item) => item.score), 0)
+      const items = rows.map((item) =>
         buildDisplayRowNode(item, query, highlightedId),
-      ),
-      bestScore,
+      )
+      const node = buildDisplayContainerNode<N>(
+        menuNode,
+        {
+          search: query ? { query, bestScore } : null,
+          matchCount: matching.length,
+          breadcrumbs,
+          isDeepSearchResult: breadcrumbs.length > 0,
+        },
+        items,
+        bestScore,
+      )
+      return {
+        node,
+        score: bestScore,
+        forceOrder: getMinForceOrderFromDisplayRows(items),
+        kindRank: 0,
+      }
     })
-  }
 
-  // Build display nodes for radio groups
-  const radioGroupDisplayNodes: PipelineDisplayRadioGroupNode<N>[] = []
+  // Build display nodes for loose rows
+  const looseDisplayNodes: PipelineDisplayRowNode<N>[] =
+    groupSearchBehavior === 'flatten'
+      ? buildDisplayRowNodes(
+          deduplicateNodes(partitionByKind(sortByScore(looseRows))),
+          query,
+          highlightedId,
+        )
+      : looseRows
+          .sort(compareScoredNodesByForceOrderAndScore)
+          .map((item) => buildDisplayRowNode(item, query, highlightedId))
+  const looseSortable = looseDisplayNodes.map((row) => ({
+    node: row as PipelineDisplayNode<N>,
+    score: getDisplayRowScore(row),
+    forceOrder: getDisplayRowForceOrder(row),
+    kindRank: getRowKindSortRank(row.node.kind),
+  }))
 
-  if (radioGroupSearchBehavior !== 'flatten') {
-    for (const [
-      radioGroupId,
-      { items: matchingItems, breadcrumbs },
-    ] of radioGroupedItems) {
-      let itemsToDisplay: ScoredNode<PipelineDisplayTypes<N>>[]
+  // Merge Containers and loose rows, sorted by forced order, kind, then score.
+  const allNodes =
+    groupSearchBehavior === 'flatten'
+      ? [...looseSortable, ...containerDisplayNodes]
+      : [...containerDisplayNodes, ...looseSortable]
 
-      if (radioGroupSearchBehavior === 'preserve-show-all') {
-        // Include ALL items from this radio group, not just matching ones
-        const allItems = allRadioGroupItems.get(radioGroupId)
-        if (allItems) {
-          // Create scored nodes for all items, using 0 for non-matching
-          const matchingScores = new Map(
-            matchingItems.map((item) => [item.node.id, item.score]),
-          )
-
-          itemsToDisplay = allItems.items.map((flatNode) => ({
-            node: flatNode.node,
-            score: matchingScores.get(flatNode.node.id) ?? 0,
-            breadcrumbs: flatNode.breadcrumbs,
-            group: flatNode.group,
-            radioGroup: flatNode.radioGroup,
-            checkboxGroup: flatNode.checkboxGroup,
-          }))
-        } else {
-          itemsToDisplay = matchingItems
-        }
-      } else {
-        // 'preserve' - only show matching items
-        itemsToDisplay = matchingItems
-      }
-
-      // Sort items by forced order, then score.
-      itemsToDisplay.sort(compareScoredNodesByForceOrderAndScore)
-
-      const bestScore = Math.max(...itemsToDisplay.map((item) => item.score), 0)
-      const isDeepSearchResult = breadcrumbs.length > 0
-
-      const groupContext: GroupRenderContext<PipelineDisplayTypes<N>> = {
-        search: query ? { query, bestScore } : null,
-        matchCount: matchingItems.length,
-        breadcrumbs,
-        isDeepSearchResult,
-      }
-
-      radioGroupDisplayNodes.push({
-        kind: 'radio-group',
-        node: radioGroupedItems.get(radioGroupId)!.menuNode,
-        context: groupContext,
-        items: itemsToDisplay.map((item) =>
-          buildDisplayRowNode(item, query, highlightedId),
-        ),
-        bestScore,
-      })
-    }
-  }
-
-  const checkboxGroupDisplayNodes: PipelineDisplayCheckboxGroupNode<N>[] = []
-  if (checkboxGroupSearchBehavior !== 'flatten') {
-    for (const [
-      checkboxGroupId,
-      { items: matchingItems, breadcrumbs, menuNode },
-    ] of checkboxGroupedItems) {
-      let itemsToDisplay: ScoredNode<PipelineDisplayTypes<N>>[]
-      if (checkboxGroupSearchBehavior === 'preserve-show-all') {
-        const allItems = allCheckboxGroupItems.get(checkboxGroupId)
-        if (allItems) {
-          const matchingScores = new Map(
-            matchingItems.map((item) => [item.node.id, item.score]),
-          )
-          itemsToDisplay = allItems.items.map((flatNode) => ({
-            node: flatNode.node,
-            score: matchingScores.get(flatNode.node.id) ?? 0,
-            breadcrumbs: flatNode.breadcrumbs,
-            group: flatNode.group,
-            radioGroup: flatNode.radioGroup,
-            checkboxGroup: flatNode.checkboxGroup,
-          }))
-        } else {
-          itemsToDisplay = matchingItems
-        }
-      } else {
-        itemsToDisplay = matchingItems
-      }
-      itemsToDisplay.sort(compareScoredNodesByForceOrderAndScore)
-      const bestScore = Math.max(...itemsToDisplay.map((item) => item.score), 0)
-      const groupContext: GroupRenderContext<PipelineDisplayTypes<N>> = {
-        search: query ? { query, bestScore } : null,
-        matchCount: matchingItems.length,
-        breadcrumbs,
-        isDeepSearchResult: breadcrumbs.length > 0,
-      }
-      checkboxGroupDisplayNodes.push({
-        kind: 'checkbox-group',
-        node: menuNode,
-        context: groupContext,
-        items: itemsToDisplay.map((item) =>
-          buildDisplayRowNode(item, query, highlightedId),
-        ),
-        bestScore,
-      })
-    }
-  }
-
-  // Build display nodes for ungrouped items
-  const ungroupedDisplayNodes: PipelineDisplayRowNode<N>[] = ungroupedItems
-    .sort(compareScoredNodesByForceOrderAndScore)
-    .map((item) => buildDisplayRowNode(item, query, highlightedId))
-
-  // Merge groups, radio groups, checkbox groups, and ungrouped items, sorted by forced order then score.
-  type SortableNode = {
-    node: PipelineDisplayNode<N>
-    score: number
-    forceOrder: number
-    kindRank: number
-  }
-
-  const allNodes: SortableNode[] = [
-    ...groupDisplayNodes.map((g) => ({
-      node: g as PipelineDisplayNode<N>,
-      score: g.bestScore,
-      forceOrder: getMinForceOrderFromDisplayRows(g.items),
-      kindRank: 0,
-    })),
-    ...radioGroupDisplayNodes.map((r) => ({
-      node: r as PipelineDisplayNode<N>,
-      score: r.bestScore,
-      forceOrder: getMinForceOrderFromDisplayRows(r.items),
-      kindRank: 0,
-    })),
-    ...checkboxGroupDisplayNodes.map((r) => ({
-      node: r as PipelineDisplayNode<N>,
-      score: r.bestScore,
-      forceOrder: getMinForceOrderFromDisplayRows(r.items),
-      kindRank: 0,
-    })),
-    ...ungroupedDisplayNodes.map((r) => ({
-      node: r as PipelineDisplayNode<N>,
-      score: getDisplayRowScore(r),
-      forceOrder: getDisplayRowForceOrder(r),
-      kindRank: getRowKindSortRank(r.node.kind),
-    })),
-  ]
-
-  if (sortGroups) {
+  if (groupSearchBehavior === 'flatten' || sortGroups) {
     allNodes.sort(sortByForceOrderThenKindThenScore)
   }
 
@@ -777,21 +303,15 @@ function filterNodesPreserve<N extends PipelineMenuNode<N>>(
 /**
  * Main filtering pipeline.
  * Handles both browse mode and search mode (shallow and deep).
- * Respects groupSearchBehavior configuration (only applies during search).
- * Note: Radio groups are ALWAYS preserved regardless of groupSearchBehavior.
- * Radio group behavior is controlled by radioGroupSearchBehavior.
- * Checkbox group behavior is controlled by checkboxGroupSearchBehavior.
+ * Groups, radio groups, and checkbox groups are Containers; during a search,
+ * each follows the search behavior of its selection mode
+ * (`groupSearchBehavior`, `radioGroupSearchBehavior`,
+ * `checkboxGroupSearchBehavior`). Browse mode always preserves them.
  */
 export function filterNodes<N extends PipelineMenuNode<N> = AnyMenuNode>(
   options: FilterNodesOptions<N>,
 ): FilterNodesResult<N> {
-  const {
-    query,
-    nodes,
-    highlightedId,
-    groupSearchBehavior = 'preserve',
-    filter,
-  } = options
+  const { query, nodes, highlightedId, filter } = options
 
   // Browse mode - no query, or filtering turned off
   // Always preserve groups in browse mode (groupSearchBehavior only affects search)
@@ -802,12 +322,7 @@ export function filterNodes<N extends PipelineMenuNode<N> = AnyMenuNode>(
     }
   }
 
-  // Search mode - dispatch based on group search behavior
-  if (groupSearchBehavior === 'preserve') {
-    return filterNodesPreserve({ ...options, filter })
-  }
-
-  return filterNodesFlatten({ ...options, filter })
+  return filterNodesSearch({ ...options, filter })
 }
 
 // ============================================================================

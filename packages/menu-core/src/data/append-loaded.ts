@@ -1,3 +1,4 @@
+import { isContainerDef } from '../tree/container.js'
 import type { AnyNodeDef } from '../tree/node-def-map.js'
 import {
   childDefsOf,
@@ -26,8 +27,6 @@ export interface AppendLoadedResult<D extends AnyNodeDef = AnyNodeDef> {
    */
   localDefs: ReadonlySet<D>
 }
-
-const CONTAINER_KINDS = new Set(['group', 'radio-group', 'checkbox-group'])
 
 /**
  * Appends loaded defs after local ones. A loaded def whose Resolved ID already
@@ -69,7 +68,7 @@ export function appendLoadedDefs(
   const mergeTargets = new Map<string, number>()
   local.forEach((def, index) => {
     const id = ids.localId(def)
-    if (id !== undefined && CONTAINER_KINDS.has(def.kind)) {
+    if (id !== undefined && isContainerDef(def)) {
       mergeTargets.set(id, index)
     }
   })
@@ -91,11 +90,7 @@ export function appendLoadedDefs(
         ? [...path, definitionKeyForDef(def)]
         : path
 
-      if (
-        def.kind === 'group' ||
-        def.kind === 'radio-group' ||
-        def.kind === 'checkbox-group'
-      ) {
+      if (isContainerDef(def)) {
         const nodes = keep(def.nodes, childPath, false)
         if (localIds.has(id)) {
           const target = topLevel ? mergeTargets.get(id) : undefined

@@ -2,16 +2,23 @@
 // Browse Mode - Get Shallow Nodes
 // ============================================================================
 
+import { containerOf } from '../tree/container.js'
 import type { AnyMenuNode, MenuNodeOfKind } from '../tree/menu-node.js'
+import { displayRowMembership } from './container.js'
+import { buildDisplayContainerNode } from './display.js'
 import { getSupportedTreeChildren } from './flatten.js'
-import { isMenuNodeOfKind, isRowMenuNode } from './type-guards.js'
+import {
+  isContainerMenuNode,
+  isMenuNodeOfKind,
+  isRowMenuNode,
+} from './type-guards.js'
 import type {
   BreadcrumbNode,
-  GroupRenderContext,
   PipelineDisplayNode,
   PipelineDisplayRowNode,
   PipelineDisplayTypes,
   PipelineMenuNode,
+  RowMenuNode,
   RowRenderContext,
 } from './types.js'
 
@@ -117,128 +124,36 @@ export function getBrowseNodesPreserve<
       continue
     }
 
-    if (isMenuNodeOfKind(node, 'group')) {
-      // Build group items
-      const groupItems: PipelineDisplayRowNode<N>[] = []
-      const visibleGroupChildren = node.children.filter(
-        (child) => isRowMenuNode(child) && !child.def.hidden,
+    if (isContainerMenuNode(node)) {
+      const container = containerOf(node.def)
+      if (!container || container.hidden) continue
+      const membership = displayRowMembership(node)
+      const rows = node.children.filter(
+        (child): child is RowMenuNode<N> =>
+          isRowMenuNode(child) && !child.def.hidden,
       )
-      for (const child of node.children) {
-        // Skip non-row nodes
+      const items: PipelineDisplayRowNode<N>[] = []
+      for (const child of rows) {
+        // Only a group expands tree items; a radio or checkbox group shows one
+        // as a plain row that keeps its membership, as search does.
         if (
-          isMenuNodeOfKind(child, 'separator') ||
-          isMenuNodeOfKind(child, 'group') ||
-          isMenuNodeOfKind(child, 'radio-group') ||
-          isMenuNodeOfKind(child, 'checkbox-group')
+          container.selection === 'none' &&
+          isMenuNodeOfKind(child, 'tree-item')
         ) {
-          continue
-        }
-        if (!isRowMenuNode(child) || child.def.hidden) continue
-
-        if (isMenuNodeOfKind(child, 'tree-item')) {
-          groupItems.push(
+          items.push(
             ...expandTreeNode<N>(
               child,
               highlightedId,
-              { id: node.def.id, label: node.def.label },
+              membership.group,
               0,
               [],
               [],
-              child === visibleGroupChildren.at(-1),
+              child === rows.at(-1),
             ),
           )
           continue
         }
 
-        const itemContext: RowRenderContext<PipelineDisplayTypes<N>> = {
-          search: null,
-          breadcrumbs: [],
-          isDeepSearchResult: false,
-          highlighted: child.def.id === highlightedId,
-          disabled: child.def.disabled ?? false,
-          group: { id: node.def.id, label: node.def.label },
-          tree: null,
-        }
-
-        groupItems.push({
-          kind: 'row',
-          node: child,
-          context: itemContext,
-        })
-      }
-
-      // Only include group if it has items
-      if (groupItems.length > 0) {
-        const groupContext: GroupRenderContext<PipelineDisplayTypes<N>> = {
-          search: null,
-          matchCount: groupItems.length,
-          breadcrumbs: [],
-          isDeepSearchResult: false,
-        }
-
-        result.push({
-          kind: 'group',
-          node,
-          context: groupContext,
-          items: groupItems,
-          bestScore: 1,
-        })
-      }
-      continue
-    }
-
-    if (isMenuNodeOfKind(node, 'radio-group')) {
-      if (node.def.hidden) continue
-
-      // Build radio group items
-      const radioItems: PipelineDisplayRowNode<N>[] = []
-      for (const child of node.children) {
-        // RadioGroupDef.nodes only contains ItemDef | SubmenuDef | CheckboxItemDef
-        if (!isRowMenuNode(child) || child.def.hidden) continue
-
-        const itemContext: RowRenderContext<PipelineDisplayTypes<N>> = {
-          search: null,
-          breadcrumbs: [],
-          isDeepSearchResult: false,
-          highlighted: child.def.id === highlightedId,
-          disabled: child.def.disabled ?? false,
-          group: null, // Radio items don't belong to a regular group
-          tree: null,
-        }
-
-        radioItems.push({
-          kind: 'row',
-          node: child,
-          context: itemContext,
-          radioGroup: { id: node.def.id, label: node.def.label },
-        })
-      }
-
-      // Only include radio group if it has items
-      if (radioItems.length > 0) {
-        const groupContext: GroupRenderContext<PipelineDisplayTypes<N>> = {
-          search: null,
-          matchCount: radioItems.length,
-          breadcrumbs: [],
-          isDeepSearchResult: false,
-        }
-
-        result.push({
-          kind: 'radio-group',
-          node,
-          context: groupContext,
-          items: radioItems,
-          bestScore: 1,
-        })
-      }
-      continue
-    }
-
-    if (isMenuNodeOfKind(node, 'checkbox-group')) {
-      if (node.def.hidden) continue
-      const items: PipelineDisplayRowNode<N>[] = []
-      for (const child of node.children) {
-        if (!isRowMenuNode(child) || child.def.hidden) continue
         items.push({
           kind: 'row',
           node: child,
@@ -248,29 +163,29 @@ export function getBrowseNodesPreserve<
             isDeepSearchResult: false,
             highlighted: child.def.id === highlightedId,
             disabled: child.def.disabled ?? false,
-            group: null,
+            group: membership.group,
             tree: null,
           },
-          checkboxGroup: {
-            id: node.def.id,
-            label: node.def.label,
-            def: node.def,
-          },
+          ...membership.row,
         })
       }
-      if (items.length > 0)
-        result.push({
-          kind: 'checkbox-group',
-          node,
-          context: {
-            search: null,
-            matchCount: items.length,
-            breadcrumbs: [],
-            isDeepSearchResult: false,
-          },
-          items,
-          bestScore: 1,
-        })
+
+      // A Container shows only while it has rows.
+      if (items.length > 0) {
+        result.push(
+          buildDisplayContainerNode<N>(
+            node,
+            {
+              search: null,
+              matchCount: items.length,
+              breadcrumbs: [],
+              isDeepSearchResult: false,
+            },
+            items,
+            1,
+          ),
+        )
+      }
       continue
     }
 

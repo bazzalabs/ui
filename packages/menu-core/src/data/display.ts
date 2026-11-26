@@ -3,8 +3,12 @@
 // ============================================================================
 
 import type { AnyMenuNode } from '../tree/menu-node.js'
+import { displayRowMembership, rowContainerOf } from './container.js'
 import type {
   BreadcrumbNode,
+  ContainerMenuNode,
+  GroupRenderContext,
+  PipelineDisplayNode,
   PipelineDisplayRowNode,
   PipelineDisplayTypes,
   PipelineMenuNode,
@@ -43,43 +47,9 @@ export function buildDisplayRowNodes<
   query: string,
   highlightedId: string | null,
 ): PipelineDisplayRowNode<N>[] {
-  return scoredNodes.map((scoredNode): PipelineDisplayRowNode<N> => {
-    const isDeepSearchResult = scoredNode.breadcrumbs.length > 0
-
-    const context: RowRenderContext<PipelineDisplayTypes<N>> = {
-      search: query
-        ? {
-            query,
-            score: scoredNode.score,
-          }
-        : null,
-      breadcrumbs: scoredNode.breadcrumbs,
-      // breadcrumbs already set above
-      isDeepSearchResult,
-      highlighted: scoredNode.node.def.id === highlightedId,
-      disabled: resolveRowDisabled(scoredNode.node.def, scoredNode.breadcrumbs),
-      group: scoredNode.group
-        ? { id: scoredNode.group.id, label: scoredNode.group.label }
-        : null,
-      tree: null,
-    }
-
-    return {
-      kind: 'row',
-      node: scoredNode.node,
-      context,
-      radioGroup: scoredNode.radioGroup
-        ? { id: scoredNode.radioGroup.id, label: scoredNode.radioGroup.label }
-        : undefined,
-      checkboxGroup: scoredNode.checkboxGroup
-        ? {
-            id: scoredNode.checkboxGroup.id,
-            label: scoredNode.checkboxGroup.label,
-            def: scoredNode.checkboxGroup.checkboxGroupDef,
-          }
-        : undefined,
-    }
-  })
+  return scoredNodes.map((scoredNode) =>
+    buildDisplayRowNode(scoredNode, query, highlightedId),
+  )
 }
 
 /**
@@ -94,6 +64,7 @@ export function buildDisplayRowNode<
   highlightedId: string | null,
 ): PipelineDisplayRowNode<N> {
   const isDeepSearchResult = scoredNode.breadcrumbs.length > 0
+  const membership = displayRowMembership(rowContainerOf(scoredNode))
 
   const context: RowRenderContext<PipelineDisplayTypes<N>> = {
     search: query
@@ -106,9 +77,7 @@ export function buildDisplayRowNode<
     isDeepSearchResult,
     highlighted: scoredNode.node.def.id === highlightedId,
     disabled: resolveRowDisabled(scoredNode.node.def, scoredNode.breadcrumbs),
-    group: scoredNode.group
-      ? { id: scoredNode.group.id, label: scoredNode.group.label }
-      : null,
+    group: membership.group,
     tree: null,
   }
 
@@ -116,17 +85,29 @@ export function buildDisplayRowNode<
     kind: 'row',
     node: scoredNode.node,
     context,
-    radioGroup: scoredNode.radioGroup
-      ? { id: scoredNode.radioGroup.id, label: scoredNode.radioGroup.label }
-      : undefined,
-    checkboxGroup: scoredNode.checkboxGroup
-      ? {
-          id: scoredNode.checkboxGroup.id,
-          label: scoredNode.checkboxGroup.label,
-          def: scoredNode.checkboxGroup.checkboxGroupDef,
-        }
-      : undefined,
+    radioGroup: membership.row.radioGroup,
+    checkboxGroup: membership.row.checkboxGroup,
   }
+}
+
+/**
+ * Builds a Container's Display Node. Its `kind` is the Container's def kind,
+ * so a group, radio group, or checkbox group renders as the kind it was
+ * authored as.
+ */
+export function buildDisplayContainerNode<N extends PipelineMenuNode<N>>(
+  node: ContainerMenuNode<N>,
+  context: GroupRenderContext<PipelineDisplayTypes<N>>,
+  items: PipelineDisplayRowNode<N>[],
+  bestScore: number,
+): PipelineDisplayNode<N> {
+  return {
+    kind: node.def.kind,
+    node,
+    context,
+    items,
+    bestScore,
+  } as PipelineDisplayNode<N>
 }
 
 // ============================================================================

@@ -1,4 +1,5 @@
 import { slugify } from '../text/normalize.js'
+import { isContainerDef } from './container.js'
 import type {
   AnyMenuNode,
   GetResolvedIdFn,
@@ -65,16 +66,8 @@ export function defaultGetResolvedId(
 
 /** Definition Key for a def: explicit `id` verbatim, else slugified `value`. */
 export function definitionKeyForDef(def: AnyNodeDef): string {
-  switch (def.kind) {
-    case 'group':
-    case 'radio-group':
-    case 'checkbox-group':
-      return def.id
-    case 'separator':
-      return def.id
-    default:
-      return def.id ?? slugify(def.value)
-  }
+  if (isContainerDef(def) || def.kind === 'separator') return def.id
+  return def.id ?? slugify(def.value)
 }
 
 /** Child defs of a def, in def order; empty for leaf kinds. */
@@ -83,11 +76,8 @@ export function childDefsOf<D extends AnyNodeDef>(
 ): readonly ChildNodeDef<D>[] {
   // A def's `nodes` hold its framework's child defs.
   type Children = readonly ChildNodeDef<D>[]
+  if (isContainerDef(def)) return def.nodes as unknown as Children
   switch (def.kind) {
-    case 'group':
-    case 'radio-group':
-    case 'checkbox-group':
-      return def.nodes as unknown as Children
     case 'submenu':
     case 'subpage':
     case 'tree-item':

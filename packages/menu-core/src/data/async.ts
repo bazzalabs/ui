@@ -6,6 +6,7 @@ import type {
   AsyncNodesConfigBase,
   IncludeInDeepSearch,
 } from '../tree/branch-config.js'
+import { containerOf } from '../tree/container.js'
 import type { AnyMenuNode } from '../tree/menu-node.js'
 import { staticChildrenOf } from '../tree/resolve.js'
 import type {
@@ -51,35 +52,9 @@ function collectAsyncSubmenusRaw<N extends PipelineMenuNode<N>>(
       continue
     }
 
-    if (node.def.kind === 'group') {
-      // Recurse into groups
-      result.push(
-        ...collectAsyncSubmenusRaw(
-          staticChildrenOf(node),
-          includeInDeepSearch,
-          descendantsIncluded,
-          disabledBranchBehavior,
-        ),
-      )
-      continue
-    }
-
-    if (node.def.kind === 'radio-group') {
-      if (node.def.hidden) continue
-      // Recurse into radio groups
-      result.push(
-        ...collectAsyncSubmenusRaw(
-          staticChildrenOf(node),
-          includeInDeepSearch,
-          descendantsIncluded,
-          disabledBranchBehavior,
-        ),
-      )
-      continue
-    }
-
-    if (node.def.kind === 'checkbox-group') {
-      if (node.def.hidden) continue
+    const container = containerOf(node.def)
+    if (container) {
+      if (container.hidden) continue
       result.push(
         ...collectAsyncSubmenusRaw(
           staticChildrenOf(node),
