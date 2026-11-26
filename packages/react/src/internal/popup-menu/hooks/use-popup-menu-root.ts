@@ -298,27 +298,34 @@ export function usePopupMenuRoot(
     [],
   )
 
-  // Close the entire menu tree from deepest submenu to root
+  // Tear the tree down whenever the root actually closes: close submenus and
+  // subpages deepest first, then clear focus ownership and the open chain.
+  // `open` resolves a controlled `open` prop, so a cancelled close (or a
+  // controlled root that stays open) leaves everything as it was, and a
+  // controlled root that accepts tears down as soon as its prop goes false.
+  React.useEffect(
+    () =>
+      store.observe('open', (open, prevOpen) => {
+        if (open || !prevOpen) return
+        const surfaces = [...surfaceRegistryRef.current.values()].sort(
+          (a, b) => b.depth - a.depth,
+        )
+        for (const surface of surfaces) {
+          surface.setOpen(false)
+        }
+        focusOwnerStore.clearOwner()
+        openChainStore.clear()
+      }),
+    [store, focusOwnerStore, openChainStore],
+  )
+
+  // Close the entire menu tree. Only asks the root; the observer above
+  // tears the tree down once the root has really closed.
   const closeAll = React.useCallback(
     (reason: PopupMenuOpenChangeReason = REASONS.itemPress, event?: Event) => {
-      // Sort surfaces by depth (deepest first)
-      const surfaces = [...surfaceRegistryRef.current.values()].sort(
-        (a, b) => b.depth - a.depth,
-      )
-
-      // Close each submenu from deepest to shallowest
-      for (const surface of surfaces) {
-        surface.setOpen(false)
-      }
-
-      // Finally close the root
       store.setOpen(false, reason, event)
-
-      // Clear focus ownership and open chain
-      focusOwnerStore.clearOwner()
-      openChainStore.clear()
     },
-    [store, focusOwnerStore, openChainStore],
+    [store],
   )
 
   // Ref to hold closeAll for use in the pointerdown effect
@@ -392,14 +399,10 @@ export function usePopupMenuRoot(
         return
       }
 
+      // Closing tears the tree down through the `open` observer above.
       store.setOpen(newOpen, reason, event)
-      // Clear focus ownership and open chain when menu closes
-      if (!newOpen) {
-        focusOwnerStore.clearOwner()
-        openChainStore.clear()
-      }
     },
-    [store, focusOwnerStore, openChainStore, disabled, isExemptNode],
+    [store, disabled, isExemptNode],
   )
 
   // Memoize listbox wiring config
