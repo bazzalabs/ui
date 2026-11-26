@@ -7,7 +7,10 @@ import {
   type RowId,
   type RowMeta,
   type SnapshotInput,
+  type SnapshotOptions,
 } from './types.js'
+
+const noPositions: ReadonlyMap<RowId, number> = new Map()
 
 /** The Collection of a surface with no rows yet: version 0. */
 export const emptyCollection: CollectionSnapshot = {
@@ -36,6 +39,31 @@ export const emptyCollection: CollectionSnapshot = {
 export function buildSnapshot(
   input: SnapshotInput,
   previous: CollectionSnapshot = emptyCollection,
+  options: SnapshotOptions = {},
+): CollectionSnapshot {
+  return build(
+    input,
+    previous,
+    options.positions === false ? null : computePositions,
+  )
+}
+
+/**
+ * `buildSnapshot` with `positions` left empty, for a caller that works
+ * positions out another way. It doesn't reference `computePositions`, so a
+ * bundle that only uses it leaves that out.
+ */
+export function buildSnapshotWithoutPositions(
+  input: SnapshotInput,
+  previous: CollectionSnapshot = emptyCollection,
+): CollectionSnapshot {
+  return build(input, previous, null)
+}
+
+function build(
+  input: SnapshotInput,
+  previous: CollectionSnapshot,
+  positionsOf: typeof computePositions | null,
 ): CollectionSnapshot {
   const { hidden, scores: inputScores } = input
   const rows = new Map<RowId, RowMeta>()
@@ -80,7 +108,7 @@ export function buildSnapshot(
     navOrder,
     visible,
     visibleContainers,
-    positions: computePositions(visibleOrder, rows),
+    positions: positionsOf ? positionsOf(visibleOrder, rows) : noPositions,
     scores,
   }
 }

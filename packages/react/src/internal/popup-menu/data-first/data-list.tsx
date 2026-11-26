@@ -1,14 +1,25 @@
 'use client'
 
+import {
+  buildSnapshotWithoutPositions,
+  type CollectionSnapshot,
+  dataSnapshotInput,
+} from '@bazza-ui/menu-core'
 import * as React from 'react'
+import {
+  CollectionRowsContext,
+  type CollectionRowsContextValue,
+} from '../../listbox/contexts/collection-row-context.js'
 import {
   type OrderedItemsUpdateReason,
   useListboxContext,
   type useSurfaceContext,
 } from '../../listbox/index.js'
+import { setExternalCollection } from '../../listbox/store/ListboxStore.js'
 import { PopupMenuCheckboxGroupValue } from '../components/checkbox-group/checkbox-group-value.js'
 import { PopupMenuGroupLabel } from '../components/group-label/group-label.js'
 import {
+  type PopupMenuListChildrenState,
   PopupMenuListPrimitive,
   type PopupMenuListProps,
 } from '../components/list/list.js'
@@ -98,43 +109,311 @@ function renderGroupLabelElement<
 }
 
 // ============================================================================
-// Helper: Extract ordered resolved IDs for store navigation
+// Row slots: a row re-renders only when what it renders from changes
 // ============================================================================
-function getOrderedItemIds(displayNodes: DisplayNode[]): string[] {
-  const ids: string[] = []
 
-  for (const displayNode of displayNodes) {
-    if (isDisplayGroupNode(displayNode)) {
-      for (const item of displayNode.items) {
-        // Header tree rows are intentionally included: they are highlightable even when non-activatable.
-        if (!item.context.disabled && item.node.id) {
-          ids.push(item.node.id)
-        }
-      }
-    } else if (isDisplayRadioGroupNode(displayNode)) {
-      for (const item of displayNode.items) {
-        // Header tree rows are intentionally included: they are highlightable even when non-activatable.
-        if (!item.context.disabled && item.node.id) {
-          ids.push(item.node.id)
-        }
-      }
-    } else if (isDisplayCheckboxGroupNode(displayNode)) {
-      for (const item of displayNode.items) {
-        // Header tree rows are intentionally included
-        if (!item.context.disabled && item.node.id) {
-          ids.push(item.node.id)
-        }
-      }
-    } else if (isDisplaySeparatorNode(displayNode)) {
-      // skip
-    } else {
-      if (!displayNode.context.disabled && displayNode.node.id) {
-        ids.push(displayNode.node.id)
-      }
+/** Whether a row's render read its context's `search`. */
+interface SearchReads {
+  search: boolean
+}
+
+// Per Menu Node, so a row's reads outlive the renders that skip it. Sticky:
+// once a row's render reads `search`, every search change re-renders it.
+const searchReadsByNode = new WeakMap<object, SearchReads>()
+
+function searchReadsFor(node: object): SearchReads {
+  let reads = searchReadsByNode.get(node)
+  if (!reads) {
+    reads = { search: false }
+    searchReadsByNode.set(node, reads)
+  }
+  return reads
+}
+
+/** Records a read of `context.search` in `reads`, and returns `context`. */
+function trackSearchReads<C extends { search: unknown }>(
+  context: C,
+  reads: SearchReads,
+): C {
+  const { search } = context
+  Object.defineProperty(context, 'search', {
+    get() {
+      reads.search = true
+      return search
+    },
+    enumerable: true,
+    configurable: true,
+  })
+  return context
+}
+
+/**
+ * How each field of a row's context goes into its dependencies. Keyed by
+ * every `RowRenderContext` field (`satisfies` fails to compile when one is
+ * added and not listed here), so the cache can't miss a field a `render`
+ * reads.
+ */
+const contextDependencies = {
+  // Compared separately, and only when the row's `render` reads it.
+  search: () => {},
+  breadcrumbs: (context, deps) => {
+    deps.push(context.breadcrumbs.length)
+    for (const breadcrumb of context.breadcrumbs) deps.push(breadcrumb.menuNode)
+  },
+  isDeepSearchResult: (context, deps) => {
+    deps.push(context.isDeepSearchResult)
+  },
+  highlighted: (context, deps) => {
+    deps.push(context.highlighted)
+  },
+  disabled: (context, deps) => {
+    deps.push(context.disabled)
+  },
+  group: (context, deps) => {
+    deps.push(context.group?.id, context.group?.label)
+  },
+  tree: (context, deps) => {
+    const { tree } = context
+    if (!tree) {
+      deps.push(null)
+      return
     }
+    deps.push(
+      tree.depth,
+      tree.hasChildren,
+      tree.isLastChild,
+      tree.header,
+      tree.ancestorsLast.length,
+      ...tree.ancestorsLast,
+    )
+  },
+} satisfies {
+  [K in keyof Required<RowRenderContext>]: (
+    context: RowRenderContext,
+    deps: unknown[],
+  ) => void
+}
+
+const contextDependencyReads = Object.values(contextDependencies) as ((
+  context: RowRenderContext,
+  deps: unknown[],
+) => void)[]
+
+/**
+ * What a row renders from, besides its context's `search`: its Menu Node and
+ * def (whose `render` and props it reads), its checkbox group, and every
+ * other field of its context.
+ */
+function rowDependencies(displayNode: DisplayRowNode): unknown[] {
+  const { node, context, checkboxGroup } = displayNode
+  const deps: unknown[] = [
+    node,
+    node.def,
+    checkboxGroup?.id,
+    checkboxGroup?.label,
+    checkboxGroup?.def,
+  ]
+  for (const read of contextDependencyReads) read(context, deps)
+  return deps
+}
+
+/**
+ * Whether a branch, or any branch under it, loads its rows. Cached per Menu
+ * Node in `cache`, which the list replaces when its tree changes (a graft
+ * adds children under a branch without changing the node).
+ */
+function hasAsyncBranch(
+  node: PopupMenuNode,
+  cache: WeakMap<PopupMenuNode, boolean>,
+): boolean {
+  const cached = cache.get(node)
+  if (cached !== undefined) return cached
+  const value =
+    Boolean('asyncNodes' in node.def && node.def.asyncNodes) ||
+    node.children.some((child) => hasAsyncBranch(child, cache))
+  cache.set(node, value)
+  return value
+}
+
+function dependenciesEqual(
+  a: readonly unknown[],
+  b: readonly unknown[],
+): boolean {
+  if (a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) {
+    if (!Object.is(a[i], b[i])) return false
+  }
+  return true
+}
+
+interface DataRowSlotProps {
+  render: (reads: SearchReads) => React.ReactNode
+  deps: readonly unknown[]
+  search: RowRenderContext['search']
+  reads: SearchReads
+}
+
+interface RenderedRow {
+  deps: readonly unknown[]
+  search: RowRenderContext['search']
+  element: React.ReactNode
+}
+
+/**
+ * Renders a row from its def, reusing the last element when nothing it
+ * renders from changed: a search key that leaves a row's place and match
+ * alone doesn't call its `render`, unless that `render` reads
+ * `context.search`. Returning the same element makes React skip the row's
+ * subtree. A cache in a ref instead of `React.memo`, so each row costs one
+ * fiber, not two.
+ */
+function DataRowSlot(props: DataRowSlotProps) {
+  const { render, deps, search, reads } = props
+  const rendered = React.useRef<RenderedRow | null>(null)
+  const last = rendered.current
+  if (
+    last &&
+    dependenciesEqual(last.deps, deps) &&
+    (!reads.search ||
+      (last.search?.query === search?.query &&
+        last.search?.score === search?.score))
+  ) {
+    return last.element
+  }
+  const element = render(reads)
+  rendered.current = { deps, search, element }
+  return element
+}
+
+/** Renders an item, link, tree, radio or checkbox row from its def. */
+function renderLeafRow(
+  displayNode: DisplayRowNode,
+  reads: SearchReads,
+): React.ReactNode {
+  const resolved = displayNode.node
+  const node = resolved.def
+  const { context } = displayNode
+  const id = resolved.id
+
+  if (node.kind === 'item') {
+    return node.render({
+      node: resolved,
+      props: {
+        id,
+        value: node.value,
+        disabled: context.disabled,
+        closeOnClick: node.closeOnClick,
+        onSelect: node.onSelect,
+        shortcut: node.shortcut,
+        forceOrder: node.forceOrder,
+        forceScore: node.forceScore,
+      },
+      context: trackSearchReads({ ...context, value: node.value }, reads),
+    })
   }
 
-  return ids
+  if (node.kind === 'link-item') {
+    return node.render({
+      node: resolved,
+      props: {
+        id,
+        value: node.value,
+        href: node.href,
+        disabled: context.disabled,
+        closeOnClick: node.closeOnClick,
+        onSelect: node.onSelect,
+        shortcut: node.shortcut,
+        forceOrder: node.forceOrder,
+        forceScore: node.forceScore,
+      },
+      context: trackSearchReads({ ...context, value: node.value }, reads),
+    })
+  }
+
+  if (node.kind === 'tree-item') {
+    return node.render({
+      node: resolved,
+      props: {
+        id,
+        value: node.value,
+        disabled: context.disabled,
+        selectable: node.selectable !== false,
+        closeOnClick: node.closeOnClick,
+        onSelect: node.onSelect,
+        forceOrder: node.forceOrder,
+        forceScore: node.forceScore,
+      },
+      context: trackSearchReads({ ...context, value: node.value }, reads),
+    })
+  }
+
+  if (node.kind === 'radio-item') {
+    return node.render({
+      node: resolved,
+      props: {
+        id,
+        value: node.value,
+        disabled: context.disabled,
+        closeOnClick: node.closeOnClick,
+        onSelect: node.onSelect,
+        shortcut: node.shortcut,
+        forceOrder: node.forceOrder,
+        forceScore: node.forceScore,
+      },
+      context: trackSearchReads({ ...context, value: node.value }, reads),
+    })
+  }
+
+  if (node.kind === 'checkbox-item') {
+    const checkboxGroup = displayNode.checkboxGroup
+    const rendered = node.render({
+      node: resolved,
+      props: {
+        id,
+        value: node.value,
+        checked: node.checked,
+        onCheckedChange: node.onCheckedChange,
+        disabled: context.disabled,
+        closeOnClick: node.closeOnClick,
+        forceOrder: node.forceOrder,
+        forceScore: node.forceScore,
+      },
+      context: trackSearchReads(
+        {
+          ...context,
+          value: node.value,
+          checked: checkboxGroup
+            ? checkboxGroup.def.value.includes(node.value)
+            : node.checked,
+        },
+        reads,
+      ),
+    })
+    return checkboxGroup ? (
+      <PopupMenuCheckboxGroupValue
+        groupId={checkboxGroup.id}
+        value={checkboxGroup.def.value}
+        onValueChange={checkboxGroup.def.onValueChange}
+        disabled={checkboxGroup.def.disabled ?? false}
+      >
+        {rendered}
+      </PopupMenuCheckboxGroupValue>
+    ) : (
+      rendered
+    )
+  }
+
+  return null
+}
+
+/**
+ * Publishes the list's Collection to the store from its layout effect. The
+ * list renders it after its rows, so its layout effect runs after theirs and
+ * before the list primitive's.
+ */
+function CollectionPublisher({ publish }: { publish: () => void }) {
+  React.useLayoutEffect(publish, [publish])
+  return null
 }
 
 function isAppendOnlyOrderedItemsUpdate(
@@ -942,29 +1221,71 @@ export const DataListInner = React.forwardRef<
     localDefs,
   ])
 
-  // Sync orderedItems with the store when display nodes change
-  // This is needed because DataSurface sets filter={false} on the underlying Surface
-  //
-  // We use a ref to track the previous IDs and do a deep comparison to avoid
-  // triggering highlight resets when the content hasn't actually changed.
-  const prevOrderedItemIdsRef = React.useRef<string[]>([])
+  // Whether any row renders as a search row: a deep-search result (with
+  // breadcrumbs) or a tree row (flat while searching).
+  const showsSearchRows = React.useMemo(
+    () =>
+      isDeepSearching &&
+      displayNodes.some((displayNode) =>
+        (displayNode.kind === 'row'
+          ? [displayNode]
+          : 'items' in displayNode
+            ? displayNode.items
+            : []
+        ).some(
+          (row) =>
+            row.context.isDeepSearchResult || row.node.def.kind === 'tree-item',
+        ),
+      ),
+    [isDeepSearching, displayNodes],
+  )
 
-  // Compute new ordered resolved IDs
-  const newOrderedItemIds = React.useMemo(
-    () => getOrderedItemIds(displayNodes),
+  // The list's Collection owns this surface's rows until it unmounts
+  // (temporary external-collection mode, removed by UI-679).
+  React.useLayoutEffect(() => () => setExternalCollection(store, null), [store])
+
+  // The Collection the store reads order, visibility and row metadata from.
+  // An unchanged build returns the last snapshot.
+  const publishedSnapshotRef = React.useRef<CollectionSnapshot | undefined>(
+    undefined,
+  )
+  const snapshot = React.useMemo(
+    () =>
+      // The store works positions out itself, with the rows parts register.
+      buildSnapshotWithoutPositions(
+        // Only the rows shown: rows a search hides unmount, so nothing reads
+        // them, and leaving them out keeps a key's work to the rows it shows.
+        dataSnapshotInput({ displayNodes, browseNodes: displayNodes }),
+        publishedSnapshotRef.current,
+      ),
     [displayNodes],
   )
 
-  // Memoize the ordered IDs, only returning a new array if content changed
+  // Which rows are the Collection's, for its rows to read while they render
+  // (they bind instead of registering). The latest render's snapshot, read
+  // through a stable value, so a new snapshot doesn't re-render every row.
+  const renderedSnapshotRef = React.useRef(snapshot)
+  renderedSnapshotRef.current = snapshot
+  const collectionRows = React.useMemo<CollectionRowsContextValue>(
+    () => ({
+      store,
+      has: (id) => renderedSnapshotRef.current.rows.has(id),
+    }),
+    [store],
+  )
+
+  // The rows navigation visits, as a new array only when they change, so the
+  // highlight only resets when they do.
+  const prevOrderedItemIdsRef = React.useRef<string[]>([])
   const orderedItemIds = React.useMemo(() => {
     const prev = prevOrderedItemIdsRef.current
-    const current = newOrderedItemIds
+    const current = snapshot.navOrder
     const changed =
       prev.length !== current.length || prev.some((id, i) => id !== current[i])
     if (!changed) return prev
-    prevOrderedItemIdsRef.current = current
-    return current
-  }, [newOrderedItemIds])
+    prevOrderedItemIdsRef.current = current as string[]
+    return current as string[]
+  }, [snapshot])
 
   // What the store was last given: the rows and the search they were for.
   // Tracked together, so a keystroke that leaves the rows unchanged still
@@ -975,7 +1296,14 @@ export const DataListInner = React.forwardRef<
   }>({ ids: null, search: null })
   const asyncResultBehavior = deepSearchConfig.asyncResultBehavior ?? 'stream'
 
-  React.useEffect(() => {
+  // Run from the layout effect of `CollectionPublisher`, the list's last
+  // child: after the rows' layout effects (so they're bound) and before the
+  // list primitive's flush, so positions and the highlight land before paint
+  // in one publish, in the commit that mounts and unmounts the rows.
+  const publish = React.useCallback(() => {
+    publishedSnapshotRef.current = snapshot
+    setExternalCollection(store, snapshot)
+
     const last = lastSyncRef.current
     lastSyncRef.current = { ids: orderedItemIds, search: normalizedSearch }
     const searchChanged = last.search !== normalizedSearch
@@ -998,11 +1326,19 @@ export const DataListInner = React.forwardRef<
     store.setOrderedItems(orderedItemIds, { reason })
   }, [
     store,
+    snapshot,
     orderedItemIds,
     normalizedSearch,
     asyncResultBehavior,
     isDeepSearching,
   ])
+
+  // Which branches load rows, worked out once per tree.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: graftVersion signals grafts under branch nodes, which mutate `children` without changing `resolvedNodes` identity
+  const asyncBranchCache = React.useMemo(
+    () => new WeakMap<PopupMenuNode, boolean>(),
+    [resolvedNodes, graftVersion],
+  )
 
   // Helper to render a single row node (item, checkbox item, submenu, or subpage)
   // biome-ignore lint/correctness/useExhaustiveDependencies: renderRowNode, renderRadioGroup, and renderCheckboxGroup are intentionally recursive.
@@ -1049,347 +1385,274 @@ export const DataListInner = React.forwardRef<
         }
       }
 
-      if (node.kind === 'item') {
+      if (
+        node.kind === 'item' ||
+        node.kind === 'link-item' ||
+        node.kind === 'tree-item' ||
+        node.kind === 'radio-item' ||
+        node.kind === 'checkbox-item'
+      ) {
         return (
-          <React.Fragment key={id}>
-            {node.render({
-              node: resolved,
-              props: {
-                id,
-                value: node.value,
-                disabled: context.disabled,
-                closeOnClick: node.closeOnClick,
-                onSelect: node.onSelect,
-                shortcut: node.shortcut,
-                forceOrder: node.forceOrder,
-                forceScore: node.forceScore,
-              },
-              context: {
-                ...context,
-                value: node.value,
-              },
-            })}
-          </React.Fragment>
+          <DataRowSlot
+            key={id}
+            render={(reads) => renderLeafRow(displayNode, reads)}
+            // A new `content` re-renders every row, as an app re-rendering
+            // with it did: a `render` may read app state its def doesn't
+            // carry. A search alone leaves it alone.
+            deps={[content, ...rowDependencies(displayNode)]}
+            search={context.search}
+            reads={searchReadsFor(resolved)}
+          />
         )
       }
 
-      if (node.kind === 'link-item') {
+      if (node.kind === 'submenu' || node.kind === 'subpage') {
+        // Only a branch with an async branch at or under it reads the loaders
+        // (its async state) and the search (`isBelowMinLength`); the
+        // coordinator is a new object on every key.
+        const readsLoaders = hasAsyncBranch(resolved, asyncBranchCache)
         return (
-          <React.Fragment key={id}>
-            {node.render({
-              node: resolved,
-              props: {
-                id,
-                value: node.value,
-                href: node.href,
-                disabled: context.disabled,
-                closeOnClick: node.closeOnClick,
-                onSelect: node.onSelect,
-                shortcut: node.shortcut,
-                forceOrder: node.forceOrder,
-                forceScore: node.forceScore,
-              },
-              context: {
-                ...context,
-                value: node.value,
-              },
-            })}
-          </React.Fragment>
+          <DataRowSlot
+            key={id}
+            render={(reads) => renderBranchRow(reads)}
+            deps={[
+              content,
+              ...rowDependencies(displayNode),
+              graftVersion,
+              readsLoaders ? coordinator : null,
+              readsLoaders ? normalizedSearch : null,
+            ]}
+            search={context.search}
+            reads={searchReadsFor(resolved)}
+          />
         )
       }
 
-      if (node.kind === 'tree-item') {
-        return (
-          <React.Fragment key={id}>
-            {node.render({
-              node: resolved,
-              props: {
-                id,
-                value: node.value,
-                disabled: context.disabled,
-                selectable: node.selectable !== false,
-                closeOnClick: node.closeOnClick,
-                onSelect: node.onSelect,
-                forceOrder: node.forceOrder,
-                forceScore: node.forceScore,
-              },
-              context: {
-                ...context,
-                value: node.value,
-              },
-            })}
-          </React.Fragment>
-        )
-      }
+      return null
 
-      if (node.kind === 'radio-item') {
-        return (
-          <React.Fragment key={id}>
-            {node.render({
-              node: resolved,
-              props: {
-                id,
-                value: node.value,
-                disabled: context.disabled,
-                closeOnClick: node.closeOnClick,
-                onSelect: node.onSelect,
-                shortcut: node.shortcut,
-                forceOrder: node.forceOrder,
-                forceScore: node.forceScore,
-              },
-              context: {
-                ...context,
-                value: node.value,
-              },
-            })}
-          </React.Fragment>
-        )
-      }
+      function renderBranchRow(reads: SearchReads): React.ReactNode {
+        if (node.kind === 'submenu') {
+          // For submenus, provide the nodes and a recursive renderNode function
+          // Note: We pass the resolved id to the submenu trigger so it registers with the
+          // correct ID for keyboard navigation during deep search
+          const submenuAsyncState = getBranchAsyncState(
+            resolved as PopupMenuNode<SubmenuDef | SubpageDef>,
+          )
 
-      if (node.kind === 'checkbox-item') {
-        const checkboxGroup = displayNode.checkboxGroup
-        const rendered = node.render({
-          node: resolved,
-          props: {
-            id,
+          // Static nodes only - async content is handled by the submenu's own DataSurface
+          const staticChildren = staticChildrenOf(resolved)
+
+          // Create breadcrumb node for current submenu (used in child contexts)
+          const submenuBreadcrumb: BreadcrumbNode = {
+            node,
+            menuNode: resolved as PopupMenuNode<SubmenuDef>,
             value: node.value,
-            checked: node.checked,
-            onCheckedChange: node.onCheckedChange,
-            disabled: context.disabled,
-            closeOnClick: node.closeOnClick,
-            forceOrder: node.forceOrder,
-            forceScore: node.forceScore,
-          },
-          context: {
-            ...context,
-            value: node.value,
-            checked: checkboxGroup
-              ? checkboxGroup.def.value.includes(node.value)
-              : node.checked,
-          },
-        })
-        return (
-          <React.Fragment key={id}>
-            {checkboxGroup ? (
-              <PopupMenuCheckboxGroupValue
-                groupId={checkboxGroup.id}
-                value={checkboxGroup.def.value}
-                onValueChange={checkboxGroup.def.onValueChange}
-                disabled={checkboxGroup.def.disabled ?? false}
-              >
-                {rendered}
-              </PopupMenuCheckboxGroupValue>
-            ) : (
-              rendered
-            )}
-          </React.Fragment>
-        )
-      }
-
-      if (node.kind === 'submenu') {
-        // For submenus, provide the nodes and a recursive renderNode function
-        // Note: We pass the resolved id to the submenu trigger so it registers with the
-        // correct ID for keyboard navigation during deep search
-        const submenuAsyncState = getBranchAsyncState(
-          resolved as PopupMenuNode<SubmenuDef | SubpageDef>,
-        )
-
-        // Static nodes only - async content is handled by the submenu's own DataSurface
-        const staticChildren = staticChildrenOf(resolved)
-
-        // Create breadcrumb node for current submenu (used in child contexts)
-        const submenuBreadcrumb: BreadcrumbNode = {
-          node,
-          menuNode: resolved as PopupMenuNode<SubmenuDef>,
-          value: node.value,
-          id: node.id,
-        }
-
-        const submenuRenderNode = (arg: PopupMenuNode): React.ReactNode => {
-          const childMenuNode = arg
-          const childNode = arg.def
-          // Skip separators
-          if (childNode.kind === 'separator') {
-            return null
+            id: node.id,
           }
 
-          // Handle groups - render the group with its children
-          if (childNode.kind === 'group') {
-            const groupItems = childMenuNode.children.filter(
-              (
-                n,
-              ): n is PopupMenuNode<
+          const submenuRenderNode = (arg: PopupMenuNode): React.ReactNode => {
+            const childMenuNode = arg
+            const childNode = arg.def
+            // Skip separators
+            if (childNode.kind === 'separator') {
+              return null
+            }
+
+            // Handle groups - render the group with its children
+            if (childNode.kind === 'group') {
+              const groupItems = childMenuNode.children.filter(
+                (
+                  n,
+                ): n is PopupMenuNode<
+                  | ItemDef
+                  | LinkItemDef
+                  | CheckboxItemDef
+                  | SubmenuDef
+                  | SubpageDef
+                > =>
+                  isRowMenuNode(n) &&
+                  (n.kind === 'item' ||
+                    n.kind === 'link-item' ||
+                    n.kind === 'checkbox-item' ||
+                    n.kind === 'submenu' ||
+                    n.kind === 'subpage') &&
+                  !n.def.hidden,
+              )
+
+              if (groupItems.length === 0) {
+                return null
+              }
+
+              // Render group items - renderRowNode already wraps in keyed Fragment
+              const groupChildren = groupItems.map((item) => {
+                const itemContext: RowRenderContext = {
+                  search: null,
+                  breadcrumbs: [...context.breadcrumbs, submenuBreadcrumb],
+                  isDeepSearchResult: false,
+                  highlighted: false,
+                  disabled: item.def.disabled ?? false,
+                  group: { id: childNode.id, label: childNode.label },
+                  tree: null,
+                }
+
+                return renderRowNode({
+                  kind: 'row',
+                  node: item,
+                  context: itemContext,
+                })
+              })
+
+              // Use custom group render if provided
+              if (childNode.render) {
+                const groupContext: GroupRenderContext = {
+                  search: null,
+                  matchCount: groupItems.length,
+                  breadcrumbs: [...context.breadcrumbs, submenuBreadcrumb],
+                  isDeepSearchResult: false,
+                }
+                return (
+                  <React.Fragment key={childNode.id}>
+                    {childNode.render({
+                      node: childMenuNode as PopupMenuNode<GroupDef>,
+                      props: {},
+                      context: {
+                        ...groupContext,
+                        label: childNode.label,
+                      },
+                      children: <>{groupChildren}</>,
+                    })}
+                  </React.Fragment>
+                )
+              }
+
+              // Default group rendering
+              return (
+                <DataGroupContainer key={childNode.id} label={childNode.label}>
+                  {groupChildren}
+                </DataGroupContainer>
+              )
+            }
+
+            // Handle radio groups inside submenus
+            if (childNode.kind === 'radio-group') {
+              return renderRadioGroup(
+                childMenuNode as PopupMenuNode<RadioGroupDef>,
+                [...context.breadcrumbs, submenuBreadcrumb],
+              )
+            }
+            if (childNode.kind === 'checkbox-group') {
+              if (childNode.hidden) return null
+              return renderCheckboxGroup(
+                childMenuNode as PopupMenuNode<CheckboxGroupDef>,
+                [...context.breadcrumbs, submenuBreadcrumb],
+              )
+            }
+
+            // Handle items, checkbox items, submenus, and subpages
+            if (
+              childNode.kind !== 'item' &&
+              childNode.kind !== 'link-item' &&
+              childNode.kind !== 'checkbox-item' &&
+              childNode.kind !== 'submenu' &&
+              childNode.kind !== 'subpage'
+            ) {
+              return null
+            }
+
+            // Create context for child node (no deep search in submenu)
+            const childContext: RowRenderContext = {
+              search: null,
+              breadcrumbs: [...context.breadcrumbs, submenuBreadcrumb],
+              isDeepSearchResult: false,
+              highlighted: false,
+              disabled: childNode.disabled ?? false,
+              group: null,
+              tree: null,
+            }
+
+            // renderRowNode already wraps in a keyed Fragment
+            return renderRowNode({
+              kind: 'row',
+              node: childMenuNode as PopupMenuNode<
                 | ItemDef
                 | LinkItemDef
                 | CheckboxItemDef
                 | SubmenuDef
                 | SubpageDef
-              > =>
-                isRowMenuNode(n) &&
-                (n.kind === 'item' ||
-                  n.kind === 'link-item' ||
-                  n.kind === 'checkbox-item' ||
-                  n.kind === 'submenu' ||
-                  n.kind === 'subpage') &&
-                !n.def.hidden,
-            )
-
-            if (groupItems.length === 0) {
-              return null
-            }
-
-            // Render group items - renderRowNode already wraps in keyed Fragment
-            const groupChildren = groupItems.map((item) => {
-              const itemContext: RowRenderContext = {
-                search: null,
-                breadcrumbs: [...context.breadcrumbs, submenuBreadcrumb],
-                isDeepSearchResult: false,
-                highlighted: false,
-                disabled: item.def.disabled ?? false,
-                group: { id: childNode.id, label: childNode.label },
-                tree: null,
-              }
-
-              return renderRowNode({
-                kind: 'row',
-                node: item,
-                context: itemContext,
-              })
+              >,
+              context: childContext,
             })
+          }
 
-            // Use custom group render if provided
-            if (childNode.render) {
-              const groupContext: GroupRenderContext = {
-                search: null,
-                matchCount: groupItems.length,
-                breadcrumbs: [...context.breadcrumbs, submenuBreadcrumb],
-                isDeepSearchResult: false,
-              }
-              return (
-                <React.Fragment key={childNode.id}>
-                  {childNode.render({
-                    node: childMenuNode as PopupMenuNode<GroupDef>,
-                    props: {},
-                    context: {
-                      ...groupContext,
-                      label: childNode.label,
+          return (
+            <React.Fragment key={id}>
+              <GraftPointContext.Provider value={resolved}>
+                {node.render({
+                  node: resolved,
+                  props: {
+                    id,
+                    value: node.value,
+                    disabled: context.disabled,
+                    forceOrder: node.forceOrder,
+                    forceScore: node.forceScore,
+                  },
+                  context: trackSearchReads(
+                    {
+                      ...context,
+                      value: node.value,
+                      async: submenuAsyncState,
                     },
-                    children: <>{groupChildren}</>,
-                  })}
-                </React.Fragment>
-              )
-            }
-
-            // Default group rendering
-            return (
-              <DataGroupContainer key={childNode.id} label={childNode.label}>
-                {groupChildren}
-              </DataGroupContainer>
-            )
-          }
-
-          // Handle radio groups inside submenus
-          if (childNode.kind === 'radio-group') {
-            return renderRadioGroup(
-              childMenuNode as PopupMenuNode<RadioGroupDef>,
-              [...context.breadcrumbs, submenuBreadcrumb],
-            )
-          }
-          if (childNode.kind === 'checkbox-group') {
-            if (childNode.hidden) return null
-            return renderCheckboxGroup(
-              childMenuNode as PopupMenuNode<CheckboxGroupDef>,
-              [...context.breadcrumbs, submenuBreadcrumb],
-            )
-          }
-
-          // Handle items, checkbox items, submenus, and subpages
-          if (
-            childNode.kind !== 'item' &&
-            childNode.kind !== 'link-item' &&
-            childNode.kind !== 'checkbox-item' &&
-            childNode.kind !== 'submenu' &&
-            childNode.kind !== 'subpage'
-          ) {
-            return null
-          }
-
-          // Create context for child node (no deep search in submenu)
-          const childContext: RowRenderContext = {
-            search: null,
-            breadcrumbs: [...context.breadcrumbs, submenuBreadcrumb],
-            isDeepSearchResult: false,
-            highlighted: false,
-            disabled: childNode.disabled ?? false,
-            group: null,
-            tree: null,
-          }
-
-          // renderRowNode already wraps in a keyed Fragment
-          return renderRowNode({
-            kind: 'row',
-            node: childMenuNode as PopupMenuNode<
-              ItemDef | LinkItemDef | CheckboxItemDef | SubmenuDef | SubpageDef
-            >,
-            context: childContext,
-          })
+                    reads,
+                  ),
+                  nodes: staticChildren,
+                  asyncContent: node.asyncNodes,
+                  renderNode: submenuRenderNode,
+                })}
+              </GraftPointContext.Provider>
+            </React.Fragment>
+          )
         }
 
-        return (
-          <React.Fragment key={id}>
-            <GraftPointContext.Provider value={resolved}>
-              {node.render({
+        if (node.kind === 'subpage') {
+          const subpageAsyncState = getBranchAsyncState(
+            resolved as PopupMenuNode<SubmenuDef | SubpageDef>,
+          )
+          const pageId = resolved.id
+
+          return (
+            <React.Fragment key={id}>
+              {node.renderTrigger({
                 node: resolved,
                 props: {
                   id,
                   value: node.value,
                   disabled: context.disabled,
-                  forceOrder: node.forceOrder,
-                  forceScore: node.forceScore,
+                  targetPageId: pageId,
                 },
-                context: {
-                  ...context,
-                  value: node.value,
-                  async: submenuAsyncState,
-                },
-                nodes: staticChildren,
-                asyncContent: node.asyncNodes,
-                renderNode: submenuRenderNode,
+                context: trackSearchReads(
+                  {
+                    ...context,
+                    value: node.value,
+                    async: subpageAsyncState,
+                  },
+                  reads,
+                ),
               })}
-            </GraftPointContext.Provider>
-          </React.Fragment>
-        )
+            </React.Fragment>
+          )
+        }
+
+        return null
       }
-
-      if (node.kind === 'subpage') {
-        const subpageAsyncState = getBranchAsyncState(
-          resolved as PopupMenuNode<SubmenuDef | SubpageDef>,
-        )
-        const pageId = resolved.id
-
-        return (
-          <React.Fragment key={id}>
-            {node.renderTrigger({
-              node: resolved,
-              props: {
-                id,
-                value: node.value,
-                disabled: context.disabled,
-                targetPageId: pageId,
-              },
-              context: {
-                ...context,
-                value: node.value,
-                async: subpageAsyncState,
-              },
-            })}
-          </React.Fragment>
-        )
-      }
-
-      return null
     },
-    [coordinator, normalizedSearch, isDeepSearching],
+    [
+      content,
+      coordinator,
+      normalizedSearch,
+      isDeepSearching,
+      graftVersion,
+      asyncBranchCache,
+    ],
   )
 
   // Helper to render a radio group
@@ -1782,20 +2045,36 @@ export const DataListInner = React.forwardRef<
       )}
 
       <DataListContext.Provider value={childrenState}>
-        <PopupMenuListPrimitive
-          ref={forwardedRef}
-          label={label}
-          {...listProps}
-          // Re-measure rows when deep-search mode toggles — the same Resolved IDs
-          // render different content (label vs breadcrumb row). Consumer deps
-          // are merged in rather than replaced.
-          remeasureDependencies={[
-            isDeepSearching,
-            ...(remeasureDependencies ?? []),
-          ]}
-        >
-          {children}
-        </PopupMenuListPrimitive>
+        <CollectionRowsContext.Provider value={collectionRows}>
+          <PopupMenuListPrimitive
+            ref={forwardedRef}
+            label={label}
+            {...listProps}
+            // Re-measure rows when deep search starts or stops showing rows
+            // that render differently from browsing — the same Resolved IDs
+            // render different content (label vs breadcrumb row, tree row vs
+            // flat row). A search that shows only browse rows changes no
+            // row's width. Consumer deps are merged in rather than replaced.
+            remeasureDependencies={[
+              showsSearchRows,
+              ...(remeasureDependencies ?? []),
+            ]}
+          >
+            {typeof children === 'function' ? (
+              (state: PopupMenuListChildrenState) => (
+                <>
+                  {children(state)}
+                  <CollectionPublisher publish={publish} />
+                </>
+              )
+            ) : (
+              <>
+                {children}
+                <CollectionPublisher publish={publish} />
+              </>
+            )}
+          </PopupMenuListPrimitive>
+        </CollectionRowsContext.Provider>
       </DataListContext.Provider>
     </>
   )

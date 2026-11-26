@@ -80,7 +80,7 @@ A surface's immutable snapshot of its rows (`CollectionSnapshot`): every row it 
 _Avoid_: row registry, item list
 
 **Collection Adapter**:
-How rows reach a surface's Collection, one per surface, chosen once: **DOM** (composable JSX rows register), **Data** (data-first Display Nodes, already filtered, scored and sorted by the pipeline; its rows never register, and it neither filters nor sorts again), or **Virtual** (an `items` array). A row a search hides stays in the Collection, only hidden: the Data adapter takes the surface's browse Display Nodes as well as the ones it shows, and keeps the rows the search leaves out. Only the Data adapter exists so far (`dataSnapshotInput`, `buildDataSnapshot`).
+How rows reach a surface's Collection, one per surface, chosen once: **DOM** (composable JSX rows register), **Data** (data-first Display Nodes, already filtered, scored and sorted by the pipeline; its rows never register, and it neither filters nor sorts again), or **Virtual** (an `items` array). A row a search hides stays in the Collection, only hidden: the Data adapter takes the surface's browse Display Nodes as well as the ones it shows, and keeps the rows the search leaves out. The data-first list passes it only the rows it shows, because rows a search hides unmount, so nothing reads them; once hidden rows stay mounted (UI-679), it needs to pass the browse Display Nodes again. Only the Data adapter exists so far (`dataSnapshotInput`, `buildDataSnapshot`).
 _Avoid_: source, provider, registry
 
 **Resolution**:

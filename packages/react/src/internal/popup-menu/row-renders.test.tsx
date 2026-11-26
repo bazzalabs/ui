@@ -178,6 +178,62 @@ function GroupedMenu({ counter }: { counter: RenderCounter }) {
   )
 }
 
+function DataRows() {
+  const { nodes, renderNode } = DropdownMenu.useDataList()
+  return <>{nodes.map(renderNode)}</>
+}
+
+/** `FilterableMenu` and `GroupedMenu`'s rows, as data-first content. */
+function DataFilterableMenu({
+  counter,
+  grouped = false,
+}: {
+  counter: RenderCounter
+  grouped?: boolean
+}) {
+  const content = React.useMemo(() => {
+    const row = (label: string): DropdownMenu.NodeDef => ({
+      kind: 'item',
+      id: label,
+      value: label,
+      render: ({ props }) => (
+        <React.Profiler id={label} onRender={counter.onRender}>
+          <DropdownMenu.Item {...props} data-testid={label}>
+            {label}
+          </DropdownMenu.Item>
+        </React.Profiler>
+      ),
+    })
+    if (!grouped) return ITEM_LABELS.map(row)
+    return GROUPS.map(
+      (group): DropdownMenu.NodeDef => ({
+        kind: 'group',
+        id: group.label,
+        label: group.label,
+        nodes: group.items.map(row),
+      }),
+    )
+  }, [counter, grouped])
+
+  return (
+    <DropdownMenu.Root defaultOpen>
+      <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Surface content={content}>
+              <DropdownMenu.Input data-testid="search-input" />
+              <DropdownMenu.List>
+                <DataRows />
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
 function createRect(rect: {
   top: number
   left: number
@@ -506,6 +562,157 @@ describe('popup menu row re-renders', () => {
       }
     } finally {
       logSpy.mockRestore()
+    }
+  })
+
+  // Data-first rows bind to the list's Collection instead of registering,
+  // and a row's `render` only runs when what it renders from changes. A row a
+  // key hides unmounts (no commit); a row that stays commits once when its
+  // output changes (an edge or the highlight), and not at all otherwise.
+  it('data-first: re-renders no row for a key that changes no row', async () => {
+    const user = userEvent.setup()
+    const counter = createRenderCounter()
+    render(<DataFilterableMenu counter={counter} />)
+    const input = screen.getByTestId('search-input')
+    await waitFor(() => {
+      expect(screen.getByTestId('Item 01')).toHaveAttribute('data-highlighted')
+    })
+    const menu = { user, input, counter, labels: ITEM_LABELS }
+
+    // The first key starts a search: every row still matches, in the same
+    // place, with the same highlight.
+    for (const key of ['i', 't', 'e', 'm', ' ']) {
+      expect(await measureKey(menu, key), key).toEqual({
+        changed: [],
+        commits: {},
+      })
+    }
+    expect(input).toHaveValue('item ')
+  })
+
+  it('data-first: re-renders only the rows a narrowing key moves to an edge or highlights', async () => {
+    const user = userEvent.setup()
+    const counter = createRenderCounter()
+    render(<DataFilterableMenu counter={counter} />)
+    const input = screen.getByTestId('search-input')
+    await waitFor(() => {
+      expect(screen.getByTestId('Item 01')).toHaveAttribute('data-highlighted')
+    })
+    await user.type(input, 'item ')
+    const menu = { user, input, counter, labels: ITEM_LABELS }
+
+    // "1" hides Item 02-09 and Item 20, and scores Item 10 first and Item 01
+    // last: Item 10 takes the first edge and the highlight, and Item 01 the
+    // last edge.
+    expect(await measureKey(menu, '1')).toEqual({
+      changed: ITEM_LABELS.slice(0, 10).concat('Item 20'),
+      commits: { 'Item 01': 1, 'Item 10': 1 },
+    })
+    expect(readRowOutput('Item 10')).toBe('true,true,false,false,false')
+    expect(readRowOutput('Item 01')).toBe('false,false,true,false,false')
+
+    // "9" hides every row but Item 19, which takes both edges and the
+    // highlight.
+    // Rows that stay hidden don't re-render.
+    expect(await measureKey(menu, '9')).toEqual({
+      changed: ['Item 01', ...ITEM_LABELS.slice(9, 19)],
+      commits: { 'Item 19': 1 },
+    })
+    expect(readRowOutput('Item 19')).toBe('true,true,true,false,false')
+  })
+
+  it('data-first: re-renders only the rows a narrowing key moves to an edge in a grouped menu', async () => {
+    const user = userEvent.setup()
+    const counter = createRenderCounter()
+    render(<DataFilterableMenu counter={counter} grouped />)
+    const input = screen.getByTestId('search-input')
+    await waitFor(() => {
+      expect(screen.getByTestId('Apple')).toHaveAttribute('data-highlighted')
+    })
+    const menu = { user, input, counter, labels: GROUPED_LABELS }
+
+    // Default data-first groups aren't rows: positions count item rows only.
+    // "a" hides Cherry and Pepper, so Potato becomes the last row.
+    expect(await measureKey(menu, 'a')).toEqual({
+      changed: ['Cherry', 'Potato', 'Pepper'],
+      commits: { Potato: 1 },
+    })
+    expect(readRowOutput('Potato')).toBe('false,false,true,false,false')
+
+    // "p" hides Banana, Carrot and Potato, so Apple becomes the last row.
+    expect(await measureKey(menu, 'p')).toEqual({
+      changed: ['Apple', 'Banana', 'Carrot', 'Potato'],
+      commits: { Apple: 1 },
+    })
+    expect(readRowOutput('Apple')).toBe('true,true,true,false,false')
+
+    // "e" keeps Apple and changes nothing.
+    expect(await measureKey(menu, 'e')).toEqual({ changed: [], commits: {} })
+  })
+
+  it('data-first: re-renders no submenu or subpage trigger row for a key that changes neither', async () => {
+    const user = userEvent.setup()
+    const counter = createRenderCounter()
+    const content: DropdownMenu.NodeDef[] = [
+      {
+        kind: 'submenu',
+        id: 'sub',
+        value: 'Item submenu',
+        nodes: [{ kind: 'item', value: 'Nested', render: () => null }],
+        render: ({ props }) => (
+          <React.Profiler id="submenu" onRender={counter.onRender}>
+            <DropdownMenu.Submenu>
+              <DropdownMenu.SubmenuTrigger {...props} data-testid="submenu">
+                Item submenu
+              </DropdownMenu.SubmenuTrigger>
+            </DropdownMenu.Submenu>
+          </React.Profiler>
+        ),
+      },
+      {
+        kind: 'subpage',
+        id: 'page',
+        value: 'Item subpage',
+        nodes: [],
+        renderTrigger: ({ props }) => (
+          <React.Profiler id="subpage" onRender={counter.onRender}>
+            <DropdownMenu.SubpageTrigger {...props} data-testid="subpage">
+              Item subpage
+            </DropdownMenu.SubpageTrigger>
+          </React.Profiler>
+        ),
+        renderContent: () => null,
+      },
+    ]
+    render(
+      <DropdownMenu.Root defaultOpen>
+        <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner>
+            <DropdownMenu.Popup>
+              <DropdownMenu.Surface content={content}>
+                <DropdownMenu.Input data-testid="search-input" />
+                <DropdownMenu.List>
+                  <DataRows />
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>,
+    )
+    const input = screen.getByTestId('search-input')
+    await waitFor(() => {
+      expect(screen.getByTestId('submenu')).toHaveAttribute('data-highlighted')
+    })
+    const menu = { user, input, counter, labels: ['submenu', 'subpage'] }
+
+    // Both rows match every key of "item", in the same place.
+    for (const key of ['i', 't', 'e', 'm']) {
+      expect(await measureKey(menu, key), key).toEqual({
+        changed: [],
+        commits: {},
+      })
     }
   })
 })

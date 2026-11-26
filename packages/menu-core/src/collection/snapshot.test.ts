@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { buildSnapshot, emptyCollection } from './snapshot.js'
+import {
+  buildSnapshot,
+  buildSnapshotWithoutPositions,
+  emptyCollection,
+} from './snapshot.js'
 import { container, item } from './test-helpers.js'
 import { Pos, type RowMeta, type SnapshotInput } from './types.js'
 
@@ -34,6 +38,22 @@ describe('buildSnapshot', () => {
     expect([...snapshot.visible]).toEqual(snapshot.orderedIds)
     expect([...snapshot.visibleContainers]).toEqual(['size'])
     expect(snapshot.rows.get('small')).toEqual(rows()[2])
+  })
+
+  it('leaves positions empty when asked not to work them out', () => {
+    const snapshot = buildSnapshot({ rows: rows() }, undefined, {
+      positions: false,
+    })
+    expect(snapshot.positions.size).toBe(0)
+    expect(snapshot.navOrder).toEqual(['home', 'small'])
+  })
+
+  it('builds without positions as buildSnapshot does with them left out', () => {
+    const snapshot = buildSnapshotWithoutPositions({ rows: rows() })
+    expect(snapshot.positions.size).toBe(0)
+    expect(snapshot.orderedIds).toEqual(
+      buildSnapshot({ rows: rows() }).orderedIds,
+    )
   })
 
   it('scores every item row 1 with no search, as ListboxStore does', () => {

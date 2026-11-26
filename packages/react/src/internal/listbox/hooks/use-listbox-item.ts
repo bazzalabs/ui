@@ -1,11 +1,13 @@
 'use client'
 
 import * as React from 'react'
+import { useMaybeCollectionRows } from '../contexts/collection-row-context.js'
 import { useGroupContext } from '../contexts/group-context.js'
 import type { ItemContextValue } from '../contexts/item-context.js'
 import { useListboxContext } from '../contexts/listbox-context.js'
 import { useMaybeRowWidthContext } from '../contexts/row-width-context.js'
 import { useSurfaceContext } from '../contexts/surface-context.js'
+import { bindRow, refreshBoundRows } from '../store/ListboxStore.js'
 import { normalizeValue } from '../utils/normalize.js'
 
 /**
@@ -256,13 +258,7 @@ export function useListboxItem(
   const rowId = React.useId()
   const [rowElement, setRowElement] = React.useState<HTMLElement | null>(null)
 
-  React.useLayoutEffect(() => {
-    if (!rowElement) return undefined
-    return store.registerRow(rowId, rowElement, {
-      kind: 'item',
-      groupId: groupContext?.groupId,
-    })
-  }, [rowElement, rowId, groupContext?.groupId, store])
+  const collectionRows = useMaybeCollectionRows()
 
   // Infer value from textContent if not provided
   const [inferredValue, setInferredValue] = React.useState<string>('')
@@ -286,6 +282,26 @@ export function useListboxItem(
   const generatedDomId = React.useId()
   const domId = idProp ?? `item-${generatedDomId}`
 
+  // A row a data-first list renders from its Collection: the store reads it
+  // from the Collection, so it binds its element (and what its part was
+  // given) under its Resolved ID, and neither registers nor is rescored
+  // (temporary external-collection mode, removed by UI-679). Any other row,
+  // a JSX row next to the data rows included, registers.
+  const isCollectionRow =
+    collectionRows !== null &&
+    collectionRows.store === store &&
+    registrationId !== '' &&
+    collectionRows.has(registrationId)
+  const positionId = isCollectionRow ? registrationId : rowId
+
+  React.useLayoutEffect(() => {
+    if (!rowElement || isCollectionRow) return undefined
+    return store.registerRow(rowId, rowElement, {
+      kind: 'item',
+      groupId: groupContext?.groupId,
+    })
+  }, [rowElement, rowId, isCollectionRow, groupContext?.groupId, store])
+
   // Stabilize keywords to prevent infinite loops when passed as inline arrays
   // We use JSON.stringify to compare by value rather than reference
   // Keywords are also normalized (trimmed) to match cmdk's behavior
@@ -299,6 +315,7 @@ export function useListboxItem(
   // Register item with store (using registrationId as the unique identifier)
   // biome-ignore lint/correctness/useExhaustiveDependencies: keywordsKey is a stable by-value stand-in for normalizedKeywords — depending on the array itself (new identity every render) causes an infinite register/recompute loop
   React.useEffect(() => {
+    if (isCollectionRow) return
     if (!registrationId && !forceMount) return
 
     const unregister = store.registerItem(registrationId, {
@@ -328,6 +345,7 @@ export function useListboxItem(
     closeOnClick,
     store,
     forceMount,
+    isCollectionRow,
   ])
 
   // Register DOM ref with store for scroll behavior
@@ -353,10 +371,10 @@ export function useListboxItem(
 
   // Use selectors to get derived state (using registrationId as identifier)
   const isHighlighted = store.useState('isHighlighted', registrationId)
-  const isFirstRow = store.useState('isFirstRow', rowId)
-  const isLastRow = store.useState('isLastRow', rowId)
-  const isFirstInGroup = store.useState('isFirstInGroup', rowId)
-  const isLastInGroup = store.useState('isLastInGroup', rowId)
+  const isFirstRow = store.useState('isFirstRow', positionId)
+  const isLastRow = store.useState('isLastRow', positionId)
+  const isFirstInGroup = store.useState('isFirstInGroup', positionId)
+  const isLastInGroup = store.useState('isLastInGroup', positionId)
   // Boolean selector so a keystroke only re-renders rows whose visibility flips
   const passesFilter = store.useState('isItemVisible', registrationId)
 
@@ -366,7 +384,47 @@ export function useListboxItem(
   // When filterDisabled, consumer handles filtering so all items are visible.
   // A group hidden by the search hides every item in it, forceMount included.
   const isVisible =
-    !groupContext?.hidden && (forceMount || filterDisabled || passesFilter)
+    !groupContext?.hidden &&
+    (forceMount || isCollectionRow || filterDisabled || passesFilter)
+
+  // A Collection row binds in the commit that renders it, element or not:
+  // the element is usually attached through `ref` before layout effects run,
+  // so the list's publish in the same commit sees it (`rowElement`, a state,
+  // only arrives next commit). A row whose element attaches later (a lazy or
+  // client-only `render`) or never (a `render` that drops the ref) still
+  // binds, so navigation reaches it; when a late element lands, the store
+  // works positions out again.
+  const boundWithoutElementRef = React.useRef(false)
+  React.useLayoutEffect(() => {
+    if (!isCollectionRow || !isVisible) return undefined
+    boundWithoutElementRef.current = ref.current === null
+    return bindRow(store, registrationId, {
+      elementRef: ref,
+      groupId: groupContext?.groupId,
+      disabled,
+      closeOnClick,
+      activatable,
+      isSubmenuTrigger,
+      shortcut,
+    })
+  }, [
+    isCollectionRow,
+    isVisible,
+    registrationId,
+    groupContext?.groupId,
+    disabled,
+    closeOnClick,
+    activatable,
+    isSubmenuTrigger,
+    shortcut,
+    store,
+  ])
+
+  React.useLayoutEffect(() => {
+    if (!rowElement || !boundWithoutElementRef.current) return
+    boundWithoutElementRef.current = false
+    refreshBoundRows(store)
+  }, [rowElement, store])
 
   // Note: Scroll behavior is now handled by the store's setHighlightedId method.
   // It uses the registered DOM refs to call scrollIntoView when the element exists,
