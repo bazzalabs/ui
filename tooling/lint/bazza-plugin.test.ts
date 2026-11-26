@@ -1197,6 +1197,28 @@ export const parts = [useDirection, Popover, useRender]
   })
 
   it.each([
+    // menu-core: no React, no Base UI, nothing from packages/react
+    ['packages/menu-core/src/x/x.ts', 'react', true],
+    ['packages/menu-core/src/x/x.ts', 'react/jsx-runtime', true],
+    ['packages/menu-core/src/x/x.ts', 'react-dom', true],
+    ['packages/menu-core/src/x/x.ts', '@base-ui/react/popover', true],
+    ['packages/menu-core/src/x/x.ts', '@base-ui/utils/store', true],
+    ['packages/menu-core/src/x/x.ts', '@bazza-ui/react/internal/listbox', true],
+    [
+      'packages/menu-core/src/x/x.ts',
+      '../../../react/src/utils/events/index.js',
+      true,
+    ],
+    ['packages/menu-core/src/x/x.test.ts', 'react', true],
+    ['packages/menu-core/src/x/x.ts', '../text/index.js', false],
+    // any layer of packages/react may import menu-core
+    ['packages/react/src/utils/events/index.ts', '@bazza-ui/menu-core', false],
+    [
+      'packages/react/src/internal/listbox/store/x.ts',
+      '@bazza-ui/menu-core',
+      false,
+    ],
+    ['packages/react/src/combobox/x/x.tsx', '@bazza-ui/menu-core', false],
     // utils: nothing else in src
     ['packages/react/src/utils/x.ts', '../internal/listbox/index.js', true],
     [
@@ -1368,7 +1390,7 @@ export const y = x
     ])
   })
 
-  it('does not lint anything outside packages/react', async () => {
+  it('does not lint anything outside packages/react and packages/menu-core', async () => {
     const findings = await lintWithRepoConfig({
       'apps/web/a.tsx': `import * as React from 'react'
 import { useDirection } from '@base-ui/react/internals/direction-context'

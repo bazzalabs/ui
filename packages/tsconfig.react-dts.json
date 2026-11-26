@@ -1,0 +1,8 @@
+{
+  // Declarations for `@bazza-ui/react`'s dist (packages/react/tsdown.config.ts).
+  // tsdown's tsgo generator emits only files under this file's folder, so it
+  // lives here to cover `@bazza-ui/menu-core`'s source, which dist inlines.
+  "extends": "./react/tsconfig.json",
+  "include": ["react/src", "menu-core/src"],
+  "exclude": ["**/node_modules", "**/*.test.ts", "**/*.test.tsx", "react/test"]
+}

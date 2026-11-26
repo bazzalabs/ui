@@ -1,0 +1,12 @@
+{
+  "extends": "@bazza-ui/typescript-config/base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
+    "verbatimModuleSyntax": true,
+    "noImplicitOverride": true,
+    "types": []
+  },
+  "include": ["src"]
+}

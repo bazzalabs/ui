@@ -7,6 +7,7 @@ import {
   findInlineExceptions,
   formatReport,
   type InlineException,
+  lintedPackages,
 } from './report-exceptions.ts'
 import {
   comments,
@@ -229,7 +230,7 @@ describe('brokenExceptions and formatReport', () => {
       (file) => file === 'here.ts',
     )
     expect(lines[0]).toBe(
-      'Lint exceptions in packages/react: 3 allowlist entries across 2 file(s), 2 inline.',
+      'Lint exceptions in packages/react and packages/menu-core: 3 allowlist entries across 2 file(s), 2 inline.',
     )
     expect(lines).toContain('    gone.ts  (file no longer exists)')
     expect(lines).toContain('  **/*.test.ts: bazza/use-client')
@@ -238,5 +239,11 @@ describe('brokenExceptions and formatReport', () => {
       '  a.ts:4  (all rules)  -- (no reason)  ✗ must name the rule',
     )
     expect(lines.at(-1)).toContain("1 lint exception(s) aren't acceptable")
+  })
+})
+
+describe('lintedPackages', () => {
+  it('reads the folders from the root lint:oxlint script', () => {
+    expect(lintedPackages).toEqual(['packages/react', 'packages/menu-core'])
   })
 })

@@ -210,6 +210,7 @@ Tests that register directly with the store flush before asserting on state.
 
 `src` is layered, and imports only go down (ADR 0006). From the bottom:
 
+- **`@bazza-ui/menu-core`** (`packages/menu-core`) is below all of `src`: engine code with no React, no Base UI and no import from this package (text matching, event reasons and change details, aim-guard geometry). Any layer of `src` may import it, always as `@bazza-ui/menu-core`. It is private and never published, so it is a devDependency and tsdown bundles it into `dist` (`deps.alwaysBundle` in `tsdown.config.ts`); `bench:dist-imports` fails if `dist` still imports it. When code moves there, its old path in `src` re-exports it, so `internal/popup-menu` and `internal/listbox` export what they did.
 - **`src/utils`** imports nothing else in `src`. Code two layers or families share lives here, as the keybinding helpers and `useHotkey` do in `utils/keybinding` (`kbd` re-exports them, and CommandMenu imports `useHotkey` from there).
 - **`internal/listbox`** imports `src/utils` only. It never imports `internal/popup-menu`: the event types both need live in `internal/listbox/events.ts`, and `internal/popup-menu/events.ts` re-exports them under the same names.
 - **`internal/popup-menu`** imports `src/utils` and `internal/listbox`, deep paths included. Together with `internal/listbox` this is the engine. The engine never imports a member, a loader, `kbd` or `video-player`. When a member needs the engine to behave differently, the engine takes a generic option on its own context and the member sets it: Combobox sets `externalFocus` (focus stays in its input) and `inputEmbedded` (Popup and List render `data-input-embedded`) on `PopupMenuProviders`. Member-only behaviour lives in the member's own part, as `Combobox.Icon` wraps `PopupMenuIcon` to toggle the popup.
@@ -219,7 +220,7 @@ Tests that register directly with the store flush before asserting on state.
 
 `internal/popup-menu/index.ts` and `internal/listbox/index.ts` are published as `@bazza-ui/react/internal/popup-menu` and `@bazza-ui/react/internal/listbox`, so their exports don't change for a member's convenience. When a member needs an engine name `index.ts` doesn't export, add it to `internal/popup-menu/members.ts`, which isn't a package entry, and import it from `members.js`. The other way past the rule is a member's data-attrs file re-exporting an engine enum, which `bazza/data-attrs-enum` requires to come from the engine's data-attrs file: that line takes an inline exception (see Data Attributes File), as `select/popup/popup.data-attrs.ts` does.
 
-Tests may import any layer. `no-restricted-imports` checks the rest, with one override per layer in `.oxlintrc.json` (one for all of `src/internal`, and a stricter one for `internal/listbox`). Each override repeats the Base UI patterns from "Lint", because an override's options replace the earlier ones for its files.
+Tests may import any layer, except in `packages/menu-core`, whose tests stay free of React and Base UI too. `no-restricted-imports` checks the rest, with one override per layer in `.oxlintrc.json` (one for `packages/menu-core`, one for all of `src/internal`, and a stricter one for `internal/listbox`). Each override repeats the Base UI patterns from "Lint", because an override's options replace the earlier ones for its files.
 
 ## Lint
 

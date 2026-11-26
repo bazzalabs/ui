@@ -26,12 +26,15 @@ export default defineConfig((options) => ({
   // Keep `.js` / `.cjs` / `.d.ts`, which `exports` points at.
   fixedExtension: false,
   // Declaration maps would point at `src/`, which is not published.
-  dts: { sourcemap: false },
+  dts: { sourcemap: false, tsconfig: '../tsconfig.react-dts.json' },
   minify: !options.watch,
   sourcemap: true,
   clean: true,
   deps: {
     neverBundle: ['react', 'react-dom'],
+    // `@bazza-ui/menu-core` is private (a devDependency), so dist inlines it.
+    // `bench:dist-imports` checks that nothing in dist still imports it.
+    alwaysBundle: [/^@bazza-ui\/menu-core(\/|$)/],
   },
   outDir: 'dist/',
   onSuccess: options.watch ? 'echo "✅ @bazza-ui/react rebuilt"' : undefined,
