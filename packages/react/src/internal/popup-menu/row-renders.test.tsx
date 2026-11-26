@@ -13,10 +13,18 @@ function createRenderCounter() {
   const onRender: React.ProfilerOnRenderCallback = (id) => {
     counts.set(id, (counts.get(id) ?? 0) + 1)
   }
+  const snapshot = () => new Map(counts)
   return {
     onRender,
     get: (id: string) => counts.get(id) ?? 0,
-    snapshot: () => new Map(counts),
+    snapshot,
+    /** Commits per row since `before`, for rows that committed at all. */
+    since: (before: ReturnType<typeof snapshot>) =>
+      Object.fromEntries(
+        [...counts]
+          .map(([id, count]) => [id, count - (before.get(id) ?? 0)] as const)
+          .filter(([, delta]) => delta > 0),
+      ),
   }
 }
 
@@ -27,7 +35,15 @@ const ITEM_LABELS = Array.from(
   (_, index) => `Item ${String(index + 1).padStart(2, '0')}`,
 )
 
-function FilterableMenu({ counter }: { counter: RenderCounter }) {
+function FilterableMenu({
+  counter,
+  input = true,
+  separator = true,
+}: {
+  counter: RenderCounter
+  input?: boolean
+  separator?: boolean
+}) {
   return (
     <DropdownMenu.Root defaultOpen>
       <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
@@ -35,7 +51,7 @@ function FilterableMenu({ counter }: { counter: RenderCounter }) {
         <DropdownMenu.Positioner>
           <DropdownMenu.Popup>
             <DropdownMenu.Surface>
-              <DropdownMenu.Input data-testid="search-input" />
+              {input && <DropdownMenu.Input data-testid="search-input" />}
               <DropdownMenu.List>
                 {ITEM_LABELS.map((label) => (
                   <React.Profiler
@@ -48,9 +64,11 @@ function FilterableMenu({ counter }: { counter: RenderCounter }) {
                     </DropdownMenu.Item>
                   </React.Profiler>
                 ))}
-                <React.Profiler id="separator" onRender={counter.onRender}>
-                  <DropdownMenu.Separator alwaysRender />
-                </React.Profiler>
+                {separator && (
+                  <React.Profiler id="separator" onRender={counter.onRender}>
+                    <DropdownMenu.Separator alwaysRender />
+                  </React.Profiler>
+                )}
               </DropdownMenu.List>
             </DropdownMenu.Surface>
           </DropdownMenu.Popup>
@@ -116,6 +134,50 @@ function SubmenuMenu({ counter }: { counter: RenderCounter }) {
   )
 }
 
+const GROUPS = [
+  { label: 'Fruits', items: ['Apple', 'Banana', 'Cherry'] },
+  { label: 'Vegetables', items: ['Carrot', 'Potato', 'Pepper'] },
+]
+
+const GROUPED_LABELS = GROUPS.flatMap((group) => group.items)
+
+function GroupedMenu({ counter }: { counter: RenderCounter }) {
+  return (
+    <DropdownMenu.Root defaultOpen>
+      <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Surface>
+              <DropdownMenu.Input data-testid="search-input" />
+              <DropdownMenu.List>
+                {GROUPS.map((group) => (
+                  <DropdownMenu.Group key={group.label}>
+                    <DropdownMenu.GroupLabel>
+                      {group.label}
+                    </DropdownMenu.GroupLabel>
+                    {group.items.map((label) => (
+                      <React.Profiler
+                        key={label}
+                        id={label}
+                        onRender={counter.onRender}
+                      >
+                        <DropdownMenu.Item data-testid={label} value={label}>
+                          {label}
+                        </DropdownMenu.Item>
+                      </React.Profiler>
+                    ))}
+                  </DropdownMenu.Group>
+                ))}
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
 function createRect(rect: {
   top: number
   left: number
@@ -140,7 +202,39 @@ function readRowOutput(label: string) {
     row.hasAttribute('data-highlighted'),
     row.hasAttribute('data-first'),
     row.hasAttribute('data-last'),
+    row.hasAttribute('data-first-in-group'),
+    row.hasAttribute('data-last-in-group'),
   ].join()
+}
+
+/** Rows whose output differs between two reads of `readRowOutput`. */
+function changedRows(
+  labels: readonly string[],
+  before: readonly (string | null)[],
+) {
+  return labels.filter((label, index) => readRowOutput(label) !== before[index])
+}
+
+/**
+ * Types one key into a menu's input and reports the rows whose output changed
+ * and the commits per row the key cost.
+ */
+async function measureKey(
+  menu: {
+    user: ReturnType<typeof userEvent.setup>
+    input: HTMLElement
+    counter: RenderCounter
+    labels: readonly string[]
+  },
+  key: string,
+) {
+  const outputBefore = menu.labels.map(readRowOutput)
+  const before = menu.counter.snapshot()
+  await menu.user.type(menu.input, key)
+  return {
+    changed: changedRows(menu.labels, outputBefore),
+    commits: menu.counter.since(before),
+  }
 }
 
 describe('popup menu row registration', () => {
@@ -177,7 +271,13 @@ describe('popup menu row registration', () => {
     expect(screen.getAllByRole('option')).toHaveLength(ITEM_LABELS.length)
     expect(ITEM_LABELS.map(readRowOutput)).toEqual(
       ITEM_LABELS.map((_, index) =>
-        [index === 0, index === 0, index === ITEM_LABELS.length - 1].join(),
+        [
+          index === 0,
+          index === 0,
+          index === ITEM_LABELS.length - 1,
+          false,
+          false,
+        ].join(),
       ),
     )
     // One publish of the whole batch costs at most two commits per row, three
@@ -191,50 +291,167 @@ describe('popup menu row registration', () => {
 })
 
 describe('popup menu row re-renders', () => {
-  it('re-renders only rows whose output changes while filtering', async () => {
+  it.each([
+    { from: 'the input', input: true },
+    { from: 'the list', input: false },
+  ])('ArrowDown from $from re-renders only the two rows whose highlight moves', async ({
+    input,
+  }) => {
+    const user = userEvent.setup()
+    const counter = createRenderCounter()
+    render(<FilterableMenu counter={counter} input={input} />)
+    await waitFor(() => {
+      expect(screen.getByTestId('Item 01')).toHaveAttribute('data-highlighted')
+    })
+    const focusTarget = input
+      ? screen.getByTestId('search-input')
+      : screen.getByRole('listbox')
+    focusTarget.focus()
+
+    let before = counter.snapshot()
+    await user.keyboard('{ArrowDown}')
+    expect(screen.getByTestId('Item 02')).toHaveAttribute('data-highlighted')
+    expect(counter.since(before)).toEqual({ 'Item 01': 1, 'Item 02': 1 })
+
+    before = counter.snapshot()
+    await user.keyboard('{ArrowDown}')
+    expect(screen.getByTestId('Item 03')).toHaveAttribute('data-highlighted')
+    expect(counter.since(before)).toEqual({ 'Item 02': 1, 'Item 03': 1 })
+  })
+
+  it('re-renders no row for a key that changes no row, and not the separator for one that hides rows', async () => {
     const user = userEvent.setup()
     const counter = createRenderCounter()
     render(<FilterableMenu counter={counter} />)
-
     const input = screen.getByTestId('search-input')
     await waitFor(() => {
       expect(screen.getByTestId('Item 01')).toHaveAttribute('data-highlighted')
     })
+    const menu = { user, input, counter, labels: ITEM_LABELS }
 
-    await user.type(input, 'i')
-    const outputBefore = ITEM_LABELS.map(readRowOutput)
+    // Known extra render, tracked separately: the separator subscribes to
+    // `hasSearch` even though `alwaysRender` keeps its output the same.
+    expect(await measureKey(menu, 'i')).toEqual({
+      changed: [],
+      commits: { separator: 1 },
+    })
+
+    // Every row still matches "item ", in the same place, with the same
+    // highlight.
+    for (const key of ['t', 'e', 'm', ' ']) {
+      expect(await measureKey(menu, key), key).toEqual({
+        changed: [],
+        commits: {},
+      })
+    }
+    expect(input).toHaveValue('item ')
+
+    // A key that hides rows leaves the separator alone too: it stays the last
+    // row, and `alwaysRender` keeps it visible.
+    const { commits } = await measureKey(menu, '1')
+    expect(commits).not.toHaveProperty('separator')
+    expect(Object.keys(commits).length).toBeGreaterThan(0)
+  })
+
+  // Commit costs of a narrowing key (a known cost, pinned by the exact counts
+  // in this test and the grouped one). Per row, each applies separately:
+  // - hidden by the key: 2 (it hides, then its row element ref clears);
+  // - gains or loses an edge (first, last, first or last in group): +1, in a
+  //   later commit once the hidden rows unregister;
+  // - gains or loses the highlight while staying visible: +1 (a row the key
+  //   hides loses it in the commit that hides it).
+  // A row whose output doesn't change doesn't commit.
+  it('re-renders only the rows a narrowing key hides or moves to an edge', async () => {
+    const user = userEvent.setup()
+    const counter = createRenderCounter()
+    render(<FilterableMenu counter={counter} separator={false} />)
+    const input = screen.getByTestId('search-input')
+    await waitFor(() => {
+      expect(screen.getByTestId('Item 01')).toHaveAttribute('data-highlighted')
+    })
+    await user.type(input, 'item ')
+    const menu = { user, input, counter, labels: ITEM_LABELS }
+
+    // "1" hides Item 02-09 and Item 20, so Item 19 becomes the last row.
+    const hiddenByOne = ITEM_LABELS.slice(1, 9)
+    expect(await measureKey(menu, '1')).toEqual({
+      changed: [...hiddenByOne, 'Item 19', 'Item 20'],
+      commits: {
+        ...Object.fromEntries(hiddenByOne.map((label) => [label, 2])),
+        'Item 19': 1,
+        'Item 20': 3,
+      },
+    })
+    expect(readRowOutput('Item 19')).toBe('false,false,true,false,false')
+
+    // "9" hides Item 01 and Item 10-18, so Item 19 becomes the first row and
+    // takes the highlight. Rows that stay hidden don't re-render.
+    const hiddenByNine = ITEM_LABELS.slice(9, 18)
+    expect(await measureKey(menu, '9')).toEqual({
+      changed: ['Item 01', ...hiddenByNine, 'Item 19'],
+      commits: {
+        'Item 01': 3,
+        ...Object.fromEntries(hiddenByNine.map((label) => [label, 2])),
+        'Item 19': 2,
+      },
+    })
+    expect(readRowOutput('Item 19')).toBe('true,true,true,false,false')
+  })
+
+  it('re-renders only the rows a narrowing key hides or moves to a group edge', async () => {
+    const user = userEvent.setup()
+    const counter = createRenderCounter()
+    render(<GroupedMenu counter={counter} />)
+    const input = screen.getByTestId('search-input')
+    await waitFor(() => {
+      expect(screen.getByTestId('Apple')).toHaveAttribute('data-highlighted')
+    })
+    const menu = { user, input, counter, labels: GROUPED_LABELS }
+
+    // "a" hides Cherry and Pepper, so Banana and Potato become last in group.
+    // Counts follow "Commit costs of a narrowing key" above.
+    expect(await measureKey(menu, 'a')).toEqual({
+      changed: ['Banana', 'Cherry', 'Potato', 'Pepper'],
+      commits: { Banana: 1, Cherry: 3, Potato: 1, Pepper: 3 },
+    })
+    expect(readRowOutput('Banana')).toBe('false,false,false,false,true')
+    expect(readRowOutput('Potato')).toBe('false,false,false,false,true')
+
+    // "p" hides Banana, Carrot and Potato, so Apple becomes last in group.
+    expect(await measureKey(menu, 'p')).toEqual({
+      changed: ['Apple', 'Banana', 'Carrot', 'Potato'],
+      commits: { Apple: 1, Banana: 3, Carrot: 3, Potato: 3 },
+    })
+    expect(readRowOutput('Apple')).toBe('true,false,false,true,true')
+
+    // "e" keeps Apple and changes nothing.
+    expect(await measureKey(menu, 'e')).toEqual({ changed: [], commits: {} })
+  })
+
+  it('re-renders only the two rows whose highlight moves when the pointer moves onto a row', async () => {
+    const counter = createRenderCounter()
+    render(<FilterableMenu counter={counter} input={false} />)
+    await waitFor(() => {
+      expect(screen.getByTestId('Item 01')).toHaveAttribute('data-highlighted')
+    })
+
+    // The store ignores a pointer that hasn't moved, so each move goes to a
+    // new point.
     let before = counter.snapshot()
-
-    // Every row still matches, so no row's output changes.
-    await user.type(input, 'tem')
-    await waitFor(() => {
-      expect(input).toHaveValue('item')
+    fireEvent.pointerMove(screen.getByTestId('Item 05'), {
+      clientX: 10,
+      clientY: 50,
     })
-    expect(ITEM_LABELS.map(readRowOutput)).toEqual(outputBefore)
-    for (const label of ITEM_LABELS) {
-      expect(counter.get(label), label).toBe(before.get(label))
-    }
-    // The separator's visibility depends only on whether a search is active.
-    expect(counter.get('separator')).toBe(before.get('separator'))
+    expect(screen.getByTestId('Item 05')).toHaveAttribute('data-highlighted')
+    expect(counter.since(before)).toEqual({ 'Item 01': 1, 'Item 05': 1 })
 
-    // " 1" hides Item 02-09 and Item 20.
-    await user.type(input, ' 1')
-    await waitFor(() => {
-      expect(screen.queryByTestId('Item 02')).not.toBeInTheDocument()
-    })
-    const hidden = ITEM_LABELS.filter((label) => readRowOutput(label) === null)
-    expect(hidden).toHaveLength(9)
     before = counter.snapshot()
-
-    // Rows that stay hidden don't re-render.
-    await user.type(input, '9')
-    await waitFor(() => {
-      expect(screen.queryByTestId('Item 10')).not.toBeInTheDocument()
+    fireEvent.pointerMove(screen.getByTestId('Item 07'), {
+      clientX: 10,
+      clientY: 70,
     })
-    for (const label of hidden) {
-      expect(readRowOutput(label), label).toBeNull()
-      expect(counter.get(label), label).toBe(before.get(label))
-    }
+    expect(screen.getByTestId('Item 07')).toHaveAttribute('data-highlighted')
+    expect(counter.since(before)).toEqual({ 'Item 05': 1, 'Item 07': 1 })
   })
 
   it('keeps sibling rows still while the aim guard activates and clears', async () => {
