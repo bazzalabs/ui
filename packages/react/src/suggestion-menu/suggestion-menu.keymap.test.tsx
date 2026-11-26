@@ -14,14 +14,16 @@ function setup(
   options: {
     onSelect?: (value: string) => void
     footer?: React.ReactNode
+    shortcut?: string
   } = {},
 ) {
   const menu = SuggestionMenu.createHandle()
   const onOpenChange = vi.fn()
-  const handled: Array<[string, boolean]> = []
+  const handled: Array<[string, boolean, boolean]> = []
   const item = (value: string): ItemDef => ({
     kind: 'item',
     value,
+    shortcut: value === 'Bob' ? options.shortcut : undefined,
     onSelect: () => options.onSelect?.(value),
     render: ({ props }) => (
       <SuggestionMenu.Item {...props} data-testid={value}>
@@ -39,7 +41,11 @@ function setup(
           if (el) menu.attach(el)
         }}
         onKeyDown={(event) =>
-          handled.push([event.key, menu.handleKeyDown(event)])
+          handled.push([
+            event.key,
+            menu.handleKeyDown(event),
+            event.defaultPrevented,
+          ])
         }
       />
       <button type="button" data-testid="next">
@@ -70,7 +76,8 @@ function setup(
     })
     return handled.at(-1)?.[1]
   }
-  return { menu, host, press, onOpenChange, onDialogKeyDown }
+  const prevented = () => handled.at(-1)?.[2]
+  return { menu, host, press, prevented, onOpenChange, onDialogKeyDown }
 }
 
 async function open(menu: ReturnType<typeof SuggestionMenu.createHandle>) {
@@ -143,7 +150,7 @@ describe('SuggestionMenu keymap', () => {
   })
 
   it('leaves Tab, caret keys, printable keys and modified keys to the host', async () => {
-    const { menu, press } = setup()
+    const { menu, press, prevented } = setup()
     await open(menu)
 
     for (const [key, init] of [
@@ -165,16 +172,51 @@ describe('SuggestionMenu keymap', () => {
       ['Enter', { ctrlKey: true }],
     ] as const) {
       expect(press(key, init)).toBe(false)
+      expect(prevented()).toBe(false)
     }
     expect(highlighted()).toBe('Alice')
     expect(screen.getByTestId('popup')).toBeInTheDocument()
   })
 
+  it('leaves printable keys to the host even when a row has them as a shortcut', async () => {
+    const selected: string[] = []
+    const { menu, press, prevented } = setup({
+      shortcut: 'b',
+      onSelect: (value) => selected.push(value),
+    })
+    await open(menu)
+
+    expect(press('b')).toBe(false)
+
+    expect(prevented()).toBe(false)
+    expect(selected).toEqual([])
+    expect(screen.getByTestId('popup')).toBeInTheDocument()
+  })
+
+  it('leaves a key another handler already prevented', async () => {
+    const { menu } = setup()
+    await open(menu)
+    const event = new KeyboardEvent('keydown', {
+      key: 'ArrowDown',
+      cancelable: true,
+    })
+    event.preventDefault()
+
+    let used = true
+    act(() => {
+      used = menu.handleKeyDown(event)
+    })
+
+    expect(used).toBe(false)
+    expect(highlighted()).toBe('Alice')
+  })
+
   it('handles nothing while closed or composing', async () => {
-    const { menu, host, press } = setup()
-    expect(press('ArrowDown')).toBe(false)
-    expect(press('Enter')).toBe(false)
-    expect(press('Escape')).toBe(false)
+    const { menu, host, press, prevented } = setup()
+    for (const key of ['ArrowDown', 'End', 'Enter', 'Escape']) {
+      expect(press(key)).toBe(false)
+      expect(prevented()).toBe(false)
+    }
 
     await open(menu)
     // Browsers fire compositionstart before the composing key presses.

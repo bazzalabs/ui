@@ -1153,6 +1153,37 @@ describe('keyboard span selection', () => {
       expect.objectContaining({ reason: 'drag-selection' }),
     )
   })
+  it('commits on Enter when the span ends on a non-activatable row', async () => {
+    const user = userEvent.setup()
+    const onValueChange = vi.fn()
+    render(
+      <Menu>
+        <DropdownMenu.CheckboxGroup
+          defaultValue={[]}
+          onValueChange={onValueChange}
+        >
+          <DropdownMenu.CheckboxItem value="a">a</DropdownMenu.CheckboxItem>
+          <DropdownMenu.CheckboxItem value="b">b</DropdownMenu.CheckboxItem>
+        </DropdownMenu.CheckboxGroup>
+        <DropdownMenu.Item activatable={false} data-testid="note">
+          Note
+        </DropdownMenu.Item>
+      </Menu>,
+    )
+    await openMenu(user)
+    focusList()
+    await user.keyboard('{Shift>}{ArrowDown}{ArrowDown}')
+    expect(screen.getByTestId('note')).toHaveAttribute('data-highlighted')
+
+    await user.keyboard('{Enter}')
+
+    expect(onValueChange).toHaveBeenCalledExactlyOnceWith(
+      ['a', 'b'],
+      expect.objectContaining({ reason: 'drag-selection' }),
+    )
+    await user.keyboard('{/Shift}')
+    expect(onValueChange).toHaveBeenCalledTimes(1)
+  })
   it('does not span when range selection is disabled', async () => {
     const user = userEvent.setup()
     const spies = spies5()

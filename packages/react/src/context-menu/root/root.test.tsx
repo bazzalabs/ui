@@ -1,15 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import * as React from 'react'
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  onTestFinished,
-  vi,
-} from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ContextMenu } from '../index.js'
 
 // ============================================================================
@@ -205,20 +197,6 @@ const ContextMenuWithInputAndImperativeActions = React.forwardRef<
 // ============================================================================
 
 /**
- * jsdom reports a 0×0 viewport, which makes the positioner clamp every menu
- * to the origin. Give it a size so the cursor position shows up.
- */
-function withViewport() {
-  const html = document.documentElement
-  const width = vi.spyOn(html, 'clientWidth', 'get').mockReturnValue(1024)
-  const height = vi.spyOn(html, 'clientHeight', 'get').mockReturnValue(768)
-  onTestFinished(() => {
-    width.mockRestore()
-    height.mockRestore()
-  })
-}
-
-/**
  * Simulates a right-click (contextmenu event) on an element
  * Wrapped in act() to properly handle React state updates
  */
@@ -285,22 +263,8 @@ describe('<ContextMenu.Root />', () => {
       expect(preventDefaultSpy).toHaveBeenCalled()
     })
 
-    it('positions menu at cursor location', async () => {
-      withViewport()
-      render(<BasicContextMenu />)
-
-      const trigger = screen.getByTestId('trigger')
-      await rightClick(trigger, 150, 200)
-
-      await waitFor(() => {
-        expect(screen.getByTestId('positioner').style.transform).toBe(
-          'translate(150px, 200px)',
-        )
-      })
-    })
-
-    it('repositions menu on second right-click without closing', async () => {
-      withViewport()
+    // Where the menu lands is covered in root.browser.test.tsx.
+    it("doesn't close on a second right-click while open", async () => {
       const onOpenChange = vi.fn()
 
       render(
@@ -347,11 +311,6 @@ describe('<ContextMenu.Root />', () => {
       // Should NOT have called onOpenChange with false (no close)
       // The menu repositions without closing
       expect(onOpenChange).not.toHaveBeenCalledWith(false, expect.anything())
-      await waitFor(() => {
-        expect(screen.getByTestId('positioner').style.transform).toBe(
-          'translate(200px, 200px)',
-        )
-      })
     })
   })
 

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import type * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { userEvent } from 'vitest/browser'
@@ -9,9 +9,10 @@ import { ContextMenu } from '../index.js'
 // point, so collision handling never moves it.
 function CursorContextMenu(props: {
   onContextMenu: React.MouseEventHandler<HTMLDivElement>
+  onOpenChange?: ContextMenu.Root.Props['onOpenChange']
 }) {
   return (
-    <ContextMenu.Root>
+    <ContextMenu.Root onOpenChange={props.onOpenChange}>
       <ContextMenu.Trigger
         data-testid="trigger"
         onContextMenu={props.onContextMenu}
@@ -19,7 +20,10 @@ function CursorContextMenu(props: {
       />
       <ContextMenu.Portal>
         <ContextMenu.Positioner data-testid="positioner">
-          <ContextMenu.Popup style={{ width: 120, height: 80 }}>
+          <ContextMenu.Popup
+            data-testid="popup"
+            style={{ width: 120, height: 80 }}
+          >
             <ContextMenu.Surface>
               <ContextMenu.List>
                 <ContextMenu.Item>Item 1</ContextMenu.Item>
@@ -41,10 +45,16 @@ interface Point {
 // click lands within a pixel of the requested `position`, and the reported
 // coordinates may be fractional. Record what the browser reported and compare
 // the menu's position to it with a 1px tolerance.
-function renderCursorContextMenu() {
+function renderCursorContextMenu(
+  props: Pick<
+    React.ComponentProps<typeof CursorContextMenu>,
+    'onOpenChange'
+  > = {},
+) {
   const cursor: Point = { x: Number.NaN, y: Number.NaN }
   render(
     <CursorContextMenu
+      {...props}
       onContextMenu={(event) => {
         cursor.x = event.clientX
         cursor.y = event.clientY
@@ -69,14 +79,10 @@ async function rightClickAt(point: Point) {
   })
 }
 
-function readTranslate(element: HTMLElement): Point {
-  const match = /^translate\((-?[\d.]+)px, (-?[\d.]+)px\)$/.exec(
-    element.style.transform,
-  )
-  if (!match) {
-    throw new Error(`Unexpected transform: "${element.style.transform}"`)
-  }
-  return { x: Number(match[1]), y: Number(match[2]) }
+/** Where the popup's top-left corner is in the viewport. */
+function popupCorner(): Point {
+  const rect = screen.getByTestId('popup').getBoundingClientRect()
+  return { x: rect.left, y: rect.top }
 }
 
 function expectWithinOnePixel(actual: Point, expected: Point) {
@@ -90,9 +96,9 @@ describe('ContextMenu.Root in the browser', () => {
 
     await rightClickAt({ x: 150, y: 200 })
 
-    const positioner = await findPositioned('positioner')
+    await findPositioned('positioner')
     expectWithinOnePixel(cursor, { x: 150, y: 200 })
-    expectWithinOnePixel(readTranslate(positioner), cursor)
+    expectWithinOnePixel(popupCorner(), cursor)
   })
 
   it('moves the menu to the cursor of a second right-click', async () => {
@@ -104,10 +110,35 @@ describe('ContextMenu.Root in the browser', () => {
 
     expectWithinOnePixel(cursor, { x: 60, y: 90 })
     await vi.waitFor(() => {
-      expectWithinOnePixel(
-        readTranslate(screen.getByTestId('positioner')),
-        cursor,
+      expectWithinOnePixel(popupCorner(), cursor)
+    })
+  })
+
+  // A `contextmenu` that reaches the trigger while the menu is open (no
+  // pointerdown closed it first) moves the open menu instead of reopening it.
+  it('moves the open menu without closing it', async () => {
+    const onOpenChange = vi.fn()
+    const cursor = renderCursorContextMenu({ onOpenChange })
+    await rightClickAt({ x: 150, y: 200 })
+    await findPositioned('positioner')
+    onOpenChange.mockClear()
+
+    act(() => {
+      screen.getByTestId('trigger').dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 60,
+          clientY: 90,
+          button: 2,
+        }),
       )
     })
+
+    expect(cursor).toEqual({ x: 60, y: 90 })
+    await vi.waitFor(() => {
+      expectWithinOnePixel(popupCorner(), cursor)
+    })
+    expect(onOpenChange).not.toHaveBeenCalledWith(false, expect.anything())
   })
 })

@@ -1,10 +1,7 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
 import * as React from 'react'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
-import {
-  type ItemDef,
-  usePopupMenuContext,
-} from '../internal/popup-menu/index.js'
+import type { ItemDef } from '../internal/popup-menu/index.js'
 import { SuggestionMenu } from './index.js'
 
 function Rows() {
@@ -22,23 +19,13 @@ const item = (value: string): ItemDef => ({
   ),
 })
 
-type Anchor = {
-  getBoundingClientRect(): DOMRect
-  contextElement?: Element
-}
-
 function setup(
   positionerProps: SuggestionMenu.Positioner.Props = {},
   options: { keepMounted?: boolean; strict?: boolean } = {},
 ) {
   const menu = SuggestionMenu.createHandle()
-  const anchors: Array<Anchor | undefined> = []
   const sides: string[] = []
   const aligns: string[] = []
-  function Probe() {
-    anchors.push(usePopupMenuContext().virtualAnchor as Anchor | undefined)
-    return null
-  }
   const Wrapper = options.strict ? React.StrictMode : React.Fragment
   render(
     <Wrapper>
@@ -49,7 +36,6 @@ function setup(
         }}
       />
       <SuggestionMenu.Root handle={menu}>
-        <Probe />
         <SuggestionMenu.Portal keepMounted={options.keepMounted}>
           <SuggestionMenu.Positioner
             data-testid="positioner"
@@ -77,16 +63,12 @@ function setup(
   return {
     menu,
     host: screen.getByTestId('host'),
-    anchor: () => anchors.at(-1),
     side: () => sides.at(-1),
     align: () => aligns.at(-1),
   }
 }
 
 const rect = (x: number, y: number) => new DOMRect(x, y, 0, 16)
-// DOMRect's fields are getters, so toEqual can't compare two rects directly.
-const box = (r: DOMRect | undefined) =>
-  r && { x: r.x, y: r.y, width: r.width, height: r.height }
 
 // jsdom's viewport measures 0×0, which makes every placement overflow.
 const viewport = { clientWidth: 1024, clientHeight: 768 }
@@ -115,52 +97,9 @@ afterAll(() => {
   }
 })
 
+// Where the popup lands against the anchor is covered in
+// suggestion-menu.anchor.browser.test.tsx.
 describe('SuggestionMenu anchor', () => {
-  it('wraps the anchor function in a virtual anchor with the host as context', () => {
-    const { menu, host, anchor } = setup()
-    act(() => menu.update({ query: '', anchor: () => rect(10, 20) }))
-
-    expect(box(anchor()?.getBoundingClientRect())).toEqual(box(rect(10, 20)))
-    expect(anchor()?.contextElement).toBe(host)
-  })
-
-  it('keeps the same anchor object while the rect is unchanged', () => {
-    const { menu, anchor } = setup()
-    act(() => menu.update({ query: '', anchor: () => rect(10, 20) }))
-    const first = anchor()
-
-    act(() => menu.update({ query: 'a', anchor: () => rect(10, 20) }))
-    expect(anchor()).toBe(first)
-
-    act(() => menu.update({ query: 'al', anchor: () => rect(30, 20) }))
-    expect(anchor()).not.toBe(first)
-    expect(box(anchor()?.getBoundingClientRect())).toEqual(box(rect(30, 20)))
-  })
-
-  it('measures the latest function, so scrolling moves the popup', () => {
-    const { menu, anchor } = setup()
-    let y = 20
-    act(() => menu.update({ query: '', anchor: () => rect(10, y) }))
-
-    y = 5
-    expect(box(anchor()?.getBoundingClientRect())).toEqual(box(rect(10, 5)))
-  })
-
-  it('measures again on each update, even with the same function', () => {
-    const { menu, anchor } = setup()
-    let y = 20
-    const measure = () => rect(10, y)
-    act(() => menu.update({ query: '', anchor: measure }))
-    const first = anchor()
-
-    // The trigger wrapped to the next line; the host only updates the query.
-    y = 40
-    act(() => menu.update({ query: 'a' }))
-
-    expect(anchor()).not.toBe(first)
-    expect(box(anchor()?.getBoundingClientRect())).toEqual(box(rect(10, 40)))
-  })
-
   it("doesn't measure on renders that aren't updates", async () => {
     const { menu, host } = setup()
     let calls = 0
@@ -188,78 +127,6 @@ describe('SuggestionMenu anchor', () => {
     expect(host).toBeInTheDocument()
   })
 
-  it('anchors once a stable anchor starts measuring', async () => {
-    const menu = SuggestionMenu.createHandle()
-    let ready = false
-    const anchors: Array<Anchor | undefined> = []
-    function Probe() {
-      anchors.push(usePopupMenuContext().virtualAnchor as Anchor | undefined)
-      return null
-    }
-    const stable = () => (ready ? rect(10, 20) : null)
-    render(
-      <SuggestionMenu.Root handle={menu} anchor={stable}>
-        <Probe />
-      </SuggestionMenu.Root>,
-    )
-    expect(anchors.at(-1)).toBeUndefined()
-
-    ready = true
-    act(() => menu.update({ query: '' }))
-
-    expect(box(anchors.at(-1)?.getBoundingClientRect())).toEqual(
-      box(rect(10, 20)),
-    )
-  })
-
-  it('measures when a controlled menu opens', () => {
-    const menu = SuggestionMenu.createHandle()
-    let ready = false
-    const anchors: Array<Anchor | undefined> = []
-    function Probe() {
-      anchors.push(usePopupMenuContext().virtualAnchor as Anchor | undefined)
-      return null
-    }
-    const stable = () => (ready ? rect(10, 20) : null)
-    const view = render(
-      <SuggestionMenu.Root handle={menu} anchor={stable} open={false}>
-        <Probe />
-      </SuggestionMenu.Root>,
-    )
-    ready = true
-
-    view.rerender(
-      <SuggestionMenu.Root handle={menu} anchor={stable} open>
-        <Probe />
-      </SuggestionMenu.Root>,
-    )
-
-    expect(box(anchors.at(-1)?.getBoundingClientRect())).toEqual(
-      box(rect(10, 20)),
-    )
-  })
-
-  it('keeps the same anchor object without a host', () => {
-    const menu = SuggestionMenu.createHandle()
-    const anchors: Array<Anchor | undefined> = []
-    function Probe() {
-      anchors.push(usePopupMenuContext().virtualAnchor as Anchor | undefined)
-      return null
-    }
-    render(
-      <SuggestionMenu.Root handle={menu}>
-        <Probe />
-      </SuggestionMenu.Root>,
-    )
-    act(() => menu.update({ query: '', anchor: () => rect(10, 20) }))
-    const first = anchors.at(-1)
-
-    act(() => menu.update({ query: 'a', anchor: () => rect(10, 20) }))
-
-    expect(first).toBeDefined()
-    expect(anchors.at(-1)).toBe(first)
-  })
-
   it("doesn't measure on close, when the text may be gone", () => {
     const { menu } = setup()
     let gone = false
@@ -271,17 +138,6 @@ describe('SuggestionMenu anchor', () => {
 
     gone = true
     expect(() => act(() => menu.close())).not.toThrow()
-  })
-
-  it('keeps the last position when the anchor returns null', () => {
-    const { menu, anchor } = setup()
-    act(() => menu.update({ query: '', anchor: () => rect(10, 20) }))
-    const first = anchor()
-
-    act(() => menu.update({ query: 'a', anchor: () => null }))
-
-    expect(anchor()).toBe(first)
-    expect(box(anchor()?.getBoundingClientRect())).toEqual(box(rect(10, 20)))
   })
 })
 
