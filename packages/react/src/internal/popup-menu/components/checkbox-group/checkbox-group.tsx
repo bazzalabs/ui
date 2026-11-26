@@ -47,6 +47,14 @@ export interface PopupMenuCheckboxGroupState extends Record<string, unknown> {
 }
 
 interface PopupMenuCheckboxGroupChildrenProps {
+  /**
+   * The group's name, used as the description of its options
+   * (`aria-describedby` on each one). Takes precedence over the text of a
+   * `GroupLabel` inside the group, and stays even while no `GroupLabel` is
+   * mounted, as in a windowed list scrolled past the label row.
+   */
+  label?: string
+
   children: React.ReactNode
 }
 
@@ -70,7 +78,7 @@ const stateAttributesMapping = {
 
 /**
  * Groups checkbox items together and owns their checked state as one array of values.
- * Renders a `<div>` element with role="group".
+ * Renders a `<div>` element with role="presentation".
  */
 export const PopupMenuCheckboxGroup = React.forwardRef(
   function PopupMenuCheckboxGroup(
@@ -83,6 +91,7 @@ export const PopupMenuCheckboxGroup = React.forwardRef(
       onValueChange,
       disabled: disabledProp = false,
       forceMount = false,
+      label,
       render,
       className,
       style,
@@ -133,13 +142,15 @@ export const PopupMenuCheckboxGroup = React.forwardRef(
       [],
     )
 
-    const { isVisible, groupContextValue } = useGroupVisibility({
-      store,
-      groupId,
-      forceMount,
-      ref: internalRef,
-      rowElement,
-    })
+    const { isVisible, groupContextValue, descriptionElement } =
+      useGroupVisibility({
+        store,
+        groupId,
+        forceMount,
+        ref: internalRef,
+        rowElement,
+        label,
+      })
     const isFirstGroup = store.useState('isFirstGroup', groupId)
     const isLastGroup = store.useState('isLastGroup', groupId)
     const isFirstRow = store.useState('isFirstRow', groupId)
@@ -174,14 +185,21 @@ export const PopupMenuCheckboxGroup = React.forwardRef(
       props: {
         ...rest,
         ...(slotAttr ? { [slotAttr]: '' } : {}),
-        role: 'group',
-        'aria-disabled': disabled || undefined,
+        // Presentational like every group kind, even though a radio or
+        // checkbox group is the textbook case for role="group" (ADR-0005).
+        // Its items carry aria-disabled themselves.
+        role: 'presentation',
         hidden: isVisible ? rest.hidden : true,
         className: resolveClassName(className, state),
         style: isVisible
           ? resolveStyle(style, state)
           : { ...resolveStyle(style, state), display: 'none' },
-        children,
+        children: (
+          <>
+            {descriptionElement}
+            {children}
+          </>
+        ),
       },
       defaultTagName: 'div',
     })

@@ -103,6 +103,7 @@ export const PopupMenuSubpageBackItem = React.forwardRef<
     onPointerMove,
     onPointerDown,
     children,
+    'aria-describedby': ariaDescribedBy,
     ...rest
   } = props
 
@@ -189,6 +190,7 @@ export const PopupMenuSubpageBackItem = React.forwardRef<
     closeOnClick: false,
     onSelect: handleBack,
     children,
+    describedBy: ariaDescribedBy,
   })
 
   const disabled = item.disabled
@@ -253,6 +255,7 @@ export const PopupMenuSubpageBackItem = React.forwardRef<
       ...(slotAttr ? { [slotAttr]: '' } : {}),
       id: item.id,
       role: 'option',
+      'aria-describedby': item.describedBy,
       tabIndex: -1,
       'aria-selected': item.isHighlighted,
       'aria-disabled': disabled || undefined,

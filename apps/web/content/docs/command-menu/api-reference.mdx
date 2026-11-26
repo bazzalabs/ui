@@ -102,7 +102,7 @@ Displays a keyboard shortcut hint for a row. Renders a `<kbd>` element.
 
 ## Group
 
-Groups related rows together. Renders a `<div>` element with `role="group"`.
+Groups related rows together. Renders a `<div>` element with `role="presentation"`: each option in the group is described (`aria-describedby`) by the group's name, its `label` prop or else its `GroupLabel`'s text, instead of sitting in a `role="group"`, which stops VoiceOver announcing the highlighted option.
 
 <TypeTableAuto type="CommandMenuGroupProps" pkg="@bazza-ui/react" />
 <StateTableAuto type="CommandMenuGroupState" pkg="@bazza-ui/react" />
@@ -169,7 +169,7 @@ Displays a check mark when the checkbox item is checked. Renders a `<span>` elem
 
 ## CheckboxGroup
 
-Groups checkbox items together and owns their checked state as an array of item values. Renders a `<div>` element with `role="group"`.
+Groups checkbox items together and owns their checked state as an array of item values. Renders a `<div>` element with `role="presentation"`: each option in the group is described (`aria-describedby`) by the group's name, its `label` prop or else its `GroupLabel`'s text, instead of sitting in a `role="group"`, which stops VoiceOver announcing the highlighted option.
 
 <TypeTableAuto type="CommandMenuCheckboxGroupProps" pkg="@bazza-ui/react" />
 <StateTableAuto type="CommandMenuCheckboxGroupState" pkg="@bazza-ui/react" />

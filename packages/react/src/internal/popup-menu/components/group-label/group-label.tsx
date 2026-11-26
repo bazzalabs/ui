@@ -51,7 +51,14 @@ const stateAttributesMapping = {
 
 /**
  * A label/heading for a group of popup menu items.
- * Renders a `<div>` element with role="presentation".
+ * Renders a `<div>` element with role="presentation" and `aria-hidden`: its
+ * text names the group through the group's hidden description node, which
+ * every option in the group points `aria-describedby` at.
+ *
+ * The group keeps the last text its label rendered after the label unmounts,
+ * so the options of a windowed list stay described once the label row scrolls
+ * away. A label that renders empty text clears the name. To set or change the
+ * name independently of the label row, pass `label` to the group.
  */
 export const PopupMenuGroupLabel = React.forwardRef<
   HTMLDivElement,
@@ -89,9 +96,21 @@ export const PopupMenuGroupLabel = React.forwardRef<
 
   const isHidden = groupContext?.hidden ?? false
 
+  // Give the group this label's text for its hidden description node, which
+  // names the group's options (ADR-0005). Only while the element is mounted:
+  // the group keeps the text after the label hides or unmounts.
+  const labelRef = React.useRef<HTMLDivElement>(null)
+  const registerLabel = groupContext?.registerLabel
+  // biome-ignore lint/correctness/useExhaustiveDependencies: children and isHidden are intentional trigger deps — re-read the text when the label's content changes or it mounts its element again
+  React.useLayoutEffect(() => {
+    const labelElement = labelRef.current
+    if (!labelElement) return
+    registerLabel?.(labelElement.textContent?.trim() ?? '')
+  }, [registerLabel, children, isHidden])
+
   const element = useRender({
     render,
-    ref: forwardedRef,
+    ref: [labelRef, forwardedRef],
     state,
     stateAttributesMapping,
     props: {
@@ -99,8 +118,8 @@ export const PopupMenuGroupLabel = React.forwardRef<
       ...(slotAttr ? { [slotAttr]: '' } : {}),
       // Presentation role - this is a visual label, not interactive
       role: 'presentation',
-      // aria-hidden since the group label is decorative for screen readers
-      // in the context of a listbox (options are the semantic elements)
+      // aria-hidden: the group's hidden description node carries this text
+      // to its options (ADR-0005), so reading the label too would repeat it.
       'aria-hidden': 'true',
       className: resolveClassName(className, state),
       style: resolveStyle(style, state),

@@ -142,6 +142,9 @@ function itemDef(value: string): NodeDef {
   }
 }
 
+// Not the group's hidden description node, which holds the same text.
+const LABEL = '[bazzaui-dropdown-menu-group-label]'
+
 function DataItems() {
   const { nodes, renderNode } = DropdownMenu.useDataList()
   return <>{nodes.map(renderNode)}</>
@@ -278,17 +281,23 @@ describe('popup menu groups hidden by a search', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('item-audi')).toBeInTheDocument()
-      expect(screen.queryByText('Fruits')).not.toBeInTheDocument()
+      expect(
+        screen.queryByText('Fruits', { selector: LABEL }),
+      ).not.toBeInTheDocument()
     })
 
     await user.tripleClick(input)
     await user.keyboard('apple')
 
     await waitFor(() => {
-      expect(screen.getByText('Fruits')).toBeInTheDocument()
+      expect(
+        screen.getByText('Fruits', { selector: LABEL }),
+      ).toBeInTheDocument()
       expect(screen.getByTestId('item-apple')).toBeInTheDocument()
       expect(screen.queryByTestId('item-audi')).not.toBeInTheDocument()
-      expect(screen.queryByText('Cars')).not.toBeInTheDocument()
+      expect(
+        screen.queryByText('Cars', { selector: LABEL }),
+      ).not.toBeInTheDocument()
     })
   })
 })

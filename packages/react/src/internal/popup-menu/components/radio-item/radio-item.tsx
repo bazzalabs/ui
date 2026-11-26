@@ -92,6 +92,7 @@ export const PopupMenuRadioItem = React.forwardRef(function PopupMenuRadioItem(
     onPointerDown,
     onPointerMove,
     children,
+    'aria-describedby': ariaDescribedBy,
     ...rest
   } = props
 
@@ -113,6 +114,7 @@ export const PopupMenuRadioItem = React.forwardRef(function PopupMenuRadioItem(
     forceScore,
     closeOnClick,
     children,
+    describedBy: ariaDescribedBy,
   })
 
   const disabled = item.disabled
@@ -192,6 +194,7 @@ export const PopupMenuRadioItem = React.forwardRef(function PopupMenuRadioItem(
       ...(slotAttr ? { [slotAttr]: '' } : {}),
       id: item.id,
       role: 'menuitemradio',
+      'aria-describedby': item.describedBy,
       tabIndex: -1,
       'aria-checked': checked,
       'aria-disabled': disabled || undefined,

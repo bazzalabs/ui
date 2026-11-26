@@ -1081,11 +1081,13 @@ describe('group labels', () => {
     render(<MenuWithDataContent content={[createRadioGroup()]} />)
 
     await waitFor(() => {
-      const radioGroup = screen.getByRole('radiogroup')
       expect(
-        radioGroup.querySelector('[bazzaui-dropdown-menu-group-label]'),
-      ).toHaveTextContent('Radio Group Label')
+        screen.getByText('Radio Group Label', {
+          selector: '[bazzaui-dropdown-menu-group-label]',
+        }),
+      ).toBeInTheDocument()
     })
+    expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument()
   })
 
   it('renders a visible default label for a checkbox group', async () => {
@@ -1097,7 +1099,7 @@ describe('group labels', () => {
         }),
       ).toBeInTheDocument()
     })
-    expect(screen.getByRole('group')).toBeInTheDocument()
+    expect(screen.queryByRole('group')).not.toBeInTheDocument()
   })
 
   it('passes the menu node and stable label id to a checkbox group renderLabel', async () => {

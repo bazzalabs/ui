@@ -118,6 +118,12 @@ export interface UseListboxItemParams {
    * When provided, pointer move events will respect the aim guard.
    */
   aimGuard?: AimGuardRefs
+
+  /**
+   * The consumer's own `aria-describedby` for the row. It's merged with the
+   * id of the row's group description into `describedBy`.
+   */
+  describedBy?: string
 }
 
 /**
@@ -153,6 +159,12 @@ export interface UseListboxItemReturn {
 
   /** Whether item should be rendered (passes filter) */
   isVisible: boolean
+
+  /**
+   * The row's `aria-describedby`: its group's description id (when the group
+   * has a label) followed by the consumer's own ids.
+   */
+  describedBy: string | undefined
 
   /** Context value to provide to children via ItemContext.Provider */
   contextValue: ItemContextValue
@@ -231,6 +243,7 @@ export function useListboxItem(
     onAfterSelect,
     children,
     aimGuard,
+    describedBy: describedByProp,
   } = params
 
   const { store } = useSurfaceContext()
@@ -452,6 +465,12 @@ export function useListboxItem(
     [contextPositional, isFirstRow, isLastRow, isFirstInGroup, isLastInGroup],
   )
 
+  const groupDescriptionId = groupContext?.descriptionId
+  const describedBy =
+    groupDescriptionId && describedByProp
+      ? `${groupDescriptionId} ${describedByProp}`
+      : groupDescriptionId || describedByProp || undefined
+
   return {
     id: domId,
     storeId: registrationId,
@@ -460,6 +479,7 @@ export function useListboxItem(
     positional,
     isHighlighted,
     isVisible,
+    describedBy,
     contextValue,
     handlers,
     registerSelect,

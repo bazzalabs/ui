@@ -29,6 +29,7 @@ import {
   useDataPopupContext,
   useDataSurfaceContext,
 } from './context.js'
+import { DataGroupContainer } from './group-container.js'
 import { isRowMenuNode } from './type-guards.js'
 import type {
   AsyncContentMode,
@@ -1281,10 +1282,9 @@ export const DataListInner = React.forwardRef<
 
             // Default group rendering
             return (
-              // biome-ignore lint/a11y/useSemanticElements: ignore for now
-              <div key={childNode.id} role="group" aria-label={childNode.label}>
+              <DataGroupContainer key={childNode.id} label={childNode.label}>
                 {groupChildren}
-              </div>
+              </DataGroupContainer>
             )
           }
 
@@ -1456,11 +1456,7 @@ export const DataListInner = React.forwardRef<
 
       // Minimal default: just render children with a wrapper
       return (
-        <div
-          key={radioGroup.id}
-          role="radiogroup"
-          aria-label={radioGroup.label}
-        >
+        <DataGroupContainer key={radioGroup.id} label={radioGroup.label}>
           {renderGroupLabelElement(
             radioGroup.id,
             radioGroup.label,
@@ -1474,7 +1470,7 @@ export const DataListInner = React.forwardRef<
             },
           )}
           {childElements}
-        </div>
+        </DataGroupContainer>
       )
     },
     [renderRowNode],
@@ -1537,12 +1533,7 @@ export const DataListInner = React.forwardRef<
         )
       }
       return (
-        // biome-ignore lint/a11y/useSemanticElements: ignore for now
-        <div
-          key={checkboxGroup.id}
-          role="group"
-          aria-label={checkboxGroup.label}
-        >
+        <DataGroupContainer key={checkboxGroup.id} label={checkboxGroup.label}>
           {renderGroupLabelElement(
             checkboxGroup.id,
             checkboxGroup.label,
@@ -1551,7 +1542,7 @@ export const DataListInner = React.forwardRef<
             context,
           )}
           {childElements}
-        </div>
+        </DataGroupContainer>
       )
     },
     [renderRowNode],
@@ -1588,8 +1579,7 @@ export const DataListInner = React.forwardRef<
 
         // Minimal default: just render children with a wrapper
         return (
-          // biome-ignore lint/a11y/useSemanticElements: ignore for now
-          <div key={group.id} role="group" aria-label={group.label}>
+          <DataGroupContainer key={group.id} label={group.label}>
             {renderGroupLabelElement(
               group.id,
               group.label,
@@ -1601,7 +1591,7 @@ export const DataListInner = React.forwardRef<
               },
             )}
             {children}
-          </div>
+          </DataGroupContainer>
         )
       }
 
@@ -1639,11 +1629,7 @@ export const DataListInner = React.forwardRef<
 
         // Minimal default: just render children with a wrapper
         return (
-          <div
-            key={radioGroup.id}
-            role="radiogroup"
-            aria-label={radioGroup.label}
-          >
+          <DataGroupContainer key={radioGroup.id} label={radioGroup.label}>
             {renderGroupLabelElement(
               radioGroup.id,
               radioGroup.label,
@@ -1657,7 +1643,7 @@ export const DataListInner = React.forwardRef<
               },
             )}
             {children}
-          </div>
+          </DataGroupContainer>
         )
       }
 
@@ -1688,11 +1674,9 @@ export const DataListInner = React.forwardRef<
           )
         }
         return (
-          // biome-ignore lint/a11y/useSemanticElements: ignore for now
-          <div
+          <DataGroupContainer
             key={checkboxGroup.id}
-            role="group"
-            aria-label={checkboxGroup.label}
+            label={checkboxGroup.label}
           >
             {renderGroupLabelElement(
               checkboxGroup.id,
@@ -1707,7 +1691,7 @@ export const DataListInner = React.forwardRef<
               },
             )}
             {children}
-          </div>
+          </DataGroupContainer>
         )
       }
 

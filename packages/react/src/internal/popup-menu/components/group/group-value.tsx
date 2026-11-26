@@ -23,11 +23,21 @@ export interface PopupMenuGroupValueProps {
  */
 export function PopupMenuGroupValue(props: PopupMenuGroupValueProps) {
   const { groupId, positional, children } = props
-  // Rows inside a group a search hides stay hidden.
-  const isParentHidden = useGroupContext()?.hidden
+  const parentGroup = useGroupContext()
+  // Rows inside a group a search hides stay hidden, and rows inside a
+  // labelled group stay described by it.
+  const isParentHidden = parentGroup?.hidden
+  const descriptionId = parentGroup?.descriptionId
+  const registerLabel = parentGroup?.registerLabel
   const contextValue: GroupContextValue = React.useMemo(
-    () => ({ groupId, positional, hidden: isParentHidden }),
-    [groupId, positional, isParentHidden],
+    () => ({
+      groupId,
+      positional,
+      hidden: isParentHidden,
+      descriptionId,
+      registerLabel,
+    }),
+    [groupId, positional, isParentHidden, descriptionId, registerLabel],
   )
   return (
     <GroupContext.Provider value={contextValue}>

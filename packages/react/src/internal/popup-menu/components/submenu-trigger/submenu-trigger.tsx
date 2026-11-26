@@ -130,6 +130,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
     onPointerEnter,
     onPointerLeave,
     children,
+    'aria-describedby': ariaDescribedBy,
     ...rest
   } = props
 
@@ -271,6 +272,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
     isSubmenuTrigger: true,
     closeOnClick: false, // Submenu triggers don't close the menu
     children,
+    describedBy: ariaDescribedBy,
   })
 
   const disabled = item.disabled
@@ -1274,6 +1276,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       ...(slotAttr ? { [slotAttr]: '' } : {}),
       id: item.id,
       role: 'menuitem',
+      'aria-describedby': item.describedBy,
       'aria-haspopup': 'menu',
       'aria-expanded': open,
       tabIndex: -1,

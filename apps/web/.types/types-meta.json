@@ -2458,6 +2458,13 @@
             "default": "false"
           },
           {
+            "name": "label",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "The group's name, used as the description of its options\n(`aria-describedby` on each one). Takes precedence over the text of a\n`GroupLabel` inside the group, and stays even while no `GroupLabel` is\nmounted, as in a windowed list scrolled past the label row."
+          },
+          {
             "name": "children",
             "type": "ReactNode",
             "required": true
@@ -3909,6 +3916,13 @@
             "default": "false"
           },
           {
+            "name": "label",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "The group's name, used as the description of its options\n(`aria-describedby` on each one). Takes precedence over the text of a\n`GroupLabel` inside the group, and stays even while no `GroupLabel` is\nmounted, as in a windowed list scrolled past the label row."
+          },
+          {
             "name": "children",
             "type": "ReactNode",
             "required": true
@@ -4408,6 +4422,13 @@
             "required": false,
             "description": "Whether to force render this group regardless of filter results.",
             "default": "false"
+          },
+          {
+            "name": "label",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "The group's name, used as the description of its options\n(`aria-describedby` on each one). Takes precedence over the text of a\n`GroupLabel` inside the group, and stays even while no `GroupLabel` is\nmounted, as in a windowed list scrolled past the label row."
           },
           {
             "name": "children",
@@ -9554,6 +9575,13 @@
             "default": "false"
           },
           {
+            "name": "label",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "The group's name, used as the description of its options\n(`aria-describedby` on each one). Takes precedence over the text of a\n`GroupLabel` inside the group, and stays even while no `GroupLabel` is\nmounted, as in a windowed list scrolled past the label row."
+          },
+          {
             "name": "children",
             "type": "ReactNode",
             "required": true
@@ -10053,6 +10081,13 @@
             "required": false,
             "description": "Whether to force render this group regardless of filter results.",
             "default": "false"
+          },
+          {
+            "name": "label",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "The group's name, used as the description of its options\n(`aria-describedby` on each one). Takes precedence over the text of a\n`GroupLabel` inside the group, and stays even while no `GroupLabel` is\nmounted, as in a windowed list scrolled past the label row."
           },
           {
             "name": "children",
@@ -10772,6 +10807,13 @@
             "required": false,
             "description": "Whether to force render this group regardless of filter results.",
             "default": "false"
+          },
+          {
+            "name": "label",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "The group's name, used as the description of its options\n(`aria-describedby` on each one). Takes precedence over the text of a\n`GroupLabel` inside the group, and stays even while no `GroupLabel` is\nmounted, as in a windowed list scrolled past the label row."
           },
           {
             "name": "children",
@@ -13699,6 +13741,13 @@
             "type": "ReactNode",
             "required": false,
             "description": "Children (used for text content inference when value is not provided)."
+          },
+          {
+            "name": "describedBy",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "The consumer's own `aria-describedby` for the row. It's merged with the\nid of the row's group description into `describedBy`."
           }
         ]
       },
@@ -13757,6 +13806,13 @@
             "formattedType": "false | true",
             "required": true,
             "description": "Whether item should be rendered (passes filter)"
+          },
+          {
+            "name": "describedBy",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": true,
+            "description": "The row's `aria-describedby`: its group's description id (when the group\nhas a label) followed by the consumer's own ids."
           },
           {
             "name": "contextValue",
@@ -14444,6 +14500,13 @@
             "default": "false"
           },
           {
+            "name": "label",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "The group's name, used as the description of its options\n(`aria-describedby` on each one). Takes precedence over the text of a\n`GroupLabel` inside the group, and stays even while no `GroupLabel` is\nmounted, as in a windowed list scrolled past the label row."
+          },
+          {
             "name": "children",
             "type": "ReactNode",
             "required": true
@@ -14943,6 +15006,13 @@
             "required": false,
             "description": "Whether to force render this group regardless of filter results.",
             "default": "false"
+          },
+          {
+            "name": "label",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "The group's name, used as the description of its options\n(`aria-describedby` on each one). Takes precedence over the text of a\n`GroupLabel` inside the group, and stays even while no `GroupLabel` is\nmounted, as in a windowed list scrolled past the label row."
           },
           {
             "name": "children",
@@ -15720,6 +15790,13 @@
             "required": false,
             "description": "Whether to force render this group regardless of filter results.",
             "default": "false"
+          },
+          {
+            "name": "label",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "The group's name, used as the description of its options\n(`aria-describedby` on each one). Takes precedence over the text of a\n`GroupLabel` inside the group, and stays even while no `GroupLabel` is\nmounted, as in a windowed list scrolled past the label row."
           },
           {
             "name": "children",
@@ -19672,6 +19749,13 @@
             "default": "false"
           },
           {
+            "name": "label",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "The group's name, used as the description of its options\n(`aria-describedby` on each one). Takes precedence over the text of a\n`GroupLabel` inside the group, and stays even while no `GroupLabel` is\nmounted, as in a windowed list scrolled past the label row."
+          },
+          {
             "name": "children",
             "type": "ReactNode",
             "required": true
@@ -22119,6 +22203,13 @@
             "required": false,
             "description": "Whether to force render this group regardless of filter results.",
             "default": "false"
+          },
+          {
+            "name": "label",
+            "type": "string | undefined",
+            "formattedType": "string",
+            "required": false,
+            "description": "The group's name, used as the description of its options\n(`aria-describedby` on each one). Takes precedence over the text of a\n`GroupLabel` inside the group, and stays even while no `GroupLabel` is\nmounted, as in a windowed list scrolled past the label row."
           },
           {
             "name": "children",
