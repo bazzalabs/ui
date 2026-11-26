@@ -6,6 +6,7 @@ Where it lives:
 
 - `packages/menu-core/src/tree/` — node def kinds, the Menu Node model and the resolver (identity, reconcile, graft), with no React
 - `packages/menu-core/src/data/` — the pipeline over defs: browse, flatten, filtering/deep search, scoring, sorting, display, async helpers, with no React
+- `packages/menu-core/src/collection/` — the Collection snapshot, its positions, and the Data adapter, with no React
 - `packages/react/src/internal/popup-menu/menu-tree/` and `data-first/` — the React layer over those: React-typed defs and nodes, the list and subpages, async loaders; their pure modules re-export from `@bazza-ui/menu-core`
 - `packages/react/src/internal/popup-menu/components/`, `contexts/`, `hooks/` — the JSX parts and their plumbing
 
@@ -73,6 +74,14 @@ _Avoid_: container (that is a group, radio group or checkbox group), parent (as 
 **Container**:
 A group, radio group, or checkbox group: one concept with a `selection` mode — `'none'` (group), `'single'` (radio group), `'multiple'` (checkbox group). Users still author the `group`, `radio-group` and `checkbox-group` kinds. In `menu-core`, the resolver and the pipeline read each as a Container (`isContainerDef`, `containerOf`, `selectionOf`) and take one path for all three, so only the selection mode and its search behavior (`groupSearchBehavior`, `radioGroupSearchBehavior`, `checkboxGroupSearchBehavior`) tell them apart. The React data-first renderers still branch per kind until they move onto the row collection. A Container is not a Branch: it opens no surface and contributes no Definition Key to its rows' paths.
 _Avoid_: group (as the category; a group is the `'none'` Container), branch, section
+
+**Collection**:
+A surface's immutable snapshot of its rows (`CollectionSnapshot`): every row it knows in order (`orderedIds`, rows a search hides included), which show (`visible`, `visibleContainers`), the visible enabled rows in navigation order (`navOrder`), a positional bitmask per visible row (`positions`, `Pos.First` … `Pos.LastContainer`), and search scores, which order rows but never hide one (`visible` alone decides what shows). Each item row carries what the store reads from an item's registration today: text, keywords, Container, `disabled`, `activatable`, `closeOnClick`, forced order and score, shortcut, and its kind (submenu trigger or not). Built by `buildSnapshot`; a change is a new snapshot with a higher `version`, and a build that changes nothing returns the previous one. Positions follow one rule set (`computePositions`): a Container's own row, separators, empty and loading rows count as rows outside any Container; disabled rows take positions though navigation skips them; group labels are not rows. One Collection per surface: it is to replace the store's `items`, `orderedRows`, `filteredItems`, `orderedItems` and `virtualItems`.
+_Avoid_: row registry, item list
+
+**Collection Adapter**:
+How rows reach a surface's Collection, one per surface, chosen once: **DOM** (composable JSX rows register), **Data** (data-first Display Nodes, already filtered, scored and sorted by the pipeline; its rows never register, and it neither filters nor sorts again), or **Virtual** (an `items` array). A row a search hides stays in the Collection, only hidden: the Data adapter takes the surface's browse Display Nodes as well as the ones it shows, and keeps the rows the search leaves out. Only the Data adapter exists so far (`dataSnapshotInput`, `buildDataSnapshot`).
+_Avoid_: source, provider, registry
 
 **Resolution**:
 The phase that turns node defs into Menu Nodes in the Menu Tree: static content synchronously when the content is supplied; loader results by grafting after they arrive. The only phase permitted to mutate the Menu Tree.
