@@ -791,6 +791,44 @@ function sleep(ms: number): Promise<void> {
 // Tests
 // ============================================================================
 
+/** Holds the popup's exit animation until the returned `finish` is called. */
+function holdExitAnimation() {
+  const originalGetAnimations = Element.prototype.getAnimations
+  let finish: () => void = () => {}
+  const finished = new Promise<void>((resolve) => {
+    finish = resolve
+  })
+  Object.defineProperty(Element.prototype, 'getAnimations', {
+    configurable: true,
+    value(this: Element) {
+      if (
+        this.getAttribute('data-testid') === 'popup' &&
+        this.hasAttribute('data-ending-style')
+      ) {
+        return [
+          {
+            finished: finished.then(() => ({})),
+            pending: false,
+            playState: 'running',
+          },
+        ]
+      }
+      return []
+    },
+  })
+  const restore = () => {
+    if (originalGetAnimations) {
+      Object.defineProperty(Element.prototype, 'getAnimations', {
+        configurable: true,
+        value: originalGetAnimations,
+      })
+    } else {
+      delete (Element.prototype as Partial<Element>).getAnimations
+    }
+  }
+  return { finish, restore }
+}
+
 describe('PopupMenu', () => {
   describe('explicit Tab behavior', () => {
     it('Tab closes the menu', async () => {
@@ -3153,6 +3191,249 @@ describe('PopupMenu', () => {
     })
   })
 
+  describe('keys and edits while closing', () => {
+    function MenuWithPendingExit({
+      clearSearchOnClose,
+      withInput = true,
+      onSelect,
+    }: {
+      clearSearchOnClose?: boolean | 'after-exit'
+      withInput?: boolean
+      onSelect: (value: string) => void
+    }) {
+      return (
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger data-testid="trigger">
+            Open
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner>
+              <DropdownMenu.Popup data-testid="popup">
+                <DropdownMenu.Surface
+                  data-testid="surface"
+                  clearSearchOnClose={clearSearchOnClose}
+                >
+                  {withInput && (
+                    <DropdownMenu.Input data-testid="search-input" />
+                  )}
+                  <DropdownMenu.List data-testid="list">
+                    {['apple', 'banana', 'cherry'].map((value) => (
+                      <DropdownMenu.Item
+                        key={value}
+                        data-testid={`item-${value}`}
+                        value={value}
+                        onSelect={() => onSelect(value)}
+                      >
+                        {value}
+                      </DropdownMenu.Item>
+                    ))}
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      )
+    }
+
+    async function openAndClose(
+      user: ReturnType<typeof userEvent.setup>,
+      { focusTestId = 'search-input', query = '' } = {},
+    ) {
+      await user.click(screen.getByTestId('trigger'))
+      const focused = await screen.findByTestId(focusTestId)
+      await waitFor(() => {
+        expect(focused).toHaveFocus()
+      })
+      if (query) await user.keyboard(query)
+      expect(screen.getByTestId('item-apple')).toHaveAttribute(
+        'data-highlighted',
+      )
+      // Let the surface accept pointer moves (ignored just after opening).
+      await new Promise((resolve) => setTimeout(resolve, 150))
+      await user.keyboard('{Escape}')
+      await waitFor(() => {
+        expect(screen.getByTestId('popup')).toHaveAttribute('data-ending-style')
+      })
+      // DOM focus stays put while the popup animates out.
+      expect(focused).toHaveFocus()
+      // A pointer resting on the popup as it animates out makes its surface
+      // the focus owner again.
+      fireEvent.pointerMove(focused)
+      return focused
+    }
+
+    it('ignores navigation and Enter in the input while the menu closes', async () => {
+      const user = userEvent.setup()
+      const onSelect = vi.fn()
+      const exit = holdExitAnimation()
+      try {
+        render(<MenuWithPendingExit onSelect={onSelect} />)
+        await openAndClose(user)
+
+        await user.keyboard('{ArrowDown}')
+        expect(screen.getByTestId('item-apple')).toHaveAttribute(
+          'data-highlighted',
+        )
+        await user.keyboard('{Enter}')
+        expect(onSelect).not.toHaveBeenCalled()
+      } finally {
+        exit.restore()
+      }
+    })
+
+    it('ignores navigation and Enter in the list while the menu closes', async () => {
+      const user = userEvent.setup()
+      const onSelect = vi.fn()
+      const exit = holdExitAnimation()
+      try {
+        render(<MenuWithPendingExit withInput={false} onSelect={onSelect} />)
+        await openAndClose(user, { focusTestId: 'list' })
+
+        await user.keyboard('{ArrowDown}')
+        expect(screen.getByTestId('item-apple')).toHaveAttribute(
+          'data-highlighted',
+        )
+        await user.keyboard('{Enter}')
+        expect(onSelect).not.toHaveBeenCalled()
+      } finally {
+        exit.restore()
+      }
+    })
+
+    it('keeps the search frozen while the menu closes', async () => {
+      const user = userEvent.setup()
+      const exit = holdExitAnimation()
+      try {
+        render(<MenuWithPendingExit onSelect={vi.fn()} />)
+        const input = await openAndClose(user, { query: 'a' })
+        expect(input).toHaveValue('a')
+        expect(screen.queryByTestId('item-cherry')).not.toBeInTheDocument()
+
+        await user.keyboard('b')
+
+        expect(input).toHaveValue('a')
+        expect(screen.getByTestId('item-apple')).toBeInTheDocument()
+        expect(screen.getByTestId('item-banana')).toBeInTheDocument()
+        expect(screen.queryByTestId('item-cherry')).not.toBeInTheDocument()
+      } finally {
+        exit.restore()
+      }
+    })
+
+    it('ignores IME composition while the menu closes', async () => {
+      const user = userEvent.setup()
+      const exit = holdExitAnimation()
+      try {
+        render(<MenuWithPendingExit onSelect={vi.fn()} />)
+        const input = await openAndClose(user, { query: 'a' })
+
+        fireEvent.compositionStart(input)
+        fireEvent.change(input, { target: { value: 'ab' } })
+
+        expect(input).toHaveValue('a')
+        fireEvent.compositionEnd(input)
+        expect(input).toHaveValue('a')
+        expect(screen.getByTestId('item-apple')).toBeInTheDocument()
+      } finally {
+        exit.restore()
+      }
+    })
+
+    it('does not carry an edit made while closing into the next open', async () => {
+      const user = userEvent.setup()
+      const exit = holdExitAnimation()
+      try {
+        render(
+          <MenuWithPendingExit clearSearchOnClose={true} onSelect={vi.fn()} />,
+        )
+        await openAndClose(user)
+
+        await user.keyboard('ban')
+        exit.finish()
+        await waitFor(() => {
+          expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
+        })
+
+        await user.click(screen.getByTestId('trigger'))
+        expect(await screen.findByTestId('search-input')).toHaveValue('')
+        expect(screen.getByTestId('item-apple')).toBeInTheDocument()
+      } finally {
+        exit.restore()
+      }
+    })
+
+    it('keeps a subpage input working when the root refuses to close', async () => {
+      const user = userEvent.setup()
+      const onOpenChange = vi.fn(
+        (open: boolean, details: DropdownMenu.Root.OpenChangeEventDetails) => {
+          if (!open && details.reason === 'item-press') details.cancel()
+        },
+      )
+      render(
+        <DropdownMenu.Root onOpenChange={onOpenChange}>
+          <DropdownMenu.Trigger data-testid="trigger">
+            Open
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner>
+              <DropdownMenu.Popup>
+                <DropdownMenu.Surface data-testid="root-surface">
+                  <DropdownMenu.List data-testid="root-list">
+                    <DropdownMenu.SubpageTrigger targetPageId="page">
+                      Page
+                    </DropdownMenu.SubpageTrigger>
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
+                <DropdownMenu.Subpage pageId="page">
+                  <DropdownMenu.Surface data-testid="subpage-surface">
+                    <DropdownMenu.Input data-testid="subpage-input" />
+                    <DropdownMenu.List>
+                      {['apple', 'banana', 'cherry'].map((value) => (
+                        <DropdownMenu.Item
+                          key={value}
+                          data-testid={`item-${value}`}
+                          value={value}
+                        >
+                          {value}
+                        </DropdownMenu.Item>
+                      ))}
+                    </DropdownMenu.List>
+                  </DropdownMenu.Surface>
+                </DropdownMenu.Subpage>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>,
+      )
+
+      await user.click(screen.getByTestId('trigger'))
+      await waitFor(() => {
+        expect(screen.getByTestId('root-list')).toHaveFocus()
+      })
+      await user.keyboard('{Enter}')
+      const input = await screen.findByTestId('subpage-input')
+      await waitFor(() => {
+        expect(input).toHaveFocus()
+      })
+
+      // Enter on a row asks the root to close; the root refuses.
+      await user.keyboard('{Enter}')
+      expect(onOpenChange).toHaveBeenLastCalledWith(
+        false,
+        expect.objectContaining({ reason: 'item-press' }),
+      )
+
+      await user.keyboard('a')
+      expect(input).toHaveValue('a')
+      expect(screen.queryByTestId('item-cherry')).not.toBeInTheDocument()
+      await user.keyboard('{ArrowDown}')
+      expect(screen.getByTestId('item-banana')).toHaveAttribute(
+        'data-highlighted',
+      )
+    })
+  })
+
   describe('clearSearchOnClose', () => {
     it('clears search when menu closes when clearSearchOnClose is true', async () => {
       const user = userEvent.setup()
@@ -3239,29 +3520,7 @@ describe('PopupMenu', () => {
     it('keeps search during the exit animation and clears it after when clearSearchOnClose is "after-exit"', async () => {
       const user = userEvent.setup()
       const onOpenChangeComplete = vi.fn()
-      const originalGetAnimations = Element.prototype.getAnimations
-      let finishExit: () => void = () => {}
-      const exitFinished = new Promise<void>((resolve) => {
-        finishExit = resolve
-      })
-      Object.defineProperty(Element.prototype, 'getAnimations', {
-        configurable: true,
-        value(this: Element) {
-          if (
-            this.getAttribute('data-testid') === 'popup' &&
-            this.hasAttribute('data-ending-style')
-          ) {
-            return [
-              {
-                finished: exitFinished.then(() => ({})),
-                pending: false,
-                playState: 'running',
-              },
-            ]
-          }
-          return []
-        },
-      })
+      const exit = holdExitAnimation()
       try {
         render(
           <MenuWithClearSearchOnClose
@@ -3299,7 +3558,7 @@ describe('PopupMenu', () => {
         expect(screen.getByTestId('search-input')).toHaveValue('apple')
         expect(screen.queryByTestId('item-banana')).not.toBeInTheDocument()
 
-        finishExit()
+        exit.finish()
 
         await waitFor(() => {
           expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
@@ -3324,14 +3583,7 @@ describe('PopupMenu', () => {
         expect(screen.getByTestId('item-banana')).toBeInTheDocument()
         expect(screen.getByTestId('item-cherry')).toBeInTheDocument()
       } finally {
-        if (originalGetAnimations) {
-          Object.defineProperty(Element.prototype, 'getAnimations', {
-            configurable: true,
-            value: originalGetAnimations,
-          })
-        } else {
-          delete (Element.prototype as Partial<Element>).getAnimations
-        }
+        exit.restore()
       }
     })
 
