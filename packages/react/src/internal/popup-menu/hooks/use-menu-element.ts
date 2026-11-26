@@ -1,26 +1,9 @@
 'use client'
 
-import { ElementRegistry, type ElementRole } from '@bazza-ui/menu-core'
+import type { ElementRole } from '@bazza-ui/menu-core'
 import * as React from 'react'
-import { useMaybeOpenChain } from '../contexts/open-chain-context.js'
-import type { OpenChainStore } from '../store/OpenChainStore.js'
-
-// One registry per menu tree, kept by the tree's OpenChainStore (one per root,
-// shared by its submenus) so it stays off the published types.
-const registries = new WeakMap<OpenChainStore, ElementRegistry>()
-
-/**
- * The element registry of the menu tree `openChain` belongs to. Its root sets
- * the exempt elements (see `usePopupMenuRoot`).
- */
-export function getElementRegistry(openChain: OpenChainStore): ElementRegistry {
-  let registry = registries.get(openChain)
-  if (!registry) {
-    registry = new ElementRegistry()
-    registries.set(openChain, registry)
-  }
-  return registry
-}
+import { useMaybeMenuTree } from '../contexts/menu-tree-context.js'
+import { getElementRegistry } from '../store/MenuTreeStore.js'
 
 /**
  * A ref callback that registers the element it receives with the menu tree's
@@ -31,17 +14,17 @@ export function useMenuElement(
   role: ElementRole,
   surfaceId?: string,
 ): React.RefCallback<Element> {
-  const openChain = useMaybeOpenChain()
+  const tree = useMaybeMenuTree()
   const removeRef = React.useRef<(() => void) | undefined>(undefined)
   return React.useCallback(
     (element: Element | null) => {
       removeRef.current?.()
       removeRef.current =
-        element && openChain
-          ? getElementRegistry(openChain).add(role, element, surfaceId)
+        element && tree
+          ? getElementRegistry(tree).add(role, element, surfaceId)
           : undefined
     },
-    [openChain, role, surfaceId],
+    [tree, role, surfaceId],
   )
 }
 
@@ -54,9 +37,9 @@ export function useMenuElement(
 export function usePressClaim<E extends Element>(
   handler: React.PointerEventHandler<E> | undefined,
 ): React.PointerEventHandler<E> {
-  const openChain = useMaybeOpenChain()
+  const tree = useMaybeMenuTree()
   return (event) => {
-    if (openChain) getElementRegistry(openChain).claim(event.nativeEvent)
+    if (tree) getElementRegistry(tree).claim(event.nativeEvent)
     handler?.(event)
   }
 }

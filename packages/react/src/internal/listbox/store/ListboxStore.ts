@@ -768,6 +768,113 @@ export function getShortcutItemId(
 }
 
 // ============================================================================
+// Open source
+//
+// Exported from this module only, like the entry points above.
+// ============================================================================
+
+/**
+ * The store that keeps another store's open cell: a menu tree keeps its
+ * root's, and writes the store's `open`, `openProp` and `openMethod` with it
+ * (`changeOpen`, `controlCell`). The store hands it `setOpen` and the
+ * `openProp` sync.
+ */
+export interface OpenOwner {
+  setOpen(
+    open: boolean,
+    reason?: PopupMenuOpenChangeReason,
+    event?: Event,
+  ): void
+  /** Syncs the controlled `open` prop. */
+  control(open: boolean | undefined): void
+}
+
+let openOwnerAccess: {
+  get(store: ListboxStore): OpenOwner | undefined
+  attach(store: ListboxStore, owner: OpenOwner): void
+}
+
+/**
+ * Hands `store`'s open state to `owner`, for the store's lifetime. Call it
+ * before anything reads or changes the store's open state.
+ */
+export function attachOpenOwner(store: ListboxStore, owner: OpenOwner): void {
+  openOwnerAccess.attach(store, owner)
+}
+
+/** The owner of `store`'s open state, if another store keeps it. */
+export function getOpenOwner(store: ListboxStore): OpenOwner | undefined {
+  return openOwnerAccess.get(store)
+}
+
+/** What changing an open cell needs of the store whose state mirrors it. */
+interface OpenCellStore {
+  set(key: 'open', value: boolean): void
+  set(key: 'openMethod', value: OpenMethod): void
+}
+
+/**
+ * Requests `open` for an open cell (a `ListboxStore`'s, or a menu tree's,
+ * for its root) and writes `store`, whose state mirrors it. The consumer's
+ * `onOpenChange` runs first; a canceled change, or one to a controlled value,
+ * leaves the cell as it is.
+ */
+export function changeOpen(
+  store: OpenCellStore,
+  cells: { open: ControlledCell<boolean> },
+  onOpenChange:
+    | ((open: boolean, details: PopupMenuOpenChangeEventDetails) => void)
+    | undefined,
+  open: boolean,
+  reason: PopupMenuOpenChangeReason = REASONS.none,
+  event?: Event,
+): void {
+  const eventDetails = createChangeEventDetails(reason, event)
+  const prevCell = cells.open
+  const nextCell = changeCell(prevCell, open, eventDetails, onOpenChange)
+
+  if (eventDetails.isCanceled) {
+    return
+  }
+
+  // Record how the popup was opened so hover-only affordances (scroll arrows,
+  // Select's align-item-with-trigger) can disable themselves for touch input.
+  // Set before `open` so observers of `open` see the current method.
+  if (open) {
+    store.set('openMethod', deriveOpenMethod(event))
+  }
+
+  // Unchanged when controlled. Skipped when the callback changed the cell
+  // (synced a prop from inside it): `nextCell` is stale then.
+  if (nextCell !== prevCell && cells.open === prevCell) {
+    cells.open = nextCell
+    // oxlint-disable-next-line bazza/no-raw-controlled-state -- the cell's mirror, written with it
+    store.set('open', open)
+  }
+}
+
+/**
+ * Syncs a controlled prop into its cell (`cells[name]`), and the cell's
+ * mirrors in `store` (`name` and `${name}Prop`) with it.
+ */
+export function controlCell<State, Name extends keyof State & string>(
+  store: { update(changes: Partial<State>): void },
+  cells: { [Key in Name]: ControlledCell<State[Key]> },
+  name: Name,
+  controlled: State[Name] | undefined,
+): void {
+  const cell = cells[name]
+  if (controlled === undefined || controlled === cell.controlled) return
+  cells[name] = createCell(cell.internal, controlled)
+  // `bazza/no-raw-controlled-state` doesn't see computed keys, so this write
+  // needs no exception.
+  store.update({
+    [name]: controlled,
+    [`${name}Prop`]: controlled,
+  } as Partial<State>)
+}
+
+// ============================================================================
 // Store
 // ============================================================================
 
@@ -795,6 +902,12 @@ export class ListboxStore extends ReactStore<
       },
       getRegistration: (store, id) => store.#getRegistration(id),
       getShortcutItemId: (store, key) => store.#getShortcutItemId(key),
+    }
+    openOwnerAccess = {
+      get: (store) => store.#openOwner,
+      attach: (store, owner) => {
+        store.#openOwner = owner
+      },
     }
   }
 
@@ -915,6 +1028,10 @@ export class ListboxStore extends ReactStore<
   // `setSearch` and `useControlledProp('openProp' | 'searchProp', …)`.
   #cells: ControlledCells
 
+  // Set when another store keeps the open cell (`attachOpenOwner`): the
+  // `open` cell above isn't read then, and the owner writes the mirrors.
+  #openOwner: OpenOwner | undefined
+
   /**
    * Syncs a controlled prop into the store. `openProp` and `searchProp` go
    * into their cell, and the mirrored fields with it.
@@ -924,32 +1041,17 @@ export class ListboxStore extends ReactStore<
     controlled: ListboxState[Key] | undefined,
   ): void {
     useIsoLayoutEffect(() => {
-      if (key === 'openProp') this.#control('open', controlled as boolean)
-      else if (key === 'searchProp') {
-        this.#control('search', controlled as string)
+      if (key === 'openProp') {
+        if (this.#openOwner) {
+          this.#openOwner.control(controlled as boolean | undefined)
+        } else controlCell(this, this.#cells, 'open', controlled as boolean)
+      } else if (key === 'searchProp') {
+        controlCell(this, this.#cells, 'search', controlled as string)
       }
     }, [this, key, controlled])
     // Runs after the effect above, so for those two keys it finds the value
     // synced and only warns when a prop switches between controlled and not.
     super.useControlledProp(key, controlled)
-  }
-
-  #control<Name extends keyof ControlledCells>(
-    name: Name,
-    controlled: ListboxState[Name] | undefined,
-  ) {
-    const cell = this.#cells[name]
-    if (controlled === undefined || controlled === cell.controlled) return
-    this.#cells[name] = createCell(
-      cell.internal,
-      controlled,
-    ) as ControlledCells[Name]
-    // The cell's mirrors, with it. `bazza/no-raw-controlled-state` doesn't
-    // see computed keys, so this write needs no exception.
-    this.update({ [name]: controlled, [`${name}Prop`]: controlled } as Pick<
-      ListboxState,
-      Name | `${Name}Prop`
-    >)
   }
 
   // ============================================================================
@@ -968,34 +1070,10 @@ export class ListboxStore extends ReactStore<
     reason: PopupMenuOpenChangeReason = REASONS.none,
     event?: Event,
   ) {
-    const eventDetails = createChangeEventDetails(reason, event)
-    const prevCell = this.#cells.open
-    // The consumer's callback runs first; a canceled or controlled change
-    // leaves the cell as it is.
-    const nextCell = changeCell(
-      prevCell,
-      open,
-      eventDetails,
-      this.context.onOpenChange,
-    )
-
-    if (eventDetails.isCanceled) {
-      return
-    }
-
-    // Record how the popup was opened so hover-only affordances (scroll arrows,
-    // Select's align-item-with-trigger) can disable themselves for touch input.
-    // Set before `open` so observers of `open` see the current method.
-    if (open) {
-      this.set('openMethod', deriveOpenMethod(event))
-    }
-
-    // Unchanged when controlled. Skipped when the callback changed the cell
-    // (synced a prop from inside it): `nextCell` is stale then.
-    if (nextCell !== prevCell && this.#cells.open === prevCell) {
-      this.#cells.open = nextCell
-      // oxlint-disable-next-line bazza/no-raw-controlled-state -- the cell's mirror, written with it
-      this.set('open', open)
+    if (this.#openOwner) this.#openOwner.setOpen(open, reason, event)
+    else {
+      const { onOpenChange } = this.context
+      changeOpen(this, this.#cells, onOpenChange, open, reason, event)
     }
   }
 

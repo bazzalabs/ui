@@ -9,7 +9,7 @@ import {
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
-import { useOpenChain } from '../../contexts/open-chain-context.js'
+import { useMenuTree } from '../../contexts/menu-tree-context.js'
 import { useMaybePopupMenuContext } from '../../contexts/popup-menu-context.js'
 import { PopupSurfaceIdContext } from '../../contexts/popup-surface-id-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
@@ -21,12 +21,9 @@ import {
 } from '../../data-first/context.js'
 import { DataSubpagesContent } from '../../data-first/data-subpages.js'
 import { useAimGuard } from '../../hooks/use-aim-guard.js'
-import {
-  getElementRegistry,
-  useMenuElement,
-  usePressClaim,
-} from '../../hooks/use-menu-element.js'
+import { useMenuElement, usePressClaim } from '../../hooks/use-menu-element.js'
 import { useSubpageStackState } from '../../hooks/use-subpage-stack-state.js'
+import { getElementRegistry } from '../../store/MenuTreeStore.js'
 import { PopupMenuPopupDataAttributes } from './popup.data-attrs.js'
 
 // ============================================================================
@@ -107,8 +104,8 @@ export const PopupMenuPopup = React.forwardRef<
   // Get focus owner store for transferring ownership
   const focusOwnerStore = useFocusOwner()
 
-  // Get open chain store for tracking submenu chain
-  const openChainStore = useOpenChain()
+  // Get the menu tree: its open chain tracks the submenu chain
+  const tree = useMenuTree()
 
   // Get popup menu context for depth
   const popupMenuContext = useMaybePopupMenuContext()
@@ -150,7 +147,7 @@ export const PopupMenuPopup = React.forwardRef<
   const isFocused = focusOwnerStore.useState('isOwner', activeSurfaceId)
 
   // Subscribe to open chain for data-has-open-submenu attribute
-  const hasOpenSubmenu = openChainStore.useState('hasOpenSubmenu', depth)
+  const hasOpenSubmenu = tree.openChain.useState('hasOpenSubmenu', depth)
 
   // Local ref for the popup element
   const popupRef = React.useRef<HTMLDivElement>(null)
@@ -269,7 +266,7 @@ export const PopupMenuPopup = React.forwardRef<
 
       // A popup of this tree nested inside this one's DOM claims ownership
       // for itself
-      if (getElementRegistry(openChainStore).surfaceFor(target) !== surfaceId) {
+      if (getElementRegistry(tree).surfaceFor(target) !== surfaceId) {
         return
       }
 
@@ -278,7 +275,7 @@ export const PopupMenuPopup = React.forwardRef<
         focusOwnerStore.setOwnerId(submenuContext.childSurfaceId)
       }
     },
-    [submenuContext, focusOwnerStore, openChainStore, surfaceId],
+    [submenuContext, focusOwnerStore, tree, surfaceId],
   )
 
   // Disable Base UI's auto-focus behavior for:
