@@ -40,6 +40,14 @@ export interface PopupMenuGroupProps
    */
   forceMount?: boolean
 
+  /**
+   * The group's name, used as the description of its options
+   * (`aria-describedby` on each one). Takes precedence over the text of a
+   * `GroupLabel` inside the group, and stays even while no `GroupLabel` is
+   * mounted, as in a windowed list scrolled past the label row.
+   */
+  label?: string
+
   children: React.ReactNode
 }
 
@@ -58,7 +66,7 @@ const stateAttributesMapping = {
  * Groups related popup menu items together.
  * Hidden when no child items match the current filter. A hidden group stays
  * mounted (with the `hidden` attribute) so a later search can bring it back.
- * Renders a `<div>` element with role="group".
+ * Renders a `<div>` element with role="presentation".
  */
 export const PopupMenuGroup = React.forwardRef<
   HTMLDivElement,
@@ -66,6 +74,7 @@ export const PopupMenuGroup = React.forwardRef<
 >(function PopupMenuGroup(props, forwardedRef) {
   const {
     forceMount = false,
+    label,
     render,
     className,
     style,
@@ -78,13 +87,15 @@ export const PopupMenuGroup = React.forwardRef<
   const internalRef = React.useRef<HTMLDivElement>(null)
   const [rowElement, setRowElement] = React.useState<HTMLElement | null>(null)
 
-  const { isVisible, groupContextValue } = useGroupVisibility({
-    store,
-    groupId,
-    forceMount,
-    ref: internalRef,
-    rowElement,
-  })
+  const { isVisible, groupContextValue, descriptionElement } =
+    useGroupVisibility({
+      store,
+      groupId,
+      forceMount,
+      ref: internalRef,
+      rowElement,
+      label,
+    })
   const isFirstGroup = store.useState('isFirstGroup', groupId)
   const isLastGroup = store.useState('isLastGroup', groupId)
   const isFirstRow = store.useState('isFirstRow', groupId)
@@ -113,15 +124,21 @@ export const PopupMenuGroup = React.forwardRef<
     props: {
       ...rest,
       ...(slotAttr ? { [slotAttr]: '' } : {}),
-      // Using role="presentation" since we're inside a listbox.
-      // The group is purely visual - items are the semantic options.
+      // A listbox's options lose VoiceOver announcements inside
+      // role="group", so the group is presentational and its options are
+      // described by its hidden label node instead (ADR-0005).
       role: 'presentation',
       hidden: isVisible ? rest.hidden : true,
       className: resolveClassName(className, state),
       style: isVisible
         ? resolveStyle(style, state)
         : { ...resolveStyle(style, state), display: 'none' },
-      children,
+      children: (
+        <>
+          {descriptionElement}
+          {children}
+        </>
+      ),
     },
     defaultTagName: 'div',
   })

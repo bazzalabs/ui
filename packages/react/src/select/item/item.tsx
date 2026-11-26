@@ -129,6 +129,7 @@ function SelectItemImpl<Value = unknown>(
     onPointerDown,
     onPointerMove,
     children,
+    'aria-describedby': ariaDescribedBy,
     ...rest
   } = props
 
@@ -221,6 +222,7 @@ function SelectItemImpl<Value = unknown>(
     forceMount,
     closeOnClick,
     children,
+    describedBy: ariaDescribedBy,
   })
 
   // Register the select handler that updates the value
@@ -334,6 +336,7 @@ function SelectItemImpl<Value = unknown>(
       [SelectItemDataAttributes.slot]: '',
       id: item.id,
       role: 'option',
+      'aria-describedby': item.describedBy,
       tabIndex: -1,
       'aria-selected': selected,
       'aria-disabled': disabled || undefined,

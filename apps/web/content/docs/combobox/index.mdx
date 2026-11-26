@@ -832,7 +832,7 @@ The text label for an item. Used for display and filtering. Renders a `<span>` e
 
 ### Group
 
-Groups related options together. Renders a `<div>` element with `role="group"`.
+Groups related options together. Renders a `<div>` element with `role="presentation"`: each option in the group is described (`aria-describedby`) by the group's name, its `label` prop or else its `GroupLabel`'s text, instead of sitting in a `role="group"`, which stops VoiceOver announcing the highlighted option.
 
 <TypeTableAuto type="ComboboxGroupProps" pkg="@bazza-ui/react" />
 <StateTableAuto type="ComboboxGroupState" pkg="@bazza-ui/react" />

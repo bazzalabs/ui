@@ -120,19 +120,20 @@ describe('PopupMenu.CheckboxGroup', () => {
     expect(screen.getByTestId('a')).toHaveAttribute('aria-checked', 'false')
   })
 
-  it('renders a group with the checkbox group slot attribute', async () => {
+  it('renders a presentational group with the checkbox group slot attribute', async () => {
     const user = userEvent.setup()
     render(
       <Menu>
-        <DropdownMenu.CheckboxGroup>
+        <DropdownMenu.CheckboxGroup data-testid="group">
           <Checkbox value="a" />
         </DropdownMenu.CheckboxGroup>
       </Menu>,
     )
     await openMenu(user)
-    expect(screen.getByRole('group')).toHaveAttribute(
-      'bazzaui-dropdown-menu-checkbox-group',
-    )
+    const group = screen.getByTestId('group')
+    expect(group).toHaveAttribute('bazzaui-dropdown-menu-checkbox-group')
+    expect(group).toHaveAttribute('role', 'presentation')
+    expect(screen.queryByRole('group')).not.toBeInTheDocument()
   })
 
   it('supports the headless value provider', async () => {

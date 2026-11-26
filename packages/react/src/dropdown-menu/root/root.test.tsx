@@ -2046,7 +2046,7 @@ describe('<DropdownMenu.Root />', () => {
     })
 
     describe('ARIA attributes', () => {
-      it('radio group has role="group"', async () => {
+      it('radio group is presentational, not role="group" (ADR-0005)', async () => {
         const user = userEvent.setup()
         render(<UncontrolledRadioGroupMenu />)
 
@@ -2059,7 +2059,13 @@ describe('<DropdownMenu.Root />', () => {
 
         expect(screen.getByTestId('radio-group')).toHaveAttribute(
           'role',
-          'group',
+          'presentation',
+        )
+        expect(screen.queryByRole('group')).not.toBeInTheDocument()
+        expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument()
+        // With no GroupLabel, nothing describes the radio items.
+        expect(screen.getByTestId('radio-small')).not.toHaveAttribute(
+          'aria-describedby',
         )
       })
 

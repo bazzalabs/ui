@@ -88,6 +88,7 @@ export const PopupMenuSubpageTrigger = React.forwardRef<
     onPointerDown,
     onPointerMove,
     children,
+    'aria-describedby': ariaDescribedBy,
     ...rest
   } = props
 
@@ -121,6 +122,7 @@ export const PopupMenuSubpageTrigger = React.forwardRef<
     closeOnClick: false,
     onSelect: openTargetPage,
     children,
+    describedBy: ariaDescribedBy,
   })
 
   const disabled = item.disabled
@@ -200,6 +202,7 @@ export const PopupMenuSubpageTrigger = React.forwardRef<
       ...(slotAttr ? { [slotAttr]: '' } : {}),
       id: item.id,
       role: 'menuitem',
+      'aria-describedby': item.describedBy,
       'aria-haspopup': 'menu',
       'aria-expanded': isTargetOpen,
       tabIndex: -1,

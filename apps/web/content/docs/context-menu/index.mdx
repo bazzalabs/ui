@@ -409,7 +409,7 @@ Displays a keyboard shortcut hint. Renders a `<span>` element.
 
 ### Group
 
-Groups related menu items together. Renders a `<div>` element with `role="group"`.
+Groups related menu items together. Renders a `<div>` element with `role="presentation"`: each option in the group is described (`aria-describedby`) by the group's name, its `label` prop or else its `GroupLabel`'s text, instead of sitting in a `role="group"`, which stops VoiceOver announcing the highlighted option.
 
 <TypeTableAuto type="ContextMenuGroupProps" pkg="@bazza-ui/react" />
 <StateTableAuto type="ContextMenuGroupState" pkg="@bazza-ui/react" />
@@ -452,7 +452,7 @@ Displays a check mark when the checkbox item is checked. Renders a `<span>` elem
 
 ### CheckboxGroup
 
-Groups checkbox items together and owns their checked state as an array of item values. Renders a `<div>` element with `role="group"`.
+Groups checkbox items together and owns their checked state as an array of item values. Renders a `<div>` element with `role="presentation"`: each option in the group is described (`aria-describedby`) by the group's name, its `label` prop or else its `GroupLabel`'s text, instead of sitting in a `role="group"`, which stops VoiceOver announcing the highlighted option.
 
 <TypeTableAuto type="ContextMenuCheckboxGroupProps" pkg="@bazza-ui/react" />
 <StateTableAuto type="ContextMenuCheckboxGroupState" pkg="@bazza-ui/react" />
@@ -466,7 +466,7 @@ Headless provider for checkbox group state: the same `value` / `onValueChange` c
 
 ### RadioGroup
 
-Groups radio items together. Manages the selected value. Renders a `<div>` element with `role="group"`.
+Groups radio items together. Manages the selected value. Renders a `<div>` element with `role="presentation"`: each option in the group is described (`aria-describedby`) by the group's name, its `label` prop or else its `GroupLabel`'s text, instead of sitting in a `role="group"`, which stops VoiceOver announcing the highlighted option.
 
 <TypeTableAuto type="ContextMenuRadioGroupProps" pkg="@bazza-ui/react" />
 <StateTableAuto type="ContextMenuRadioGroupState" pkg="@bazza-ui/react" />

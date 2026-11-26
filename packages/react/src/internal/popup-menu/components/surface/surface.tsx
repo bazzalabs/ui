@@ -13,6 +13,7 @@ import type { ComponentProps } from '../../../../utils/types.js'
 import {
   defaultFilter,
   type FilterFn,
+  GroupContext,
   normalizeValue,
   type SearchNormalizer,
   SurfaceContext,
@@ -750,10 +751,14 @@ export const PopupMenuSurface = React.forwardRef<
     defaultTagName: 'div',
   })
 
+  // Every surface starts outside any group. A submenu's surface renders
+  // through a portal inside the trigger's group, and without this its rows
+  // would join that group: its description, its positional flags, its
+  // search-hidden state, and its label setter.
   return (
     <SurfaceContext.Provider value={contextValue}>
       <CheckboxSelectionContext.Provider value={selectionStore}>
-        {element}
+        <GroupContext.Provider value={null}>{element}</GroupContext.Provider>
       </CheckboxSelectionContext.Provider>
     </SurfaceContext.Provider>
   )

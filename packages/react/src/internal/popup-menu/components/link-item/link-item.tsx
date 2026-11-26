@@ -68,6 +68,7 @@ export const PopupMenuLinkItem = React.forwardRef<
     onPointerDown,
     onPointerMove,
     children,
+    'aria-describedby': ariaDescribedBy,
     ...rest
   } = props
   const { closeAll } = useListboxContext()
@@ -83,6 +84,7 @@ export const PopupMenuLinkItem = React.forwardRef<
     forceScore,
     closeOnClick,
     children,
+    describedBy: ariaDescribedBy,
   })
   const disabled = item.disabled
 
@@ -169,6 +171,7 @@ export const PopupMenuLinkItem = React.forwardRef<
       ...(slotAttr ? { [slotAttr]: '' } : {}),
       id: item.id,
       role: 'option',
+      'aria-describedby': item.describedBy,
       tabIndex: -1,
       'aria-selected': item.isHighlighted,
       'aria-disabled': disabled || undefined,

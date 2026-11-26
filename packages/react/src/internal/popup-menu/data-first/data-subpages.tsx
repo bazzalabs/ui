@@ -7,6 +7,7 @@ import { staticChildrenOf } from '../menu-tree/resolve.js'
 import type { PopupMenuNode } from '../menu-tree/types.js'
 import { useAsyncMenuCoordinator } from './async-coordinator.js'
 import { useDataPopupContext } from './context.js'
+import { DataGroupContainer } from './group-container.js'
 import { isRowMenuNode } from './type-guards.js'
 import type {
   AsyncRenderState,
@@ -449,14 +450,9 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
               }
 
               return (
-                // biome-ignore lint/a11y/useSemanticElements: ignore for now
-                <div
-                  key={childNode.id}
-                  role="group"
-                  aria-label={childNode.label}
-                >
+                <DataGroupContainer key={childNode.id} label={childNode.label}>
                   {groupChildren}
-                </div>
+                </DataGroupContainer>
               )
             }
 
@@ -608,13 +604,9 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
         }
 
         return (
-          <div
-            key={radioGroup.id}
-            role="radiogroup"
-            aria-label={radioGroup.label}
-          >
+          <DataGroupContainer key={radioGroup.id} label={radioGroup.label}>
             {childElements}
-          </div>
+          </DataGroupContainer>
         )
       }
 
@@ -672,14 +664,12 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
           )
         }
         return (
-          // biome-ignore lint/a11y/useSemanticElements: ignore for now
-          <div
+          <DataGroupContainer
             key={checkboxGroup.id}
-            role="group"
-            aria-label={checkboxGroup.label}
+            label={checkboxGroup.label}
           >
             {childElements}
-          </div>
+          </DataGroupContainer>
         )
       }
 
@@ -767,14 +757,12 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
                   }
 
                   return (
-                    // biome-ignore lint/a11y/useSemanticElements: ignore for now
-                    <div
+                    <DataGroupContainer
                       key={childNode.id}
-                      role="group"
-                      aria-label={childNode.label}
+                      label={childNode.label}
                     >
                       {groupChildren}
-                    </div>
+                    </DataGroupContainer>
                   )
                 }
 

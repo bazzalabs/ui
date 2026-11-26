@@ -6,6 +6,7 @@ import {
   type ListboxStore,
   useGroupContext,
 } from '../../../listbox/index.js'
+import { useGroupDescription } from './group-description.js'
 
 interface UseGroupVisibilityParams {
   store: ListboxStore
@@ -13,12 +14,16 @@ interface UseGroupVisibilityParams {
   forceMount: boolean
   ref: React.RefObject<HTMLElement | null>
   rowElement: HTMLElement | null
+  /** The group's name, which describes its options. */
+  label: string | undefined
 }
 
 interface UseGroupVisibilityReturn {
   isVisible: boolean
   /** The context to provide to the group's children. */
   groupContextValue: GroupContextValue
+  /** The group's hidden description node, rendered inside its element. */
+  descriptionElement: React.ReactNode
 }
 
 /**
@@ -29,11 +34,14 @@ interface UseGroupVisibilityReturn {
  * element hidden, stops counting as a row, and tells its children through
  * `GroupContext.hidden` to render nothing. A group inside a hidden group is
  * hidden too.
+ *
+ * It also names the group with `useGroupDescription`: the context carries the
+ * description id its options point `aria-describedby` at (ADR-0005).
  */
 export function useGroupVisibility(
   params: UseGroupVisibilityParams,
 ): UseGroupVisibilityReturn {
-  const { store, groupId, forceMount, ref, rowElement } = params
+  const { store, groupId, forceMount, ref, rowElement, label } = params
   const parentGroup = useGroupContext()
   const parentGroupId = parentGroup?.groupId
   const isParentHidden = parentGroup?.hidden ?? false
@@ -51,10 +59,12 @@ export function useGroupVisibility(
     return store.registerRow(groupId, rowElement, { kind: 'group' })
   }, [rowElement, isVisible, groupId, store])
 
+  const { descriptionId, registerLabel, element } = useGroupDescription(label)
+
   const groupContextValue = React.useMemo(
-    () => ({ groupId, hidden: !isVisible }),
-    [groupId, isVisible],
+    () => ({ groupId, hidden: !isVisible, descriptionId, registerLabel }),
+    [groupId, isVisible, descriptionId, registerLabel],
   )
 
-  return { isVisible, groupContextValue }
+  return { isVisible, groupContextValue, descriptionElement: element }
 }

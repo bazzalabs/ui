@@ -110,6 +110,7 @@ export const PopupMenuCheckboxItem = React.forwardRef<
     onPointerDown,
     onPointerMove,
     children,
+    'aria-describedby': ariaDescribedBy,
     ...rest
   } = props
 
@@ -196,6 +197,7 @@ export const PopupMenuCheckboxItem = React.forwardRef<
     forceScore,
     closeOnClick,
     children,
+    describedBy: ariaDescribedBy,
   })
 
   const disabled = item.disabled
@@ -381,6 +383,7 @@ export const PopupMenuCheckboxItem = React.forwardRef<
       ...(slotAttr ? { [slotAttr]: '' } : {}),
       id: item.id,
       role: 'menuitemcheckbox',
+      'aria-describedby': item.describedBy,
       tabIndex: -1,
       'aria-checked': displayChecked,
       'aria-disabled': disabled || undefined,
