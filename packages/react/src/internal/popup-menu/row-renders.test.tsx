@@ -3,7 +3,6 @@ import userEvent from '@testing-library/user-event'
 import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { DropdownMenu } from '../../dropdown-menu/index.js'
-import { type ListboxStore, useSurfaceContext } from '../listbox/index.js'
 
 /**
  * Counts commits per row. A `<Profiler>` around a row reports every render of
@@ -144,37 +143,9 @@ function readRowOutput(label: string) {
   ].join()
 }
 
-/**
- * Subscribes to the surface's store from a layout effect. Layout effects run
- * in sibling order, so it subscribes before the rows rendered after it
- * register.
- */
-function StoreProbe({ onStore }: { onStore: (store: ListboxStore) => void }) {
-  const { store } = useSurfaceContext()
-  React.useLayoutEffect(() => {
-    onStore(store)
-  }, [store, onStore])
-  return null
-}
-
 describe('popup menu row registration', () => {
-  it('publishes rows and items that mount together once', () => {
-    const published = { rowOrder: 0, scores: 0 }
-    const onStore = (store: ListboxStore) => {
-      let rowOrder = store.state.orderedRows
-      let scores = store.state.filterTrigger
-      store.subscribe((state) => {
-        if (state.orderedRows !== rowOrder) {
-          rowOrder = state.orderedRows
-          published.rowOrder++
-        }
-        if (state.filterTrigger !== scores) {
-          scores = state.filterTrigger
-          published.scores++
-        }
-      })
-    }
-
+  it('publishes rows and items that mount together once, before the render returns', () => {
+    const counter = createRenderCounter()
     render(
       <DropdownMenu.Root defaultOpen>
         <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
@@ -183,11 +154,16 @@ describe('popup menu row registration', () => {
             <DropdownMenu.Popup>
               <DropdownMenu.Surface>
                 <DropdownMenu.List>
-                  <StoreProbe onStore={onStore} />
                   {ITEM_LABELS.map((label) => (
-                    <DropdownMenu.Item key={label} value={label}>
-                      {label}
-                    </DropdownMenu.Item>
+                    <React.Profiler
+                      key={label}
+                      id={label}
+                      onRender={counter.onRender}
+                    >
+                      <DropdownMenu.Item value={label} data-testid={label}>
+                        {label}
+                      </DropdownMenu.Item>
+                    </React.Profiler>
                   ))}
                 </DropdownMenu.List>
               </DropdownMenu.Surface>
@@ -199,7 +175,18 @@ describe('popup menu row registration', () => {
 
     // Synchronously after the render: published by the list, not a microtask.
     expect(screen.getAllByRole('option')).toHaveLength(ITEM_LABELS.length)
-    expect(published).toEqual({ rowOrder: 1, scores: 1 })
+    expect(ITEM_LABELS.map(readRowOutput)).toEqual(
+      ITEM_LABELS.map((_, index) =>
+        [index === 0, index === 0, index === ITEM_LABELS.length - 1].join(),
+      ),
+    )
+    // One publish of the whole batch costs at most two commits per row, three
+    // for the first and last (whose edge attributes change). Rows publishing
+    // one at a time commit every row a third time.
+    ITEM_LABELS.forEach((label, index) => {
+      const edge = index === 0 || index === ITEM_LABELS.length - 1
+      expect(counter.get(label)).toBeLessThanOrEqual(edge ? 3 : 2)
+    })
   })
 })
 
