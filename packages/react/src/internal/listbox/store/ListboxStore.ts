@@ -1,7 +1,12 @@
 import { createSelector, ReactStore } from '@base-ui/utils/store'
+import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect'
 import { useRefWithInit } from '@base-ui/utils/useRefWithInit'
 import {
   type CollectionSnapshot,
+  type ControlledCell,
+  cellValue,
+  changeCell,
+  createCell,
   type FilterFn,
   type ItemRowMeta,
   isItemRow,
@@ -117,9 +122,9 @@ export interface DOMRefs {
 }
 
 export interface ListboxState {
-  /** Whether the listbox is open internally when uncontrolled */
+  /** Whether the listbox is open, controlled or not. */
   open: boolean
-  /** Controlled open prop. When defined, selectors resolve this over `open`. */
+  /** Controlled open prop, `undefined` while uncontrolled. */
   openProp: boolean | undefined
 
   /**
@@ -128,9 +133,9 @@ export interface ListboxState {
    */
   openMethod: OpenMethod | null
 
-  /** Current internal search query when uncontrolled */
+  /** Current search query, controlled or not. */
   search: string
-  /** Controlled search prop. When defined, selectors resolve this over `search`. */
+  /** Controlled search prop, `undefined` while uncontrolled. */
   searchProp: string | undefined
 
   /** Normalized search query used for filtering and visibility checks */
@@ -384,12 +389,16 @@ function isExternalState(state: ListboxState): boolean {
   return (state as StateWithExternal)[externalCollectionKey] === true
 }
 
+/** The store's controlled values, by the state field that mirrors each. */
+interface ControlledCells {
+  open: ControlledCell<boolean>
+  search: ControlledCell<string>
+}
+
 const selectors = {
-  open: createSelector((state: ListboxState) => state.openProp ?? state.open),
+  open: createSelector((state: ListboxState) => state.open),
   openMethod: createSelector((state: ListboxState) => state.openMethod),
-  search: createSelector(
-    (state: ListboxState) => state.searchProp ?? state.search,
-  ),
+  search: createSelector((state: ListboxState) => state.search),
   registrationBatch: createSelector(
     (state: ListboxState) => state.registrationBatch,
   ),
@@ -830,11 +839,16 @@ export class ListboxStore extends ReactStore<
 
     const mergedContext = { ...defaultContext, ...context }
     const mergedState = { ...createInitialState(), ...initialState }
+    const openCell = createCell(mergedState.open, mergedState.openProp)
+    const searchCell = createCell(mergedState.search, mergedState.searchProp)
+    mergedState.open = cellValue(openCell)
+    mergedState.search = cellValue(searchCell)
     mergedState.normalizedSearch = mergedContext.normalizeSearch(
       mergedState.search,
     )
 
     super(mergedState, mergedContext, selectors)
+    this.#cells = { open: openCell, search: searchCell }
 
     // Handle open/close
     this.observe('open', (open, prevOpen) => {
@@ -881,15 +895,6 @@ export class ListboxStore extends ReactStore<
       }
     })
 
-    this.observe(
-      (state: ListboxState) => state.searchProp,
-      (searchProp, prevSearchProp) => {
-        if (searchProp !== prevSearchProp) {
-          this.syncNormalizedSearch()
-        }
-      },
-    )
-
     // Recompute filtered items when normalized search changes.
     this.observe('normalizedSearch', (search, prevSearch) => {
       if (search !== prevSearch) {
@@ -903,6 +908,48 @@ export class ListboxStore extends ReactStore<
         }
       }
     })
+  }
+
+  // The controlled values. `open`, `openProp`, `search` and `searchProp` in
+  // state mirror them, written in the same update as the cell: by `setOpen`,
+  // `setSearch` and `useControlledProp('openProp' | 'searchProp', …)`.
+  #cells: ControlledCells
+
+  /**
+   * Syncs a controlled prop into the store. `openProp` and `searchProp` go
+   * into their cell, and the mirrored fields with it.
+   */
+  override useControlledProp<Key extends keyof ListboxState>(
+    key: Key,
+    controlled: ListboxState[Key] | undefined,
+  ): void {
+    useIsoLayoutEffect(() => {
+      if (key === 'openProp') this.#control('open', controlled as boolean)
+      else if (key === 'searchProp') {
+        this.#control('search', controlled as string)
+      }
+    }, [this, key, controlled])
+    // Runs after the effect above, so for those two keys it finds the value
+    // synced and only warns when a prop switches between controlled and not.
+    super.useControlledProp(key, controlled)
+  }
+
+  #control<Name extends keyof ControlledCells>(
+    name: Name,
+    controlled: ListboxState[Name] | undefined,
+  ) {
+    const cell = this.#cells[name]
+    if (controlled === undefined || controlled === cell.controlled) return
+    this.#cells[name] = createCell(
+      cell.internal,
+      controlled,
+    ) as ControlledCells[Name]
+    // The cell's mirrors, with it. `bazza/no-raw-controlled-state` doesn't
+    // see computed keys, so this write needs no exception.
+    this.update({ [name]: controlled, [`${name}Prop`]: controlled } as Pick<
+      ListboxState,
+      Name | `${Name}Prop`
+    >)
   }
 
   // ============================================================================
@@ -922,11 +969,16 @@ export class ListboxStore extends ReactStore<
     event?: Event,
   ) {
     const eventDetails = createChangeEventDetails(reason, event)
+    const prevCell = this.#cells.open
+    // The consumer's callback runs first; a canceled or controlled change
+    // leaves the cell as it is.
+    const nextCell = changeCell(
+      prevCell,
+      open,
+      eventDetails,
+      this.context.onOpenChange,
+    )
 
-    // Call the user's callback first
-    this.context.onOpenChange(open, eventDetails)
-
-    // If the user canceled, don't update internal state
     if (eventDetails.isCanceled) {
       return
     }
@@ -938,15 +990,25 @@ export class ListboxStore extends ReactStore<
       this.set('openMethod', deriveOpenMethod(event))
     }
 
-    this.set('open', open)
+    // Unchanged when controlled. Skipped when the callback changed the cell
+    // (synced a prop from inside it): `nextCell` is stale then.
+    if (nextCell !== prevCell && this.#cells.open === prevCell) {
+      this.#cells.open = nextCell
+      // oxlint-disable-next-line bazza/no-raw-controlled-state -- the cell's mirror, written with it
+      this.set('open', open)
+    }
   }
 
   setSearch(search: string) {
-    const effectiveSearch = this.state.searchProp ?? search
+    this.#cells.search = changeCell(this.#cells.search, search)
+    const effectiveSearch = cellValue(this.#cells.search)
     this.update({
-      search,
+      // oxlint-disable-next-line bazza/no-raw-controlled-state -- the cell's mirror, written with it
+      search: effectiveSearch,
       normalizedSearch: this.context.normalizeSearch(effectiveSearch),
     })
+    // After the update, unlike `setOpen`: the search has no cancel, and the
+    // highlight change the new search causes is reported first.
     this.context.onSearchChange?.(search)
     // Note: recomputeFilteredItems is called by the 'normalizedSearch' observer
   }
@@ -954,16 +1016,14 @@ export class ListboxStore extends ReactStore<
   setSearchNormalizer(normalizeSearch: SearchNormalizer) {
     this.context.normalizeSearch = normalizeSearch
 
-    const effectiveSearch = this.state.searchProp ?? this.state.search
-    const normalizedSearch = normalizeSearch(effectiveSearch)
+    const normalizedSearch = normalizeSearch(this.select('search'))
     if (normalizedSearch !== this.state.normalizedSearch) {
       this.set('normalizedSearch', normalizedSearch)
     }
   }
 
   private syncNormalizedSearch() {
-    const search = this.state.searchProp ?? this.state.search
-    const normalizedSearch = this.context.normalizeSearch(search)
+    const normalizedSearch = this.context.normalizeSearch(this.select('search'))
     if (normalizedSearch !== this.state.normalizedSearch) {
       this.set('normalizedSearch', normalizedSearch)
     }
@@ -984,7 +1044,6 @@ export class ListboxStore extends ReactStore<
 
     if (
       this.state.searchProp === undefined &&
-      // oxlint-disable-next-line bazza/no-raw-controlled-state -- search isn't controlled here, so the internal value is the effective one
       defaultSearch !== this.state.search
     ) {
       this.setSearch(defaultSearch)

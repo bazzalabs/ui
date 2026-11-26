@@ -3726,14 +3726,14 @@
             "type": "boolean",
             "formattedType": "false | true",
             "required": true,
-            "description": "Whether the listbox is open internally when uncontrolled"
+            "description": "Whether the listbox is open, controlled or not."
           },
           {
             "name": "openProp",
             "type": "boolean | undefined",
             "formattedType": "false | true",
             "required": true,
-            "description": "Controlled open prop. When defined, selectors resolve this over `open`."
+            "description": "Controlled open prop, `undefined` while uncontrolled."
           },
           {
             "name": "openMethod",
@@ -3746,14 +3746,14 @@
             "name": "search",
             "type": "string",
             "required": true,
-            "description": "Current internal search query when uncontrolled"
+            "description": "Current search query, controlled or not."
           },
           {
             "name": "searchProp",
             "type": "string | undefined",
             "formattedType": "string",
             "required": true,
-            "description": "Controlled search prop. When defined, selectors resolve this over `search`."
+            "description": "Controlled search prop, `undefined` while uncontrolled."
           },
           {
             "name": "normalizedSearch",
@@ -13496,14 +13496,14 @@
             "type": "boolean",
             "formattedType": "false | true",
             "required": true,
-            "description": "Whether the listbox is open internally when uncontrolled"
+            "description": "Whether the listbox is open, controlled or not."
           },
           {
             "name": "openProp",
             "type": "boolean | undefined",
             "formattedType": "false | true",
             "required": true,
-            "description": "Controlled open prop. When defined, selectors resolve this over `open`."
+            "description": "Controlled open prop, `undefined` while uncontrolled."
           },
           {
             "name": "openMethod",
@@ -13516,14 +13516,14 @@
             "name": "search",
             "type": "string",
             "required": true,
-            "description": "Current internal search query when uncontrolled"
+            "description": "Current search query, controlled or not."
           },
           {
             "name": "searchProp",
             "type": "string | undefined",
             "formattedType": "string",
             "required": true,
-            "description": "Controlled search prop. When defined, selectors resolve this over `search`."
+            "description": "Controlled search prop, `undefined` while uncontrolled."
           },
           {
             "name": "normalizedSearch",
@@ -18178,14 +18178,14 @@
             "type": "boolean",
             "formattedType": "false | true",
             "required": true,
-            "description": "Whether the listbox is open internally when uncontrolled"
+            "description": "Whether the listbox is open, controlled or not."
           },
           {
             "name": "openProp",
             "type": "boolean | undefined",
             "formattedType": "false | true",
             "required": true,
-            "description": "Controlled open prop. When defined, selectors resolve this over `open`."
+            "description": "Controlled open prop, `undefined` while uncontrolled."
           },
           {
             "name": "openMethod",
@@ -18198,14 +18198,14 @@
             "name": "search",
             "type": "string",
             "required": true,
-            "description": "Current internal search query when uncontrolled"
+            "description": "Current search query, controlled or not."
           },
           {
             "name": "searchProp",
             "type": "string | undefined",
             "formattedType": "string",
             "required": true,
-            "description": "Controlled search prop. When defined, selectors resolve this over `search`."
+            "description": "Controlled search prop, `undefined` while uncontrolled."
           },
           {
             "name": "normalizedSearch",
@@ -21224,14 +21224,14 @@
             "type": "boolean",
             "formattedType": "false | true",
             "required": true,
-            "description": "Whether the listbox is open internally when uncontrolled"
+            "description": "Whether the listbox is open, controlled or not."
           },
           {
             "name": "openProp",
             "type": "boolean | undefined",
             "formattedType": "false | true",
             "required": true,
-            "description": "Controlled open prop. When defined, selectors resolve this over `open`."
+            "description": "Controlled open prop, `undefined` while uncontrolled."
           },
           {
             "name": "openMethod",
@@ -21244,14 +21244,14 @@
             "name": "search",
             "type": "string",
             "required": true,
-            "description": "Current internal search query when uncontrolled"
+            "description": "Current search query, controlled or not."
           },
           {
             "name": "searchProp",
             "type": "string | undefined",
             "formattedType": "string",
             "required": true,
-            "description": "Controlled search prop. When defined, selectors resolve this over `search`."
+            "description": "Controlled search prop, `undefined` while uncontrolled."
           },
           {
             "name": "normalizedSearch",

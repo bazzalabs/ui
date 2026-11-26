@@ -1,125 +1,124 @@
 /**
- * `bazza/no-raw-controlled-state`: a store's internal half of a controlled
- * value is never read on its own.
+ * `bazza/no-raw-controlled-state`: a store's controlled values are written
+ * only by the store.
  *
- * `ListboxStore` keeps a controlled value in two fields: the internal one
- * (`open`, `search`) and the one synced from the prop (`openProp`,
- * `searchProp`). Its selectors resolve the effective value as
- * `openProp ?? open`. While an app controls the prop, the internal field goes
- * stale, so code that reads `store.state.open` treats an open menu as closed.
+ * `ListboxStore` keeps each controlled value (`open`, `search`) in a private
+ * cell, the internal value and the prop's, and mirrors it into state as
+ * `open` / `openProp` and `search` / `searchProp`, written in the same update
+ * as the cell. A write to one of those fields from outside the store changes
+ * the mirror and not the cell, and skips the consumer's callback.
  *
- * Reported: `<x>.state.open`, the same read through `const s = <x>.state`,
- * `const { open } = <x>.state`, and `<x>.state.search ||= …`. Allowed: plain
- * writes, and the effective value spelled out by hand,
- * `<x>.state.openProp ?? <x>.state.open`.
+ * Reported, on a receiver that looks like a store (`this`, an identifier or
+ * member named `store` or ending in `Store`): `<store>.set('open', …)`,
+ * `useSyncedValue`, `useSyncedValueWithCleanup` and `useStateSetter` with one
+ * of the fields as a literal key, `<store>.update({ open })`, `setState` and
+ * `useSyncedValues` with one of them as a literal key in an object literal,
+ * and `useControlledProp('open' | 'search', …)`. Allowed:
+ * `useControlledProp('openProp' | 'searchProp', …)`, which syncs the cell.
+ * The store's own literal-key writes, made with their cell, carry an inline
+ * exception.
+ *
+ * Not covered: other receivers (`params.set('search', q)` is a
+ * URLSearchParams), computed calls (`store['set'](…)`), destructured methods
+ * (`const { set } = store`), keys in variables or computed keys
+ * (`store.set(key, …)`, `{ [key]: … }`), and objects built elsewhere
+ * (`store.update(changes)`, spreads).
  */
-import {
-  keyName,
-  memberName,
-  outermostWrapper,
-  unwrap,
-  variableOf,
-} from './ast.mjs'
+import { keyName, memberName, unwrap } from './ast.mjs'
 
-/**
- * Internal field → the field its controlled prop is synced to. Mirrors the
- * `open` and `search` selectors in `ListboxStore`; add a pair when a store
- * gains another controlled value.
- */
-const controlledPairs = new Map([
-  ['open', 'openProp'],
-  ['search', 'searchProp'],
+/** Field → how to change it instead. */
+const fields = new Map([
+  [
+    'open',
+    "`store.setOpen(…)`, or sync the prop with `store.useControlledProp('openProp', …)`",
+  ],
+  [
+    'search',
+    "`store.setSearch(…)`, or sync the prop with `store.useControlledProp('searchProp', …)`",
+  ],
+  ['openProp', "`store.useControlledProp('openProp', …)`"],
+  ['searchProp', "`store.useControlledProp('searchProp', …)`"],
 ])
 
-/** `<x>.state`, looking through TypeScript wrappers. */
-function isStateMember(node) {
+/** Methods that take a state key first. */
+const keyedMethods = new Set([
+  'set',
+  'useSyncedValue',
+  'useSyncedValueWithCleanup',
+  'useStateSetter',
+  'useControlledProp',
+])
+
+/** Methods that take an object of state fields first. */
+const objectMethods = new Set(['update', 'setState', 'useSyncedValues'])
+
+/** `useControlledProp` syncs these into their cell. */
+const controlledProps = new Set(['openProp', 'searchProp'])
+
+/** A name that reads as a store: `store`, `listboxStore`, `ListboxStore`. */
+const isStoreName = (name) =>
+  typeof name === 'string' && (name === 'store' || name.endsWith('Store'))
+
+/** Whether `node` looks like a store: `this`, `store`, `parentStore`, `context.store`. */
+function isStoreLike(node) {
   const value = unwrap(node)
-  return value?.type === 'MemberExpression' && memberName(value) === 'state'
+  if (value?.type === 'ThisExpression') return true
+  if (value?.type === 'Identifier') return isStoreName(value.name)
+  return value?.type === 'MemberExpression' && isStoreName(memberName(value))
 }
 
-/**
- * Whether `member` is only written to: `x.open = v` and `delete x.open` are.
- * `x.open ||= v`, `x.open += v` and `x.open++` read the old value first, so
- * they aren't.
- */
-function isWriteTarget(member) {
-  const { parent } = member
-  if (parent?.type === 'AssignmentExpression' && parent.left === member) {
-    return parent.operator === '='
+/** A string literal's value, or a template literal's with no expressions. */
+function stringValue(node) {
+  const value = unwrap(node)
+  if (value?.type === 'Literal' && typeof value.value === 'string') {
+    return value.value
   }
-  return parent?.type === 'UnaryExpression' && parent.operator === 'delete'
+  if (value?.type === 'TemplateLiteral' && value.expressions.length === 0) {
+    return value.quasis[0].value.cooked
+  }
+  return undefined
 }
 
 export const noRawControlledState = {
   meta: {
     type: 'problem',
     docs: {
-      description:
-        "A store's internal half of a controlled value is never read on its own.",
+      description: "A store's controlled values are written only by the store.",
     },
   },
   create(context) {
-    const text = (node) => context.sourceCode.getText(node)
-
-    /** Whether `identifier` is a `const` bound to `<x>.state`. */
-    const isStateAlias = (identifier) => {
-      const definition = variableOf(context, identifier)?.defs?.[0]
-      if (definition?.type !== 'Variable') return false
-      const declarator = definition.node
-      return (
-        declarator.parent?.kind === 'const' &&
-        declarator.id.type === 'Identifier' &&
-        isStateMember(declarator.init)
-      )
-    }
-
-    /** Whether `object` is `<x>.state` or a `const` alias of it. */
-    const isStateObject = (object) => {
-      const value = unwrap(object)
-      if (isStateMember(value)) return true
-      return value?.type === 'Identifier' && isStateAlias(value)
-    }
-
-    /** `<object>.<field>Prop ?? <object>.<field>`: the effective value, by hand. */
-    const isEffectiveFallback = (member, field) => {
-      const node = outermostWrapper(member)
-      const { parent } = node
-      if (parent?.type !== 'LogicalExpression' || parent.operator !== '??') {
-        return false
-      }
-      if (parent.right !== node) return false
-      const left = unwrap(parent.left)
-      return (
-        left?.type === 'MemberExpression' &&
-        memberName(left) === controlledPairs.get(field) &&
-        text(unwrap(left.object)) === text(unwrap(member.object))
-      )
-    }
-
     const report = (node, field) => {
-      const prop = controlledPairs.get(field)
       context.report({
         node,
-        message: `\`state.${field}\` is the store's internal value, and it goes stale while an app controls the \`${field}\` prop. Read the effective value with \`store.select('${field}')\` (or \`store.useState('${field}')\` in render), which resolves \`${prop} ?? ${field}\`. See "Store state" in packages/react/AGENTS.md.`,
+        message: `\`${field}\` in a store's state mirrors its controlled cell, so writing it directly leaves the cell behind and skips the consumer's callback. Change it with ${fields.get(field)}. See "Store state" in packages/react/AGENTS.md.`,
       })
     }
 
     return {
-      MemberExpression(node) {
-        const field = memberName(node)
-        if (!controlledPairs.has(field)) return
-        if (!isStateObject(node.object)) return
-        if (isWriteTarget(node)) return
-        if (isEffectiveFallback(node, field)) return
-        report(node, field)
-      },
-      VariableDeclarator(node) {
-        if (node.id.type !== 'ObjectPattern') return
-        if (!node.init || !isStateObject(node.init)) return
-        for (const property of node.id.properties) {
+      CallExpression(node) {
+        const callee = unwrap(node.callee)
+        if (callee?.type !== 'MemberExpression' || callee.computed) return
+        if (!isStoreLike(callee.object)) return
+        const method = callee.property.name
+        const [first] = node.arguments
+
+        if (keyedMethods.has(method)) {
+          const field = stringValue(first)
+          if (!fields.has(field)) return
+          if (method === 'useControlledProp' && controlledProps.has(field)) {
+            return
+          }
+          report(first, field)
+          return
+        }
+
+        if (!objectMethods.has(method)) return
+        const object = unwrap(first)
+        if (object?.type !== 'ObjectExpression') return
+        for (const property of object.properties) {
           if (property.type !== 'Property') continue
           const field = keyName(property)
-          if (controlledPairs.has(field)) report(property, field)
+          if (fields.has(field)) report(property, field)
         }
       },
     }
