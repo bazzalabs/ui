@@ -152,3 +152,13 @@ export interface SnapshotInput {
    */
   scores?: ReadonlyMap<RowId, number>
 }
+
+/** How `buildSnapshot` builds a snapshot. */
+export interface SnapshotOptions {
+  /**
+   * Whether to work out `positions`. A caller that works positions out
+   * another way passes `false`, and `positions` is empty.
+   * @default true
+   */
+  positions?: boolean
+}

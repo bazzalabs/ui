@@ -1,6 +1,12 @@
 import { createSelector, ReactStore } from '@base-ui/utils/store'
 import { useRefWithInit } from '@base-ui/utils/useRefWithInit'
-import type { FilterFn, SearchNormalizer } from '@bazza-ui/menu-core'
+import {
+  type CollectionSnapshot,
+  type FilterFn,
+  type ItemRowMeta,
+  isItemRow,
+  type SearchNormalizer,
+} from '@bazza-ui/menu-core'
 import {
   createChangeEventDetails,
   createGenericEventDetails,
@@ -361,6 +367,23 @@ function getRowPositions(rows: readonly ListboxOrderedRow[]): RowPositions {
 // Selectors
 // ============================================================================
 
+/**
+ * A state key, off the published `ListboxState`, for whether a data-first
+ * list's Collection owns the surface's rows: selectors read it, so rows
+ * re-render when it changes. Temporary, removed by UI-679.
+ */
+const externalCollectionKey: unique symbol = Symbol('externalCollection')
+
+/** `ListboxState` with the external-collection flag. */
+type StateWithExternal = ListboxState & {
+  [externalCollectionKey]?: boolean
+}
+
+/** Whether a data-first list's Collection owns the rows, from state. */
+function isExternalState(state: ListboxState): boolean {
+  return (state as StateWithExternal)[externalCollectionKey] === true
+}
+
 const selectors = {
   open: createSelector((state: ListboxState) => state.openProp ?? state.open),
   openMethod: createSelector((state: ListboxState) => state.openMethod),
@@ -394,7 +417,10 @@ const selectors = {
 
   isGroupVisible: createSelector(
     (state: ListboxState, groupId: string) =>
-      state.normalizedSearch.length === 0 || state.visibleGroups.has(groupId),
+      // A data-first list mounts only the groups its Collection shows.
+      isExternalState(state) ||
+      state.normalizedSearch.length === 0 ||
+      state.visibleGroups.has(groupId),
   ),
 
   isFirstRow: createSelector((state: ListboxState, rowId: string) => {
@@ -440,6 +466,8 @@ const selectors = {
    */
   isItemVisible: createSelector(
     (state: ListboxState, itemId: string) =>
+      // A data-first list mounts only the rows its Collection shows.
+      isExternalState(state) ||
       state.normalizedSearch.length === 0 ||
       (state.filteredItems.get(itemId) ?? 0) > 0,
   ),
@@ -492,6 +520,245 @@ const defaultSearchNormalizer: SearchNormalizer = (search) => {
 }
 
 // ============================================================================
+// External Collection (temporary, removed by UI-679)
+// ============================================================================
+
+/**
+ * A data-first row's element, the JSX group around it if any, and what its
+ * part was given (a `render` can override the def's props on the part, as
+ * `<Item {...props} disabled={x}>`).
+ * Temporary external-collection mode, removed by UI-679.
+ */
+export interface BoundRow {
+  /** The row's element, read when it's needed, so it can change. */
+  elementRef: { readonly current: HTMLElement | null }
+  groupId: string | undefined
+  disabled: boolean
+  closeOnClick: boolean
+  activatable: boolean
+  isSubmenuTrigger: boolean
+  shortcut: string | undefined
+}
+
+// Derived once per snapshot, so lookups stay O(1) between snapshot changes.
+const registrationsCache = new WeakMap<
+  CollectionSnapshot,
+  Map<string, ItemRegistration>
+>()
+const shortcutsCache = new WeakMap<CollectionSnapshot, Map<string, string>>()
+
+function itemRowRegistration(row: ItemRowMeta): ItemRegistration {
+  return {
+    // A data-first row registered under its Resolved ID as its value too.
+    value: row.id,
+    keywords: row.keywords ? [...row.keywords] : undefined,
+    disabled: row.disabled,
+    forceOrder: row.forceOrder,
+    forceScore: row.forceScore,
+    isSubmenuTrigger: row.kind === 'submenu-trigger',
+    shortcut: row.shortcut,
+    closeOnClick: row.closeOnClick,
+    activatable: row.activatable,
+  }
+}
+
+function collectionRegistrations(
+  snapshot: CollectionSnapshot,
+): Map<string, ItemRegistration> {
+  let registrations = registrationsCache.get(snapshot)
+  if (!registrations) {
+    registrations = new Map()
+    for (const row of snapshot.rows.values()) {
+      if (isItemRow(row)) registrations.set(row.id, itemRowRegistration(row))
+    }
+    registrationsCache.set(snapshot, registrations)
+  }
+  return registrations
+}
+
+function collectionShortcuts(
+  snapshot: CollectionSnapshot,
+): Map<string, string> {
+  let shortcuts = shortcutsCache.get(snapshot)
+  if (!shortcuts) {
+    shortcuts = new Map()
+    for (const id of snapshot.orderedIds) {
+      const row = snapshot.rows.get(id)
+      if (row && isItemRow(row) && row.shortcut) {
+        const key = row.shortcut.toLowerCase()
+        // Registration order: the last row with a shortcut owns it.
+        shortcuts.set(key, id)
+      }
+    }
+    shortcutsCache.set(snapshot, shortcuts)
+  }
+  return shortcuts
+}
+
+const visibleItemCountCache = new WeakMap<CollectionSnapshot, number>()
+
+/** The number of visible item rows, disabled ones included. */
+function countVisibleItemRows(snapshot: CollectionSnapshot): number {
+  let count = visibleItemCountCache.get(snapshot)
+  if (count === undefined) {
+    count = 0
+    for (const id of snapshot.visible) {
+      const row = snapshot.rows.get(id)
+      if (row && isItemRow(row)) count++
+    }
+    visibleItemCountCache.set(snapshot, count)
+  }
+  return count
+}
+
+function orderedRowsEqual(
+  a: readonly ListboxOrderedRow[],
+  b: readonly ListboxOrderedRow[],
+): boolean {
+  if (a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) {
+    const rowA = a[i]!
+    const rowB = b[i]!
+    if (
+      rowA.id !== rowB.id ||
+      rowA.kind !== rowB.kind ||
+      rowA.groupId !== rowB.groupId
+    ) {
+      return false
+    }
+  }
+  return true
+}
+
+/** Whether `a` comes before `b` in the document. */
+function precedes(a: HTMLElement, b: HTMLElement): boolean {
+  return (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0
+}
+
+/**
+ * Inserts `extras` (few, in document order) among `base` (in the
+ * Collection's order) by document position: each extra goes right after the
+ * last base entry with an element that comes before it, or after every base
+ * entry when none with an element comes after it. Base entries with no
+ * element (a virtualized list's rows outside its window) stay in place
+ * around the ones that have one, so an extra above the window goes before
+ * the rows above the window, and one below it after the rows below it. An
+ * extra with no element goes last.
+ */
+function insertByDocumentPosition<T>(
+  base: readonly T[],
+  extras: readonly T[],
+  elementOf: (entry: T) => HTMLElement | null | undefined,
+): T[] {
+  if (extras.length === 0) return base as T[]
+  const merged: T[] = []
+  let next = 0
+  for (const extra of extras) {
+    const element = elementOf(extra)
+    let cut = base.length
+    if (element?.isConnected) {
+      cut = next
+      let followed = false
+      for (let i = next; i < base.length; i++) {
+        const baseElement = elementOf(base[i]!)
+        if (!baseElement?.isConnected) continue
+        if (!precedes(baseElement, element)) {
+          followed = true
+          break
+        }
+        cut = i + 1
+      }
+      // No element follows the extra: it goes after every base entry, the
+      // ones below a virtualized window included.
+      if (!followed) cut = base.length
+    }
+    while (next < cut) merged.push(base[next++]!)
+    merged.push(extra)
+  }
+  while (next < base.length) merged.push(base[next++]!)
+  return merged
+}
+
+// ============================================================================
+// External Collection entry points (temporary, removed by UI-679)
+//
+// Exported from this module only, never from `internal/listbox/index.ts`, so
+// the published `ListboxStore` type doesn't carry them.
+// ============================================================================
+
+interface ExternalCollectionAccess {
+  setExternalCollection(
+    store: ListboxStore,
+    snapshot: CollectionSnapshot | null,
+  ): void
+  bindRow(store: ListboxStore, id: string, row: BoundRow): () => void
+  refreshBoundRows(store: ListboxStore): void
+  getRegistration(store: ListboxStore, id: string): ItemRegistration | undefined
+  getShortcutItemId(store: ListboxStore, key: string): string | undefined
+}
+
+let externalCollectionAccess: ExternalCollectionAccess
+
+/**
+ * Publishes a data-first list's Collection to its surface's store: its
+ * order, visibility and row metadata. The list calls it from a layout effect
+ * that runs after its rows' (so they're bound) and before the list
+ * primitive's flush, so rows see one publish per commit. Highlight changes
+ * stay with the caller (`setOrderedItems`, `highlightFirstOrderedItem`).
+ * `null` hands the rows back to registration, as when the list unmounts.
+ */
+export function setExternalCollection(
+  store: ListboxStore,
+  snapshot: CollectionSnapshot | null,
+): void {
+  externalCollectionAccess.setExternalCollection(store, snapshot)
+}
+
+/**
+ * Binds a data-first row under its Resolved ID, with its element (which may
+ * attach later, or never) and the props its part was given. Returns the
+ * unbind.
+ */
+export function bindRow(
+  store: ListboxStore,
+  id: string,
+  row: BoundRow,
+): () => void {
+  return externalCollectionAccess.bindRow(store, id, row)
+}
+
+/**
+ * Works positions out again once a row that bound without its element gets
+ * one, at the next microtask.
+ */
+export function refreshBoundRows(store: ListboxStore): void {
+  externalCollectionAccess.refreshBoundRows(store)
+}
+
+/**
+ * An item's registration: a data-first row's from the Collection, with what
+ * its part overrides while it's bound; otherwise what the item registered.
+ * Read registrations through this, never `context.items`.
+ */
+export function getRegistration(
+  store: ListboxStore,
+  id: string,
+): ItemRegistration | undefined {
+  return externalCollectionAccess.getRegistration(store, id)
+}
+
+/**
+ * The item a shortcut key selects, if any. Read shortcuts through this,
+ * never `context.shortcuts`.
+ */
+export function getShortcutItemId(
+  store: ListboxStore,
+  key: string,
+): string | undefined {
+  return externalCollectionAccess.getShortcutItemId(store, key)
+}
+
+// ============================================================================
 // Store
 // ============================================================================
 
@@ -506,6 +773,22 @@ export class ListboxStore extends ReactStore<
   ListboxContext,
   typeof selectors
 > {
+  static {
+    // The external-collection mode's entry points, off the class's public
+    // surface (and its published types): see `setExternalCollection` below.
+    externalCollectionAccess = {
+      setExternalCollection: (store, snapshot) =>
+        store.#setExternalCollection(snapshot),
+      bindRow: (store, id, row) => store.#bindRow(id, row),
+      refreshBoundRows: (store) => {
+        store.#externalRowsDirty = true
+        store.#scheduleBindFlush()
+      },
+      getRegistration: (store, id) => store.#getRegistration(id),
+      getShortcutItemId: (store, key) => store.#getShortcutItemId(key),
+    }
+  }
+
   constructor(
     initialState?: Partial<ListboxState>,
     context?: Partial<ListboxContext>,
@@ -802,13 +1085,13 @@ export class ListboxStore extends ReactStore<
    * already visible (e.g. when navigating downward).
    */
   private maybeRevealGroupTop(id: string, listEl: HTMLElement) {
-    const groupId = this.context.items.get(id)?.groupId
+    const groupId = this.#getRegistration(id)?.groupId
     if (!groupId) return
 
     // Only the group's first visible item anchors to the group top
     const visibleIds = this.getVisibleItemIds()
     const firstInGroup = visibleIds.find(
-      (visibleId) => this.context.items.get(visibleId)?.groupId === groupId,
+      (visibleId) => this.#getRegistration(visibleId)?.groupId === groupId,
     )
     if (firstInGroup !== id) return
 
@@ -982,9 +1265,13 @@ export class ListboxStore extends ReactStore<
       // Virtual items are pre-registered, so an unmounted virtualized row is
       // still found here.
       const highlightedId = this.state.highlightedId
-      const registration = this.context.items.get(highlightedId)
+      const registration = this.#getRegistration(highlightedId)
+      const present = this.#external
+        ? this.#isItemReachable(highlightedId)
+        : registration !== undefined
       if (
         items.includes(highlightedId) &&
+        present &&
         registration !== undefined &&
         !registration.disabled
       ) {
@@ -1003,7 +1290,7 @@ export class ListboxStore extends ReactStore<
   highlightFirstOrderedItem() {
     if (!this.select('open')) return
     const items = this.context.orderedItems
-    const firstRegisteredItem = items.find((id) => this.context.items.has(id))
+    const firstRegisteredItem = items.find((id) => this.#isItemNavigable(id))
     this.setHighlightedId(firstRegisteredItem ?? null, 'auto')
   }
 
@@ -1022,7 +1309,7 @@ export class ListboxStore extends ReactStore<
       return
     }
 
-    if (this.context.filter !== false) {
+    if (this.context.filter !== false && !this.#external) {
       return
     }
     if (!this.select('open')) {
@@ -1042,7 +1329,7 @@ export class ListboxStore extends ReactStore<
 
     // Find the first item in orderedItems that is registered
     const firstRegisteredItem = orderedItems.find((itemId) =>
-      this.context.items.has(itemId),
+      this.#isItemNavigable(itemId),
     )
 
     // Only highlight if the first registered item registered just now
@@ -1163,6 +1450,8 @@ export class ListboxStore extends ReactStore<
 
     // Register each virtual item (using value as the unique identifier)
     for (const item of virtualItems) {
+      // A data-first row's registration is its Collection row.
+      if (this.#collection?.rows.has(item.value)) continue
       if (!this.context.items.has(item.value)) {
         this.context.items.set(item.value, {
           value: item.value,
@@ -1324,22 +1613,12 @@ export class ListboxStore extends ReactStore<
    */
   flushPendingRegistrations() {
     this.registrationBatchOpen = false
-    if (this.pendingRows.size > 0) {
-      const pending = this.pendingRows
-      this.pendingRows = new Map()
-      const next = this.state.orderedRows.filter((r) => !pending.has(r.id))
-      let added = false
-      for (const row of pending.values()) {
-        if (row) {
-          next.push(row)
-          added = true
-        }
-      }
-      if (added) {
-        next.sort((a, b) => this.compareRowOrder(a, b))
-      }
-      this.set('orderedRows', next)
+    if (this.#external) {
+      this.#flushExternalCollection()
+      return
     }
+    const rows = this.#applyPendingRows(this.state.orderedRows)
+    if (rows) this.set('orderedRows', rows)
 
     if (this.pendingRescore || this.pendingRegisteredItems.size > 0) {
       const registered = this.pendingRegisteredItems
@@ -1350,6 +1629,349 @@ export class ListboxStore extends ReactStore<
       }
       this.maybeAutoHighlightOnRegister(registered)
     }
+  }
+
+  /**
+   * `rows` with the rows registered and unregistered since the last flush,
+   * in document order, or `null` when none are waiting.
+   */
+  #applyPendingRows(
+    rows: readonly ListboxOrderedRow[],
+  ): ListboxOrderedRow[] | null {
+    if (this.pendingRows.size === 0) return null
+    const pending = this.pendingRows
+    this.pendingRows = new Map()
+    const next = rows.filter((r) => !pending.has(r.id))
+    let added = false
+    for (const row of pending.values()) {
+      if (row) {
+        next.push(row)
+        added = true
+      }
+    }
+    if (added) {
+      next.sort((a, b) => this.compareRowOrder(a, b))
+    }
+    return next
+  }
+
+  // ==========================================================================
+  // External Collection (temporary, removed by UI-679)
+  //
+  // A data-first list already filters, scores and orders its rows, so it
+  // hands the store its row Collection instead of letting every row register
+  // and be rescored. Its rows (marked by `CollectionRowContext`) only bind
+  // their element (`bindRow`), with the props their part was given. The
+  // Collection supplies order, visibility and row metadata; the bound row
+  // supplies what the part overrides. Rows that still register (a JSX `Item`
+  // next to the data rows, or a `Separator`, `Group`, `Empty` or `Loading`
+  // part) take their place among the data rows by document position, for
+  // navigation and positions alike, so positions come out as they did when
+  // every row registered. Composable JSX surfaces never enter this mode.
+  // UI-679 replaces the store, and this mode with it.
+  // ==========================================================================
+
+  /**
+   * The row Collection the list published, or `null` while rows register.
+   * Not state: nothing renders from it directly, only from what it changes
+   * (`orderedRows`, `filteredCount`, the highlight).
+   */
+  #collection: CollectionSnapshot | null = null
+  /** Whether a data-first list's Collection owns this surface's rows. */
+  #external = false
+  #boundRows = new Map<string, BoundRow>()
+  /** The shortcuts bound rows' parts were given, by key. */
+  #boundShortcuts = new Map<string, string>()
+  #pendingBoundIds = new Set<string>()
+  #externalRowsDirty = false
+  /** Rows registered with `registerRow` while external, in document order. */
+  #registeredRows: readonly ListboxOrderedRow[] = []
+
+  /**
+   * Publishes the data-first list's Collection: its order, visibility and row
+   * metadata. The list calls it from a layout effect that runs after its
+   * rows' (so they're bound) and before the list primitive's flush, so rows
+   * see one publish per commit. Highlight changes stay with the caller
+   * (`setOrderedItems`, `highlightFirstOrderedItem`). `null` hands the rows
+   * back to registration, as when the list unmounts.
+   * Temporary external-collection mode, removed by UI-679.
+   */
+  /**
+   * Sets the external-collection flag in state, with `changes`. Through
+   * `setState`: `update` only looks at string keys, so it would drop the
+   * flag's symbol key on its own.
+   */
+  #setExternalState(external: boolean, changes: Partial<ListboxState> = {}) {
+    const next: StateWithExternal = {
+      ...this.state,
+      ...changes,
+      [externalCollectionKey]: external,
+    }
+    this.setState(next)
+  }
+
+  #setExternalCollection(snapshot: CollectionSnapshot | null) {
+    if (snapshot === null) {
+      if (!this.#external) return
+      this.flushPendingRegistrations()
+      this.#external = false
+      this.#pendingBoundIds.clear()
+      const rows = this.#registeredRows
+      this.#registeredRows = []
+      this.#collection = null
+      this.#setExternalState(false, { orderedRows: rows })
+      this.queueRescore()
+      return
+    }
+
+    if (!this.#external) {
+      // Rows registered before the list took over stay rows.
+      this.#external = true
+      this.#setExternalState(true)
+      this.#registeredRows = this.state.orderedRows
+      this.#externalRowsDirty = true
+      this.pendingRescore = true
+    }
+    if (snapshot !== this.#collection) {
+      this.#externalRowsDirty = true
+      this.#flushExternalCollection(snapshot)
+    } else {
+      this.#flushExternalCollection()
+    }
+  }
+
+  /**
+   * Binds a data-first row's element under its Resolved ID, with the props
+   * its part was given. Returns the unbind.
+   * Temporary external-collection mode, removed by UI-679.
+   */
+  #bindRow(id: string, row: BoundRow): () => void {
+    this.#boundRows.set(id, row)
+    if (row.shortcut) this.#boundShortcuts.set(row.shortcut.toLowerCase(), id)
+    this.#pendingBoundIds.add(id)
+    this.#externalRowsDirty = true
+    this.#scheduleBindFlush()
+
+    return () => {
+      if (this.#boundRows.get(id) !== row) return
+      this.#boundRows.delete(id)
+      const key = row.shortcut?.toLowerCase()
+      if (key && this.#boundShortcuts.get(key) === id) {
+        this.#boundShortcuts.delete(key)
+      }
+      this.#pendingBoundIds.delete(id)
+      this.#externalRowsDirty = true
+      this.#scheduleBindFlush()
+    }
+  }
+
+  #bindFlushQueued = false
+
+  /**
+   * Rows bind in the commit that renders them, and the list's
+   * `CollectionPublisher` publishes in that same commit, so a bind doesn't
+   * re-render the list the way a registration does. A microtask, which still
+   * runs before paint, covers rows that mount without the list rendering.
+   */
+  #scheduleBindFlush() {
+    if (this.#bindFlushQueued) return
+    this.#bindFlushQueued = true
+    queueMicrotask(() => {
+      this.#bindFlushQueued = false
+      if (this.#externalRowsDirty || this.#pendingBoundIds.size > 0) {
+        this.flushPendingRegistrations()
+      }
+    })
+  }
+
+  /**
+   * An item's registration: in external mode, a Collection row's, with what
+   * its part overrides while it's bound; otherwise (or for a row the
+   * Collection doesn't have) what the item registered. Read registrations
+   * through this, never `context.items`.
+   * Its Collection half is temporary, removed by UI-679.
+   */
+  #getRegistration(id: string): ItemRegistration | undefined {
+    const collection = this.#collection
+    const fromCollection = collection
+      ? collectionRegistrations(collection).get(id)
+      : undefined
+    if (!fromCollection) return this.context.items.get(id)
+    const bound = this.#boundRows.get(id)
+    if (!bound) return fromCollection
+    return {
+      ...fromCollection,
+      groupId: bound.groupId,
+      disabled: bound.disabled,
+      closeOnClick: bound.closeOnClick,
+      activatable: bound.activatable,
+      isSubmenuTrigger: bound.isSubmenuTrigger,
+      shortcut: bound.shortcut,
+    }
+  }
+
+  /**
+   * The item a shortcut key selects, if any. Read shortcuts through this,
+   * never `context.shortcuts`.
+   * Its Collection half is temporary, removed by UI-679.
+   */
+  #getShortcutItemId(key: string): string | undefined {
+    const normalized = key.toLowerCase()
+    const collection = this.#collection
+    if (!collection) return this.context.shortcuts.get(normalized)
+    // A bound row's shortcut is the one its part was given; an unbound row's
+    // (outside a virtualized window) is its def's.
+    const bound = this.#boundShortcuts.get(normalized)
+    if (bound !== undefined) return bound
+    const fromCollection = collectionShortcuts(collection).get(normalized)
+    if (fromCollection !== undefined && !this.#boundRows.has(fromCollection)) {
+      return fromCollection
+    }
+    return this.context.shortcuts.get(normalized)
+  }
+
+  /**
+   * Whether navigation can reach an item, disabled or not: registered, or in
+   * external mode, a Collection row that's bound (any Collection row while
+   * virtualized, as virtual items count without being mounted).
+   */
+  #isItemReachable(id: string): boolean {
+    const collection = this.#collection
+    if (collection?.rows.has(id)) {
+      return this.state.virtualized || this.#boundRows.has(id)
+    }
+    return this.context.items.has(id)
+  }
+
+  /** Whether navigation can land on an item: reachable and enabled. */
+  #isItemNavigable(id: string): boolean {
+    return this.#isItemReachable(id) && !this.#getRegistration(id)?.disabled
+  }
+
+  /** The data rows navigation visits, in the Collection's order. */
+  #collectionNavIds(collection: CollectionSnapshot): string[] {
+    const ids: string[] = []
+    const { virtualized } = this.state
+    for (const id of collection.orderedIds) {
+      if (!collection.visible.has(id)) continue
+      const row = collection.rows.get(id)
+      if (!row || !isItemRow(row)) continue
+      const bound = this.#boundRows.get(id)
+      if (!bound && !virtualized) continue
+      if (!(bound ? bound.disabled : row.disabled)) ids.push(id)
+    }
+    return ids
+  }
+
+  /**
+   * The enabled items that registered next to the data rows, in document
+   * order. Virtual items' placeholder registrations have no element, so they
+   * don't count.
+   */
+  #registeredItemsOutsideCollection(
+    collection: CollectionSnapshot,
+    enabledOnly: boolean,
+  ): string[] {
+    const ids: string[] = []
+    if (this.context.items.size === 0) return ids
+    for (const [id, registration] of this.context.items) {
+      if (collection.rows.has(id)) continue
+      if (enabledOnly && registration.disabled) continue
+      if (!this.context.refs.itemRefs.get(id)?.current?.isConnected) continue
+      ids.push(id)
+    }
+    if (ids.length > 1) {
+      ids.sort((a, b) => {
+        const elementA = this.context.refs.itemRefs.get(a)!.current!
+        const elementB = this.context.refs.itemRefs.get(b)!.current!
+        return precedes(elementA, elementB) ? -1 : 1
+      })
+    }
+    return ids
+  }
+
+  /** Visible Collection rows plus the items registered next to them. */
+  #externalFilteredCount(collection: CollectionSnapshot | null): number {
+    if (!collection) return 0
+    return (
+      countVisibleItemRows(collection) +
+      this.#registeredItemsOutsideCollection(collection, false).length
+    )
+  }
+
+  #itemElement(id: string): HTMLElement | null | undefined {
+    return (
+      this.#boundRows.get(id)?.elementRef.current ??
+      this.context.refs.itemRefs.get(id)?.current ??
+      undefined
+    )
+  }
+
+  #flushExternalCollection(snapshot?: CollectionSnapshot) {
+    const rows = this.#applyPendingRows(this.#registeredRows)
+    if (rows) this.#registeredRows = rows
+
+    if (rows || this.#externalRowsDirty) {
+      this.#externalRowsDirty = false
+      const collection = snapshot ?? this.#collection
+      const merged = this.#mergeExternalRows(collection)
+      const collectionChanged = collection !== this.#collection
+      this.#collection = collection
+      const rowsChanged = !orderedRowsEqual(merged, this.state.orderedRows)
+      if (collectionChanged || rowsChanged) {
+        // One publish: positions and the count together.
+        this.pendingRescore = false
+        const filteredCount = this.#externalFilteredCount(collection)
+        if (rowsChanged || filteredCount !== this.state.filteredCount) {
+          this.update({
+            orderedRows: rowsChanged ? merged : this.state.orderedRows,
+            filteredCount,
+          })
+        }
+      }
+    }
+
+    if (this.pendingRescore) this.recomputeFilteredItems()
+
+    const registered = this.#pendingBoundIds
+    if (registered.size > 0 || this.pendingRegisteredItems.size > 0) {
+      this.#pendingBoundIds = new Set()
+      for (const id of this.pendingRegisteredItems) registered.add(id)
+      this.pendingRegisteredItems = new Set()
+      this.maybeAutoHighlightOnRegister(registered)
+    }
+  }
+
+  /**
+   * The rows positions are worked out over: the Collection's visible bound
+   * rows in its order, with registered rows placed among them by document
+   * position.
+   */
+  #mergeExternalRows(
+    collection: CollectionSnapshot | null,
+  ): ListboxOrderedRow[] {
+    const items: ListboxOrderedRow[] = []
+    if (collection) {
+      for (const id of collection.orderedIds) {
+        const bound = this.#boundRows.get(id)
+        if (!bound || !collection.visible.has(id)) continue
+        items.push({ id, kind: 'item', groupId: bound.groupId })
+      }
+    }
+    // Registered rows sort again here: they're few, and a search can move
+    // them (a `Group` part that `sortGroups` reorders) without registering
+    // again.
+    const registered =
+      this.#registeredRows.length > 1
+        ? [...this.#registeredRows].sort((a, b) => this.compareRowOrder(a, b))
+        : this.#registeredRows
+    return insertByDocumentPosition(
+      items,
+      registered,
+      (row) =>
+        this.#boundRows.get(row.id)?.elementRef.current ??
+        this.context.rowElements.get(row.id),
+    )
   }
 
   private scheduleRegistrationFlush() {
@@ -1486,7 +2108,7 @@ export class ListboxStore extends ReactStore<
 
   selectHighlighted() {
     if (this.state.highlightedId) {
-      const item = this.context.items.get(this.state.highlightedId)
+      const item = this.#getRegistration(this.state.highlightedId)
       if (item?.activatable === false) return
 
       const onSelect = this.context.itemSelects.get(this.state.highlightedId)
@@ -1500,16 +2122,25 @@ export class ListboxStore extends ReactStore<
    */
   selectByShortcut(key: string): boolean {
     this.flushPendingRegistrations()
-    const itemId = this.context.shortcuts.get(key.toLowerCase())
+    const itemId = this.#getShortcutItemId(key)
     if (!itemId) return false
 
-    const registration = this.context.items.get(itemId)
+    const registration = this.#getRegistration(itemId)
     if (!registration || registration.disabled) return false
 
     // Check if item is visible (passes filter)
-    const score = this.state.filteredItems.get(itemId) ?? 0
-    const isVisible = this.state.normalizedSearch.length === 0 || score > 0
-    if (!isVisible) return false
+    const collection = this.#collection
+    if (collection?.rows.has(itemId)) {
+      // A Collection row needs to be shown and mounted: an unmounted row has
+      // no select handler to run.
+      if (!collection.visible.has(itemId) || !this.#boundRows.has(itemId)) {
+        return false
+      }
+    } else if (!this.#external) {
+      const score = this.state.filteredItems.get(itemId) ?? 0
+      const isVisible = this.state.normalizedSearch.length === 0 || score > 0
+      if (!isVisible) return false
+    }
 
     const onSelect = this.context.itemSelects.get(itemId)
     onSelect?.()
@@ -1526,8 +2157,7 @@ export class ListboxStore extends ReactStore<
   isHighlightedSubmenuTrigger(): boolean {
     if (!this.state.highlightedId) return false
     return (
-      this.context.items.get(this.state.highlightedId)?.isSubmenuTrigger ??
-      false
+      this.#getRegistration(this.state.highlightedId)?.isSubmenuTrigger ?? false
     )
   }
 
@@ -1537,7 +2167,7 @@ export class ListboxStore extends ReactStore<
    */
   getHighlightedItem(): ItemRegistration | undefined {
     if (!this.state.highlightedId) return undefined
-    return this.context.items.get(this.state.highlightedId)
+    return this.#getRegistration(this.state.highlightedId)
   }
 
   clearSearch() {
@@ -1612,7 +2242,7 @@ export class ListboxStore extends ReactStore<
    * Returns whether filtering is disabled (consumer handles filtering externally).
    */
   isFilterDisabled(): boolean {
-    return this.context.filter === false
+    return this.context.filter === false || this.#external
   }
 
   getVisibleItemIds(): string[] {
@@ -1622,6 +2252,17 @@ export class ListboxStore extends ReactStore<
     const filteredItems = this.state.filteredItems
     const virtualItems = this.context.virtualItems
     const orderedItems = this.context.orderedItems
+
+    // A data-first list's Collection orders its rows, virtualized or not;
+    // rows that registered next to them go in by document position.
+    const collection = this.#collection
+    if (collection) {
+      return insertByDocumentPosition(
+        this.#collectionNavIds(collection),
+        this.#registeredItemsOutsideCollection(collection, true),
+        (id) => this.#itemElement(id),
+      )
+    }
 
     // When virtualized with items, use the virtualItems order
     // This ensures navigation order matches the data array order
@@ -1759,6 +2400,25 @@ export class ListboxStore extends ReactStore<
     // If search changed, force reset to first item
     const shouldForceFirst = forceFirst || searchChanged
 
+    // A data-first list's rows, virtualized or not: keep a highlight
+    // navigation can still reach, else move to the first data row.
+    const collection = this.#collection
+    if (collection) {
+      const keep =
+        currentHighlight !== null &&
+        !shouldForceFirst &&
+        this.#isItemNavigable(currentHighlight) &&
+        (collection.visible.has(currentHighlight) ||
+          !collection.rows.has(currentHighlight))
+      const next = keep
+        ? currentHighlight
+        : (this.#collectionNavIds(collection)[0] ?? null)
+      if (next !== currentHighlight) {
+        this.update({ highlightedId: next, highlightSource: null })
+      }
+      return next
+    }
+
     // Check if current highlight is valid
     let isCurrentValid = false
     if (currentHighlight && !shouldForceFirst) {
@@ -1855,6 +2515,19 @@ export class ListboxStore extends ReactStore<
   private recomputeFilteredItems(prevSearch?: string) {
     // Scores every registered item, so a queued rescore is covered.
     this.pendingRescore = false
+
+    // A data-first list's Collection is already filtered and scored, and
+    // rows registered next to its rows all show, as with `filter={false}`.
+    // Groups need no visibility here: `isGroupVisible` shows every group
+    // while a Collection is published.
+    if (this.#external) {
+      const filteredCount = this.#externalFilteredCount(this.#collection)
+      if (filteredCount !== this.state.filteredCount) {
+        this.set('filteredCount', filteredCount)
+      }
+      return
+    }
+
     const { filter } = this.context
     const normalizedSearch = this.state.normalizedSearch
     const items = this.context.items

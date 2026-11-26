@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { useMaybeCollectionRows } from '../../../listbox/contexts/collection-row-context.js'
 import {
   type GroupContextValue,
   type ListboxStore,
@@ -52,7 +53,12 @@ export function useGroupVisibility(
   )
 
   const isGroupVisible = store.useState('isGroupVisible', groupId)
-  const isVisible = !isParentHidden && (forceMount || isGroupVisible)
+  // Under a data-first list, which mounts only the groups it shows, a group
+  // is visible from its first commit, before the list publishes its
+  // Collection (temporary, removed by UI-679).
+  const inCollection = useMaybeCollectionRows()?.store === store
+  const isVisible =
+    !isParentHidden && (forceMount || inCollection || isGroupVisible)
 
   React.useLayoutEffect(() => {
     if (!rowElement || !isVisible) return undefined

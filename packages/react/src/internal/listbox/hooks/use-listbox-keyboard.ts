@@ -1,7 +1,11 @@
 'use client'
 
 import * as React from 'react'
-import type { ListboxStore } from '../store/ListboxStore.js'
+import {
+  getRegistration,
+  getShortcutItemId,
+  type ListboxStore,
+} from '../store/ListboxStore.js'
 
 /**
  * Focus owner interface for keyboard handling.
@@ -152,12 +156,10 @@ export function useListboxKeyboard(
 
           if (isPrintable) {
             // Check if this key is a registered shortcut first
-            const shortcutItemId = store.context.shortcuts.get(
-              event.key.toLowerCase(),
-            )
+            const shortcutItemId = getShortcutItemId(store, event.key)
             if (shortcutItemId && store.selectByShortcut(event.key)) {
               event.preventDefault()
-              const item = store.context.items.get(shortcutItemId)
+              const item = getRegistration(store, shortcutItemId)
               onSelect?.({
                 itemId: shortcutItemId,
                 closeOnClick: item?.closeOnClick ?? true,
@@ -341,10 +343,10 @@ export function useListboxKeyboard(
             !event.altKey
 
           if (isPrintable && !hasActiveSearch) {
-            const itemId = store.context.shortcuts.get(event.key.toLowerCase())
+            const itemId = getShortcutItemId(store, event.key)
             if (itemId && store.selectByShortcut(event.key)) {
               event.preventDefault()
-              const item = store.context.items.get(itemId)
+              const item = getRegistration(store, itemId)
               onSelect?.({
                 itemId,
                 closeOnClick: item?.closeOnClick ?? true,

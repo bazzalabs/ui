@@ -206,6 +206,8 @@ getVisibleItemIds(): string[] {
 
 Tests that register directly with the store flush before asserting on state.
 
+Read an item's registration with `getRegistration(store, id)` and a shortcut's item with `getShortcutItemId(store, key)` (functions in `store/ListboxStore.ts`, not store methods), never `context.items` or `context.shortcuts`. Under a data-first list those maps don't hold its rows: the store is in a temporary external-collection mode (removed by UI-679), kept off the published `ListboxStore` type in `#` members reached through those module functions. The list publishes its row Collection with `setExternalCollection(store, …)` from a layout effect that runs after its rows', and its rows (marked by `CollectionRowsContext`) don't register: they `bindRow(store, …)` with their element and part props in the commit that renders them, element or not, and a microtask flushes binds the list doesn't publish. Navigation, row metadata and positions come from the Collection and the bound rows; rows that still register (a JSX `Item` next to the data rows, or a `Separator`, `Group`, `Empty` or `Loading` part) go in among them by document position.
+
 ## Layers
 
 `src` is layered, and imports only go down (ADR 0006). From the bottom:

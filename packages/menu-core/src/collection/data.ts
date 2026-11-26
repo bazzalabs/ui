@@ -17,6 +17,7 @@ import type {
   RowId,
   RowMeta,
   SnapshotInput,
+  SnapshotOptions,
 } from './types.js'
 
 export interface DataCollectionInput<
@@ -89,8 +90,9 @@ export function dataSnapshotInput<N extends PipelineMenuNode<N> = AnyMenuNode>(
 export function buildDataSnapshot<N extends PipelineMenuNode<N> = AnyMenuNode>(
   input: DataCollectionInput<N>,
   previous?: CollectionSnapshot,
+  options?: SnapshotOptions,
 ): CollectionSnapshot {
-  return buildSnapshot(dataSnapshotInput(input), previous)
+  return buildSnapshot(dataSnapshotInput(input), previous, options)
 }
 
 function appendRows<N extends PipelineMenuNode<N>>(
