@@ -35,19 +35,15 @@ export type ItemSelectReason =
  */
 export type ItemSelectEventDetails = ChangeEventDetails<ItemSelectReason>
 
-/**
- * Reasons why a checkbox item's checked state changed.
- */
-export type CheckedChangeReason =
-  | typeof REASONS.itemPress
-  | typeof REASONS.itemKeyboardSelect
-  | typeof REASONS.rangeSelection
-  | typeof REASONS.dragSelection
-
-/**
- * Event details for checkbox item checked state changes.
- */
-export type CheckedChangeEventDetails = ChangeEventDetails<CheckedChangeReason>
+// The change details node def callbacks receive live with the node def schema.
+export type {
+  CheckboxValueChangeEventDetails,
+  CheckboxValueChangeReason,
+  CheckedChangeEventDetails,
+  CheckedChangeReason,
+  RadioValueChangeEventDetails,
+  RadioValueChangeReason,
+} from '@bazza-ui/menu-core'
 
 /**
  * Reasons a range selection or drag selection commit reports.
@@ -55,31 +51,3 @@ export type CheckedChangeEventDetails = ChangeEventDetails<CheckedChangeReason>
 export type SelectionCommitReason =
   | typeof REASONS.rangeSelection
   | typeof REASONS.dragSelection
-
-/**
- * Reasons why a checkbox group's value changed.
- */
-export type CheckboxValueChangeReason =
-  | typeof REASONS.itemPress
-  | typeof REASONS.itemKeyboardSelect
-  | typeof REASONS.rangeSelection
-  | typeof REASONS.dragSelection
-
-/**
- * Event details for checkbox group value changes.
- */
-export type CheckboxValueChangeEventDetails =
-  ChangeEventDetails<CheckboxValueChangeReason>
-
-/**
- * Reasons why a radio group's value changed.
- */
-export type RadioValueChangeReason =
-  | typeof REASONS.itemPress
-  | typeof REASONS.itemKeyboardSelect
-
-/**
- * Event details for radio group value changes.
- */
-export type RadioValueChangeEventDetails =
-  ChangeEventDetails<RadioValueChangeReason>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useRender } from '@base-ui/react/use-render'
+import type { RadioItemFields } from '@bazza-ui/menu-core'
 import * as React from 'react'
 import {
   resolveClassName,
@@ -42,62 +43,8 @@ export interface PopupMenuRadioItemState extends Record<string, unknown> {
 }
 
 export interface PopupMenuRadioItemProps
-  extends ComponentProps<'div', PopupMenuRadioItem.State> {
-  /**
-   * The value to set when this item is selected.
-   * This is required and must be unique within the RadioGroup.
-   */
-  value: string
-
-  /**
-   * Additional keywords to match against when filtering.
-   * Useful for aliases or synonyms.
-   */
-  keywords?: string[]
-
-  /**
-   * Whether this item is disabled.
-   * Disabled items are not selectable and are skipped during keyboard navigation.
-   * @default false
-   */
-  disabled?: boolean
-
-  /**
-   * Callback when this item is selected.
-   */
-  onSelect?: () => void
-
-  /**
-   * Whether to force render this item regardless of filter results.
-   * @default false
-   */
-  forceMount?: boolean
-
-  /**
-   * Whether clicking this item should close the menu.
-   * @default false
-   */
-  closeOnClick?: boolean
-
-  /**
-   * Keyboard shortcut to trigger this item.
-   * When the menu is focused and the user presses this key, the item will be selected.
-   * Should be a single character (e.g., "1", "a", etc.).
-   */
-  shortcut?: string
-
-  /**
-   * Forces this row's relative order during score-based sorting.
-   * Lower values appear earlier.
-   * @default 0
-   */
-  forceOrder?: number
-
-  /**
-   * Overrides this row's computed fuzzy-match score.
-   */
-  forceScore?: number
-}
+  extends RadioItemFields,
+    Omit<ComponentProps<'div', PopupMenuRadioItem.State>, 'onSelect'> {}
 
 const stateAttributesMapping = {
   checked: (value: unknown): Record<string, string> | null =>

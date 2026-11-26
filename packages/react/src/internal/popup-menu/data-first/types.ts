@@ -1,3 +1,28 @@
+import type {
+  CheckboxGroupNodeDef,
+  CheckboxItemNodeDef,
+  DisplayCheckboxGroupNode as CoreDisplayCheckboxGroupNode,
+  DisplayGroupNode as CoreDisplayGroupNode,
+  DisplayRadioGroupNode as CoreDisplayRadioGroupNode,
+  DisplayRowNode as CoreDisplayRowNode,
+  DisplaySeparatorNode as CoreDisplaySeparatorNode,
+  DisplaySubpageNode as CoreDisplaySubpageNode,
+  RowNodeDef as CoreRowNodeDef,
+  DisplayNodeTypes,
+  GroupNodeDef,
+  IncludeInDeepSearch,
+  ItemNodeDef,
+  LinkItemNodeDef,
+  NodeDefTypes,
+  QueryLoaderConfigBase,
+  RadioGroupNodeDef,
+  RadioItemNodeDef,
+  SeparatorNodeDef,
+  StaticLoaderConfigBase,
+  SubmenuNodeDef,
+  SubpageNodeDef,
+  TreeItemNodeDef,
+} from '@bazza-ui/menu-core'
 import type * as React from 'react'
 import type { PopupMenuCheckboxGroupProps } from '../components/checkbox-group/checkbox-group.js'
 import type { PopupMenuCheckboxItemProps } from '../components/checkbox-item/checkbox-item.js'
@@ -8,6 +33,14 @@ import type { PopupMenuRadioItemProps } from '../components/radio-item/radio-ite
 import type { PopupMenuSubmenuTriggerProps } from '../components/submenu-trigger/submenu-trigger.js'
 import type { PopupMenuSubpageTriggerProps } from '../components/subpage-trigger/subpage-trigger.js'
 import type { PopupMenuNode } from '../menu-tree/types.js'
+
+// The node def schema, Menu Node, and Display Node shapes are framework-free
+// and live in `@bazza-ui/menu-core`. This file instantiates them with React's
+// render callbacks and loader components, and keeps the public names.
+export type {
+  IncludeInDeepSearch,
+  InitialQueryBehavior,
+} from '@bazza-ui/menu-core'
 
 // ============================================================================
 // Async Loader Types
@@ -108,105 +141,21 @@ export interface LoaderComponentProps {
 }
 
 /**
- * Controls query-loader behavior before users type an active query.
- */
-export interface InitialQueryBehavior {
-  /**
-   * Query value used before user input reaches minQueryLength.
-   * Defaults to '' (top/default results).
-   * @default ''
-   */
-  value?: string
-  /**
-   * When the initial query should load.
-   * - 'needed': when submenu is explicitly opened or needed for deep-search execution
-   * - 'parent-open': eagerly when direct parent opens
-   * @default 'needed'
-   */
-  loadWhen?: 'needed' | 'parent-open'
-}
-
-/**
  * Static loader configuration.
  * Loads data once, then filters client-side.
  */
-export interface StaticLoaderConfig {
-  type: 'static'
-  /**
-   * Component that calls hooks and provides loader state.
-   * This component pattern allows hooks to be called legally within React's rules.
-   */
-  Loader: React.ComponentType<LoaderComponentProps>
-  /**
-   * When to trigger the loader:
-   * - 'eager': Load when menu opens (good for deep search)
-   * - 'lazy': Load when submenu opens (default)
-   * @default 'lazy'
-   */
-  loadStrategy?: 'eager' | 'lazy'
-}
+export interface StaticLoaderConfig
+  extends StaticLoaderConfigBase<React.ComponentType<LoaderComponentProps>> {}
 
 /**
  * Query loader configuration.
  * Refetches based on search query - server does the filtering.
  */
-export interface QueryLoaderConfig {
-  type: 'query'
-  /**
-   * Milliseconds to wait after the search stops changing before passing it to
-   * the loader. While waiting, the loader counts as fetching, so the menu
-   * doesn't show "no results" or treat the search as finished too early.
-   * @default 0
-   */
-  debounce?: number
-  /**
-   * Component that calls hooks and provides loader state.
-   * Receives the current search query as a prop.
-   */
-  Loader: React.ComponentType<LoaderComponentProps>
-  /**
-   * Minimum query length before fetching.
-   * @default 1
-   */
-  minQueryLength?: number
-  /**
-   * Defines behavior before user query reaches minQueryLength.
-   * - object: executes query loader with the configured initial value (default behavior)
-   * - false: disables initial fetch until query reaches minQueryLength
-   * @default { value: '', loadWhen: 'needed' }
-   */
-  initialQueryBehavior?: InitialQueryBehavior | false
-  /**
-   * @deprecated Use `initialQueryBehavior` instead.
-   */
-  initialQuery?: string
-  /**
-   * When to trigger the loader:
-   * - 'eager': Load when root menu opens (good for deep search)
-   * - 'lazy': Load when submenu opens (default)
-   * @default 'lazy'
-   */
-  loadStrategy?: 'eager' | 'lazy'
-  /**
-   * What to show when query is below minQueryLength.
-   * - 'empty': Show nothing
-   * - 'placeholder': Show placeholderNodes
-   * @default 'empty'
-   */
-  belowMinBehavior?: 'empty' | 'placeholder'
-  /**
-   * Placeholder nodes shown when query is below minQueryLength.
-   */
-  placeholderNodes?: NodeDef[]
-}
-
-/**
- * Controls how submenu content participates in ancestor deep search results.
- * - `true`: include submenu trigger and descendants
- * - `'trigger-only'`: include submenu trigger only
- * - `false`: exclude submenu trigger and descendants
- */
-export type IncludeInDeepSearch = true | 'trigger-only' | false
+export interface QueryLoaderConfig
+  extends QueryLoaderConfigBase<
+    React.ComponentType<LoaderComponentProps>,
+    NodeDef
+  > {}
 
 /**
  * Union of all async loader configurations.
@@ -819,264 +768,79 @@ export interface CheckboxGroupLabelRenderParams {
 // ============================================================================
 
 /**
- * Base properties shared by all node types.
+ * The React types `@bazza-ui/menu-core`'s node def schema is instantiated
+ * with: render callbacks that return a `ReactNode`, React loader components,
+ * and the defs below.
  */
-interface BaseNodeDef {
-  /**
-   * Unique identifier for this node.
-   * If provided, it contributes the Definition Key and encoded surface path;
-   * Resolved ID generation otherwise follows the root policy or its
-   * `getResolvedId` seam.
-   */
-  id?: string
-  /** Whether this node is hidden */
-  hidden?: boolean
-}
-
-/**
- * Lets a node's `forceOrder` depend on how well it matches the search.
- */
-interface ForceOrderMinScoreDef {
-  /**
-   * The lowest search score at which `forceOrder` applies. A row that matches
-   * with a lower score sorts by score, as if it had no `forceOrder`, and still
-   * shows. `forceScore`, when set, is the score compared. `commandScore`
-   * scores run from 0 to 1, so 0.5 keeps `forceOrder` for strong matches only.
-   * @default undefined (`forceOrder` applies to every match)
-   */
-  forceOrderMinScore?: number
+export interface PopupMenuNodeDefTypes extends NodeDefTypes {
+  nodeDef: NodeDef
+  radioItemDef: RadioItemDef
+  checkboxItemDef: CheckboxItemDef
+  asyncNodes: AsyncNodesConfig
+  render: {
+    item: (params: ItemRenderParams) => React.ReactNode
+    linkItem: (params: LinkItemRenderParams) => React.ReactNode
+    treeItem: (params: TreeItemRenderParams) => React.ReactNode
+    radioItem: (params: RadioItemRenderParams) => React.ReactNode
+    checkboxItem: (params: CheckboxItemRenderParams) => React.ReactNode
+    submenu: (params: SubmenuRenderParams) => React.ReactNode
+    subpageTrigger: (params: SubpageTriggerRenderParams) => React.ReactNode
+    subpageContent: (params: SubpageContentRenderParams) => React.ReactNode
+    separator: (params: SeparatorRenderParams) => React.ReactNode
+    group: (params: GroupRenderParams) => React.ReactNode
+    groupLabel: (params: GroupLabelRenderParams) => React.ReactNode
+    radioGroup: (params: RadioGroupRenderParams) => React.ReactNode
+    radioGroupLabel: (params: RadioGroupLabelRenderParams) => React.ReactNode
+    checkboxGroup: (params: CheckboxGroupRenderParams) => React.ReactNode
+    checkboxGroupLabel: (
+      params: CheckboxGroupLabelRenderParams,
+    ) => React.ReactNode
+  }
 }
 
 /**
  * Item node definition.
  * Represents a selectable menu item.
- * Props derived from PopupMenuItemProps.
+ * Its item fields (`keywords`, `disabled`, `onSelect`, `closeOnClick`, `shortcut`, `forceOrder`, `forceScore`) are the ones PopupMenuItemProps takes, with the same types and docs; `value` is required here.
  */
-export interface ItemDef
-  extends BaseNodeDef,
-    ForceOrderMinScoreDef,
-    Required<Pick<PopupMenuItemProps, 'value'>>,
-    Pick<
-      PopupMenuItemProps,
-      | 'keywords'
-      | 'disabled'
-      | 'onSelect'
-      | 'closeOnClick'
-      | 'shortcut'
-      | 'forceOrder'
-      | 'forceScore'
-    > {
-  kind: 'item'
-  /**
-   * Render function for this item row.
-   * Returns the JSX for the item.
-   */
-  render: (params: ItemRenderParams) => React.ReactNode
-}
+export interface ItemDef extends ItemNodeDef<PopupMenuNodeDefTypes> {}
 
 /**
  * Link item node definition. Represents a menu row that navigates to `href` when activated.
  */
-export interface LinkItemDef
-  extends BaseNodeDef,
-    ForceOrderMinScoreDef,
-    Required<Pick<PopupMenuLinkItemProps, 'value' | 'href'>>,
-    Pick<
-      PopupMenuLinkItemProps,
-      | 'keywords'
-      | 'disabled'
-      | 'onSelect'
-      | 'closeOnClick'
-      | 'shortcut'
-      | 'forceOrder'
-      | 'forceScore'
-    > {
-  kind: 'link-item'
-  render: (params: LinkItemRenderParams) => React.ReactNode
-}
+export interface LinkItemDef extends LinkItemNodeDef<PopupMenuNodeDefTypes> {}
 
 /** Tree item node definition. */
-export interface TreeItemDef
-  extends BaseNodeDef,
-    ForceOrderMinScoreDef,
-    Required<Pick<PopupMenuItemProps, 'value'>>,
-    Pick<
-      PopupMenuItemProps,
-      | 'keywords'
-      | 'disabled'
-      | 'onSelect'
-      | 'closeOnClick'
-      | 'forceOrder'
-      | 'forceScore'
-    > {
-  kind: 'tree-item'
-  /** Whether this row itself can be selected. */
-  selectable?: boolean
-  /** Inline children rendered in the same list. */
-  nodes?: NodeDef[]
-  /** Whether descendants surface in deep search results. */
-  deepSearch?: boolean
-  /** Render function for this row. */
-  render: (params: TreeItemRenderParams) => React.ReactNode
-}
+export interface TreeItemDef extends TreeItemNodeDef<PopupMenuNodeDefTypes> {}
 
 /**
  * Radio item node definition.
  * Represents a selectable radio menu item for use within RadioGroupDef.
- * Props derived from PopupMenuRadioItemProps.
+ * Its radio item fields (`keywords`, `disabled`, `onSelect`, `closeOnClick`, `shortcut`, `forceOrder`, `forceScore`) are the ones PopupMenuRadioItemProps takes, with the same types and docs; `value` is required here.
  */
-export interface RadioItemDef
-  extends BaseNodeDef,
-    ForceOrderMinScoreDef,
-    Required<Pick<PopupMenuRadioItemProps, 'value'>>,
-    Pick<
-      PopupMenuRadioItemProps,
-      | 'keywords'
-      | 'disabled'
-      | 'onSelect'
-      | 'closeOnClick'
-      | 'shortcut'
-      | 'forceOrder'
-      | 'forceScore'
-    > {
-  kind: 'radio-item'
-  /**
-   * Render function for this radio item row.
-   * Returns the JSX for the radio item.
-   */
-  render: (params: RadioItemRenderParams) => React.ReactNode
-}
+export interface RadioItemDef extends RadioItemNodeDef<PopupMenuNodeDefTypes> {}
 
 /**
  * Checkbox item node definition.
  * Represents a toggleable checkbox menu item.
- * Props derived from PopupMenuCheckboxItemProps.
+ * Its checkbox item fields other than `value` are the ones PopupMenuCheckboxItemProps takes, with the same types and docs.
  */
 export interface CheckboxItemDef
-  extends BaseNodeDef,
-    ForceOrderMinScoreDef,
-    Pick<
-      PopupMenuCheckboxItemProps,
-      | 'keywords'
-      | 'disabled'
-      | 'checked'
-      | 'onCheckedChange'
-      | 'closeOnClick'
-      | 'forceOrder'
-      | 'forceScore'
-    > {
-  kind: 'checkbox-item'
-  /**
-   * Primary identifier and search text for this checkbox item.
-   * Used for search matching and as the default identifier.
-   */
-  value: string
-  /**
-   * Render function for this checkbox item row.
-   * Returns the JSX for the checkbox item.
-   */
-  render: (params: CheckboxItemRenderParams) => React.ReactNode
-}
+  extends CheckboxItemNodeDef<PopupMenuNodeDefTypes> {}
 
 /**
  * Submenu node definition.
  * Represents a submenu trigger that opens a nested menu.
- * Props derived from PopupMenuSubmenuTriggerProps.
+ * Its trigger fields other than `id` are the ones PopupMenuSubmenuTriggerProps takes, with the same types and docs; `value` is required here.
  */
-export interface SubmenuDef
-  extends BaseNodeDef,
-    ForceOrderMinScoreDef,
-    Required<Pick<PopupMenuSubmenuTriggerProps, 'value'>>,
-    Pick<
-      PopupMenuSubmenuTriggerProps,
-      'keywords' | 'disabled' | 'forceOrder' | 'forceScore'
-    > {
-  kind: 'submenu'
-
-  /** Static child nodes */
-  nodes?: NodeDef[]
-
-  /**
-   * Async child nodes configuration.
-   * When provided, the Loader component will be rendered to fetch async data.
-   * Async nodes are merged with static nodes.
-   */
-  asyncNodes?: AsyncNodesConfig
-
-  /**
-   * Whether to include this submenu's descendants in deep search.
-   * @default true
-   */
-  deepSearch?: boolean
-
-  /**
-   * Whether this submenu is included in ancestor deep search results.
-   * - `true`: include submenu trigger and descendants
-   * - `'trigger-only'`: include submenu trigger only
-   * - `false`: exclude submenu trigger and descendants
-   * @default true
-   */
-  includeInDeepSearch?: IncludeInDeepSearch
-
-  /**
-   * Render function for the entire submenu structure.
-   * Should return the complete submenu: trigger, portal, positioner, popup, surface, list.
-   */
-  render: (params: SubmenuRenderParams) => React.ReactNode
-}
+export interface SubmenuDef extends SubmenuNodeDef<PopupMenuNodeDefTypes> {}
 
 /**
  * Subpage node definition.
  * Represents a trigger row that opens a page in the same popup.
- * Props derived from PopupMenuSubpageTriggerProps.
+ * Its trigger fields other than `id` are the ones PopupMenuSubpageTriggerProps takes, with the same types and docs; `value` is required here.
  */
-export interface SubpageDef
-  extends BaseNodeDef,
-    ForceOrderMinScoreDef,
-    Required<Pick<PopupMenuSubpageTriggerProps, 'value'>>,
-    Pick<
-      PopupMenuSubpageTriggerProps,
-      'keywords' | 'disabled' | 'forceOrder' | 'forceScore'
-    > {
-  kind: 'subpage'
-
-  /** Static child nodes */
-  nodes?: NodeDef[]
-
-  /**
-   * Async child nodes configuration.
-   * When provided, the Loader component will be rendered to fetch async data.
-   * Async nodes are merged with static nodes.
-   */
-  asyncNodes?: AsyncNodesConfig
-
-  /**
-   * Whether to include this subpage's descendants in deep search.
-   * @default true
-   */
-  deepSearch?: boolean
-
-  /**
-   * Whether this subpage is included in ancestor deep search results.
-   * - `true`: include subpage trigger and descendants
-   * - `'trigger-only'`: include subpage trigger only
-   * - `false`: exclude subpage trigger and descendants
-   * @default true
-   */
-  includeInDeepSearch?: IncludeInDeepSearch
-
-  /**
-   * Render function for the trigger row.
-   * Should return a `SubpageTrigger`.
-   */
-  renderTrigger: (params: SubpageTriggerRenderParams) => React.ReactNode
-
-  /**
-   * Render function for the subpage content.
-   * Should return a `Subpage` rendered alongside the root Surface in Popup.
-   */
-  renderContent: (params: SubpageContentRenderParams) => React.ReactNode
-}
+export interface SubpageDef extends SubpageNodeDef<PopupMenuNodeDefTypes> {}
 
 /**
  * Render params for separator nodes.
@@ -1093,66 +857,21 @@ export interface SeparatorRenderParams {
  * Separator node definition.
  * Represents a visual separator between items.
  */
-export interface SeparatorDef {
-  kind: 'separator'
-  /** Unique identifier */
-  id: string
-  /** Optional render function for custom separator rendering */
-  render?: (params: SeparatorRenderParams) => React.ReactNode
-}
+export interface SeparatorDef extends SeparatorNodeDef<PopupMenuNodeDefTypes> {}
 
 /**
  * Group node definition.
  * Represents a group of items with an optional label.
  */
-export interface GroupDef {
-  kind: 'group'
-  /** Unique identifier for this group */
-  id: string
-  /** Optional group heading/label */
-  label?: string
-  /** Child nodes in this group */
-  nodes: NodeDef[]
-  /** Optional render function for the group container */
-  render?: (params: GroupRenderParams) => React.ReactNode
-  /**
-   * Optional render function for the group's label row.
-   * Used by the default group container when no `render` is provided, and by
-   * virtualized lists (which ignore `render` and use only the label row).
-   * Precedence: `render` > `renderLabel` > `label`.
-   */
-  renderLabel?: (params: GroupLabelRenderParams) => React.ReactNode
-}
+export interface GroupDef extends GroupNodeDef<PopupMenuNodeDefTypes> {}
 
 /**
  * Radio group node definition.
  * Represents a group of radio items where only one can be selected.
- * Props derived from PopupMenuRadioGroupProps.
+ * Its group fields other than `id` are the ones PopupMenuRadioGroupProps takes, with the same types and docs.
  */
 export interface RadioGroupDef
-  extends Pick<
-    PopupMenuRadioGroupProps,
-    'value' | 'onValueChange' | 'disabled'
-  > {
-  kind: 'radio-group'
-  /** Unique identifier for this radio group */
-  id: string
-  /** Optional group heading/label */
-  label?: string
-  /** Whether the radio group is hidden */
-  hidden?: boolean
-  /** Child nodes in this radio group - must be RadioItemDef nodes */
-  nodes: RadioItemDef[]
-  /** Optional render function for the radio group container */
-  render?: (params: RadioGroupRenderParams) => React.ReactNode
-  /**
-   * Optional render function for the radio group's label row.
-   * Used by the default radio group container when no `render` is provided, and by
-   * virtualized lists (which ignore `render` and use only the label row).
-   * Precedence: `render` > `renderLabel` > `label`.
-   */
-  renderLabel?: (params: RadioGroupLabelRenderParams) => React.ReactNode
-}
+  extends RadioGroupNodeDef<PopupMenuNodeDefTypes> {}
 
 /**
  * Helper function to create a radio group definition with proper typing.
@@ -1164,31 +883,10 @@ export function defineRadioGroup(def: RadioGroupDef): RadioGroupDef {
 /**
  * Checkbox group node definition.
  * Represents a group of checkbox items whose checked state the group owns as one array of values.
- * Props derived from PopupMenuCheckboxGroupProps.
+ * Its group fields other than `id` and `value` are the ones PopupMenuCheckboxGroupProps takes, with the same types and docs.
  */
 export interface CheckboxGroupDef
-  extends Pick<PopupMenuCheckboxGroupProps, 'onValueChange' | 'disabled'> {
-  kind: 'checkbox-group'
-  /** Unique identifier for this checkbox group */
-  id: string
-  /** Optional group heading/label */
-  label?: string
-  /** Whether the checkbox group is hidden */
-  hidden?: boolean
-  /** Values of the currently checked items (controlled). */
-  value: string[]
-  /** Child nodes in this checkbox group - must be CheckboxItemDef nodes */
-  nodes: CheckboxItemDef[]
-  /** Optional render function for the checkbox group container */
-  render?: (params: CheckboxGroupRenderParams) => React.ReactNode
-  /**
-   * Optional render function for the checkbox group's label row.
-   * Used by the default checkbox group container when no `render` is provided, and by
-   * virtualized lists (which ignore `render` and use only the label row).
-   * Precedence: `render` > `renderLabel` > `label`.
-   */
-  renderLabel?: (params: CheckboxGroupLabelRenderParams) => React.ReactNode
-}
+  extends CheckboxGroupNodeDef<PopupMenuNodeDefTypes> {}
 /**
  * Helper function to create a checkbox group definition with proper typing.
  */
@@ -1288,95 +986,64 @@ export interface FlattenedNode {
 // Display Node - node with render context attached
 // ============================================================================
 
-export type RowNodeDef =
-  | ItemDef
-  | LinkItemDef
-  | RadioItemDef
-  | CheckboxItemDef
-  | SubmenuDef
-  | SubpageDef
-  | TreeItemDef
+export type RowNodeDef = CoreRowNodeDef<PopupMenuNodeDefTypes>
+
+/**
+ * The types `@bazza-ui/menu-core`'s Display Node shapes are instantiated
+ * with: this package's Menu Nodes, defs, and render contexts.
+ */
+export interface PopupMenuDisplayNodeTypes extends DisplayNodeTypes {
+  rowNode: PopupMenuNode<RowNodeDef>
+  subpageNode: PopupMenuNode<SubpageDef>
+  groupNode: PopupMenuNode<GroupDef>
+  radioGroupNode: PopupMenuNode<RadioGroupDef>
+  checkboxGroupNode: PopupMenuNode<CheckboxGroupDef>
+  separatorNode: PopupMenuNode<SeparatorDef>
+  checkboxGroupDef: CheckboxGroupDef
+  rowContext: RowRenderContext
+  groupContext: GroupRenderContext
+  rowDisplayNode: DisplayRowNode
+}
 
 /**
  * A row node ready for display with its render context.
  * Used for items, radio items, checkbox items, and submenu triggers.
  */
-export interface DisplayRowNode {
-  kind: 'row'
-  /** The resolved menu node; its authored definition is `node.def`. */
-  node: PopupMenuNode<RowNodeDef>
-  /** Pre-computed render context for this node */
-  context: RowRenderContext
-  /** Radio group this node belongs to, if rendering inside one */
-  radioGroup?: { id: string; label?: string }
-  /** Checkbox group this node belongs to, if rendering inside one. Carries the def so the row can be wrapped in the group's value provider. */
-  checkboxGroup?: { id: string; label?: string; def: CheckboxGroupDef }
-}
+export interface DisplayRowNode
+  extends CoreDisplayRowNode<PopupMenuDisplayNodeTypes> {}
 
 /**
  * A subpage content node ready for display with its render context.
  * Used by DataSubpages to render subpage content alongside the root Surface.
  */
-export interface DisplaySubpageNode {
-  /** The resolved node for this subpage. The authored def is `node.def`. */
-  node: PopupMenuNode<SubpageDef>
-  /** Pre-computed render context for this subpage trigger/content */
-  context: RowRenderContext
-  /** Computed page ID for this subpage */
-  pageId: string
-}
+export interface DisplaySubpageNode
+  extends CoreDisplaySubpageNode<PopupMenuDisplayNodeTypes> {}
 
 /**
  * A group node ready for display with its render context.
  * Contains the group definition and its matching items.
  */
-export interface DisplayGroupNode {
-  kind: 'group'
-  /** The resolved node; authored def at node.def. */
-  node: PopupMenuNode<GroupDef>
-  /** Pre-computed render context for this group */
-  context: GroupRenderContext
-  /** Display nodes for items within this group */
-  items: DisplayRowNode[]
-  /** Best match score among items in this group */
-  bestScore: number
-}
+export interface DisplayGroupNode
+  extends CoreDisplayGroupNode<PopupMenuDisplayNodeTypes> {}
 
 /**
  * A radio group node ready for display with its render context.
  * Contains the radio group definition and its items.
  */
-export interface DisplayRadioGroupNode {
-  kind: 'radio-group'
-  /** The resolved node; authored def at node.def. */
-  node: PopupMenuNode<RadioGroupDef>
-  /** Pre-computed render context for this radio group */
-  context: GroupRenderContext
-  /** Display nodes for items within this radio group */
-  items: DisplayRowNode[]
-  /** Best match score among items in this radio group */
-  bestScore: number
-}
+export interface DisplayRadioGroupNode
+  extends CoreDisplayRadioGroupNode<PopupMenuDisplayNodeTypes> {}
 /**
  * A checkbox group node ready for display with its render context.
  * Contains the checkbox group definition and its items.
  */
-export interface DisplayCheckboxGroupNode {
-  kind: 'checkbox-group'
-  node: PopupMenuNode<CheckboxGroupDef>
-  context: GroupRenderContext
-  items: DisplayRowNode[]
-  bestScore: number
-}
+export interface DisplayCheckboxGroupNode
+  extends CoreDisplayCheckboxGroupNode<PopupMenuDisplayNodeTypes> {}
 
 /**
  * A separator node ready for display.
  */
-export interface DisplaySeparatorNode {
-  kind: 'separator'
-  /** The resolved node; authored def at node.def. */
-  node: PopupMenuNode<SeparatorDef>
-}
+export interface DisplaySeparatorNode
+  extends CoreDisplaySeparatorNode<PopupMenuDisplayNodeTypes> {}
 
 /**
  * Union of all display node types.

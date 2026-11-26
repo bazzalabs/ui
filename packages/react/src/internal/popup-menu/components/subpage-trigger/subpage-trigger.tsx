@@ -1,6 +1,7 @@
 'use client'
 
 import { useRender } from '@base-ui/react/use-render'
+import type { SubpageTriggerFields } from '@bazza-ui/menu-core'
 import * as React from 'react'
 import {
   resolveClassName,
@@ -60,30 +61,8 @@ const stateAttributesMapping = {
 }
 
 export interface PopupMenuSubpageTriggerProps
-  extends ComponentProps<'div', PopupMenuSubpageTrigger.State> {
-  /** Explicit unique identifier for this item in the store. */
-  id?: string
-  /** Unique value for this item used for filtering. */
-  value?: string
-  /** Additional keywords to match against when filtering. */
-  keywords?: string[]
-  /** Whether this item is disabled. */
-  disabled?: boolean
-  /** Whether to force render this item regardless of filter results. */
-  forceMount?: boolean
-  /**
-   * Forces this row's relative order during score-based sorting.
-   * Lower values appear earlier.
-   * @default 0
-   */
-  forceOrder?: number
-  /**
-   * Overrides this row's computed fuzzy-match score.
-   */
-  forceScore?: number
-  /** Target page ID to open when this trigger is selected. */
-  targetPageId: string
-}
+  extends SubpageTriggerFields,
+    ComponentProps<'div', PopupMenuSubpageTrigger.State> {}
 
 /**
  * A menu item that pushes a new page in the same popup.

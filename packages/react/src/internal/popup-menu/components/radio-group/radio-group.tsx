@@ -1,6 +1,7 @@
 'use client'
 
 import { useRender } from '@base-ui/react/use-render'
+import type { RadioGroupFields } from '@bazza-ui/menu-core'
 import * as React from 'react'
 import {
   createChangeEventDetails,
@@ -17,10 +18,7 @@ import {
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
 import { usePopupMenuContext } from '../../contexts/popup-menu-context.js'
-import type {
-  RadioValueChangeEventDetails,
-  RadioValueChangeReason,
-} from '../../events.js'
+import type { RadioValueChangeReason } from '../../events.js'
 import { useGroupVisibility } from '../group/use-group-visibility.js'
 import { PopupMenuRadioGroupDataAttributes } from './radio-group.data-attrs.js'
 import {
@@ -47,41 +45,14 @@ export interface PopupMenuRadioGroupState extends Record<string, unknown> {
   last: boolean
 }
 
-export interface PopupMenuRadioGroupProps
-  extends ComponentProps<'div', PopupMenuRadioGroup.State> {
-  /**
-   * The controlled selected value.
-   */
-  value?: string
-
-  /**
-   * The default value for uncontrolled mode.
-   */
-  defaultValue?: string
-
-  /**
-   * Callback fired when the selected value changes.
-   * The second parameter contains event details including the reason for the change.
-   */
-  onValueChange?: (
-    value: string,
-    eventDetails: RadioValueChangeEventDetails,
-  ) => void
-
-  /**
-   * Whether all items in this group are disabled.
-   * @default false
-   */
-  disabled?: boolean
-
-  /**
-   * Whether to force render this group regardless of filter results.
-   * @default false
-   */
-  forceMount?: boolean
-
+interface PopupMenuRadioGroupChildrenProps {
   children: React.ReactNode
 }
+
+export interface PopupMenuRadioGroupProps
+  extends RadioGroupFields,
+    PopupMenuRadioGroupChildrenProps,
+    Omit<ComponentProps<'div', PopupMenuRadioGroup.State>, 'children'> {}
 
 const stateAttributesMapping = {
   disabled: (value: unknown) =>

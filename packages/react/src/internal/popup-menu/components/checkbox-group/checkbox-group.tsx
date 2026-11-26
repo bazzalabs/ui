@@ -1,6 +1,7 @@
 'use client'
 
 import { useRender } from '@base-ui/react/use-render'
+import type { CheckboxGroupFields } from '@bazza-ui/menu-core'
 import * as React from 'react'
 import {
   createChangeEventDetails,
@@ -17,10 +18,7 @@ import {
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
 import { usePopupMenuContext } from '../../contexts/popup-menu-context.js'
-import type {
-  CheckboxValueChangeEventDetails,
-  CheckboxValueChangeReason,
-} from '../../events.js'
+import type { CheckboxValueChangeReason } from '../../events.js'
 import { useGroupVisibility } from '../group/use-group-visibility.js'
 import { PopupMenuCheckboxGroupDataAttributes } from './checkbox-group.data-attrs.js'
 import {
@@ -48,41 +46,14 @@ export interface PopupMenuCheckboxGroupState extends Record<string, unknown> {
   last: boolean
 }
 
-export interface PopupMenuCheckboxGroupProps
-  extends ComponentProps<'div', PopupMenuCheckboxGroup.State> {
-  /**
-   * The controlled array of checked item values.
-   */
-  value?: string[]
-
-  /**
-   * The default checked values for uncontrolled mode. @default []
-   */
-  defaultValue?: string[]
-
-  /**
-   * Callback fired when the selected value changes.
-   * The second parameter contains event details including the reason for the change.
-   */
-  onValueChange?: (
-    value: string[],
-    eventDetails: CheckboxValueChangeEventDetails,
-  ) => void
-
-  /**
-   * Whether all items in this group are disabled.
-   * @default false
-   */
-  disabled?: boolean
-
-  /**
-   * Whether to force render this group regardless of filter results.
-   * @default false
-   */
-  forceMount?: boolean
-
+interface PopupMenuCheckboxGroupChildrenProps {
   children: React.ReactNode
 }
+
+export interface PopupMenuCheckboxGroupProps
+  extends CheckboxGroupFields,
+    PopupMenuCheckboxGroupChildrenProps,
+    Omit<ComponentProps<'div', PopupMenuCheckboxGroup.State>, 'children'> {}
 
 const stateAttributesMapping = {
   disabled: (value: unknown) =>
