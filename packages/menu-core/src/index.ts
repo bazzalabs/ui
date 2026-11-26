@@ -1,4 +1,5 @@
 export * from './aim-guard/index.js'
+export * from './collection/index.js'
 export * from './data/index.js'
 export * from './events/index.js'
 export * from './text/index.js'
