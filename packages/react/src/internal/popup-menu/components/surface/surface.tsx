@@ -35,9 +35,9 @@ import { useMaybeSubpageContext } from '../../contexts/subpage-context.js'
 import { useMaybeSubpageStack } from '../../contexts/subpage-stack-context.js'
 import { AsyncMenuCoordinatorProvider } from '../../data-first/async-coordinator.js'
 import {
+  DataPopupContext,
   DataSurfaceContext,
   type DataSurfaceContextValue,
-  useMaybeDataPopupContext,
 } from '../../data-first/context.js'
 import type {
   DataSurfaceProps,
@@ -354,28 +354,27 @@ export const PopupMenuSurface = React.forwardRef<
     ],
   )
 
-  const dataPopupContext = useMaybeDataPopupContext()
-  const setDataSurfaceContext = dataPopupContext?.setDataSurfaceContext
+  const setDataSurfaceContext =
+    React.useContext(DataPopupContext)?.setDataSurfaceContext
 
-  // Only the popup's root data surface registers into DataPopupContext —
-  // DataSubpagesContent reads this slot to render the root content tree's
-  // subpages. A data-mode Surface nested inside a Subpage of THIS popup
-  // (e.g. an async page passing `asyncContent` per SubpageContentRenderParams)
-  // must not clobber the root registration; it manages its own
-  // DataSurfaceContext. A subpage context inherited across a submenu boundary
-  // (not registered in this popup's stack) still counts as this popup's root
-  // surface — mirrors the isSurfaceActive resolution above.
+  // Only the popup's root data surface registers into DataPopupContext (the
+  // popup's, which keeps it in the menu tree, or a consumer's) — the popup's
+  // subpage outlet renders the subpages of the nodes its list resolves while
+  // it is registered. A data-mode Surface nested inside a Subpage of THIS
+  // popup (e.g. an async page passing `asyncContent` per
+  // SubpageContentRenderParams) must not clobber the root registration. A
+  // subpage context inherited across a submenu boundary (not registered in
+  // this popup's stack) still counts as this popup's root surface — mirrors
+  // the isSurfaceActive resolution above.
   const isSubpageSurfaceInThisPopup = Boolean(
     subpageContext && subpageStack?.getSurfaceId(subpageContext.pageId),
   )
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     if (!isDataMode || !setDataSurfaceContext || isSubpageSurfaceInThisPopup) {
       return
     }
-
     setDataSurfaceContext(dataSurfaceContextValue)
-
     return () => {
       setDataSurfaceContext((current) =>
         current === dataSurfaceContextValue ? null : current,

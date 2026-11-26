@@ -259,6 +259,7 @@ export function usePopupMenuRoot(
   } | null>(null)
   if (!storesRef.current) {
     const tree = new MenuTreeStore({
+      resolver: menuTreeResolver,
       open: defaultOpen,
       onOpenChange: stableOnOpenChange,
     })
