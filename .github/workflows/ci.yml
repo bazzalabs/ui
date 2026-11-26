@@ -118,3 +118,38 @@ jobs:
 
       - name: Run tests
         run: bun run test
+
+  bundle-size:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Bundles each menu family entry from `src`, so it needs no build. Adds
+      # a table to the job summary and fails when an entry's gzip size is over
+      # its budget in `packages/react/bench/size/budgets.json`.
+      - name: Check menu family bundle size
+        run: bun run --cwd packages/react bench:size
+
+      # bench:size bundles from `src`, where a workspace package resolves
+      # either way. This builds `dist` and checks it imports only packages
+      # `@bazza-ui/react` declares, so nothing private is left unbundled.
+      - name: Build @bazza-ui/react
+        run: bunx --bun turbo run build --filter @bazza-ui/react
+
+      - name: Check dist imports only declared packages
+        run: bun run --cwd packages/react bench:dist-imports

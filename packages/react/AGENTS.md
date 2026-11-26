@@ -241,3 +241,17 @@ When a rule is wrong for one line, disable it for that line and say why:
 The `Allowlists` entries in `.oxlintrc.json` list files that broke a rule when it was added. Such a file is exempt from that rule until someone fixes it and deletes its line. Don't add files to an allowlist. New code follows the rules or uses a reasoned `oxlint-disable-next-line`.
 
 `bun run lint:exceptions` lists every allowlisted file by rule and every inline exception with its reason. CI runs it and adds the list to the job summary. It fails only on a malformed exception, which catches a bare `/* oxlint-disable */` that has silenced `bazza/disable-needs-reason` itself.
+
+## Bundle size
+
+`bun run bench:size` bundles each menu family entry (`dropdown-menu`, `context-menu`, `command-menu`, `suggestion-menu`, `select`, `combobox`) from `src`, minified with React external and every other dependency bundled, and gzips it. CI runs it on every pull request and fails when an entry's gzip size is over its budget in `bench/size/budgets.json` (bytes).
+
+A budget is the entry's measured gzip size plus 5% headroom. Don't raise one to make CI pass. When growth is intended (a feature that costs bytes), raise it in the same pull request:
+
+1. Run `bun run bench:size` and read the entry's `gzip (B)`.
+2. Set its budget to that size × 1.05, rounded up.
+3. Say in the pull request description which entries grew, by how much, and why.
+
+Lower a budget the same way when a change shrinks an entry, so the headroom doesn't hide later growth.
+
+Because `bench:size` bundles from `src`, it can't see what tsdown leaves out of `dist`. The same CI job builds the package and runs `bun run bench:dist-imports`, which fails when a `dist` file imports a package `@bazza-ui/react` doesn't declare as a dependency or peer dependency, such as a private workspace package tsdown should have bundled.
