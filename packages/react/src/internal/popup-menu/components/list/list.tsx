@@ -2,7 +2,6 @@
 
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
-import { useMaybeComboboxContext } from '../../../../combobox/contexts/combobox-context.js'
 import {
   resolveClassName,
   resolveStyle,
@@ -122,9 +121,9 @@ export const PopupMenuListPrimitive = React.forwardRef<
   const { depth, closeAll } = useListboxContext()
   const submenuContext = useMaybeSubmenuContext()
   const subpageContext = useMaybeSubpageContext()
-  const { disabled: popupMenuDisabled } = usePopupMenuContext()
+  const { disabled: popupMenuDisabled, inputEmbedded: isInputEmbedded } =
+    usePopupMenuContext()
   const focusOwnerStore = useFocusOwner()
-  const comboboxContext = useMaybeComboboxContext()
   const internalRef = React.useRef<HTMLDivElement>(null)
 
   // Ref to the popup element (found via closest) for applying --row-width CSS var
@@ -279,9 +278,6 @@ export const PopupMenuListPrimitive = React.forwardRef<
   ) : (
     renderedChildren
   )
-
-  // Add data-input-embedded attribute when layout is input-embedded
-  const isInputEmbedded = comboboxContext?.layout === 'input-embedded'
 
   // Get component name for slot attribute
   const componentName = useMaybeComponentName()

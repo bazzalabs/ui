@@ -3,7 +3,7 @@
 import { useDirection } from '@base-ui/react/internals/direction-context'
 import { Popover, type PopoverPositionerProps } from '@base-ui/react/popover'
 import * as React from 'react'
-import { usePopupMenuContext } from '../../internal/popup-menu/contexts/popup-menu-context.js'
+import { usePopupMenuContext } from '../../internal/popup-menu/index.js'
 import { clamp } from '../../utils/clamp.js'
 import { REASONS } from '../../utils/events/index.js'
 import { composeStyle } from '../../utils/resolve-state-props.js'

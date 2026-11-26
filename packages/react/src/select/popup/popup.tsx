@@ -4,7 +4,7 @@ import * as React from 'react'
 import {
   PopupMenuPopup,
   type PopupMenuPopupState,
-} from '../../internal/popup-menu/components/popup/popup.js'
+} from '../../internal/popup-menu/index.js'
 import type { ComponentRenderFn } from '../../utils/types.js'
 import { useSelectPositionerContext } from '../contexts/select-positioner-context.js'
 

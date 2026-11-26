@@ -2,7 +2,6 @@
 
 import { Popover, type PopoverPopupProps } from '@base-ui/react/popover'
 import * as React from 'react'
-import { useMaybeComboboxContext } from '../../../../combobox/contexts/combobox-context.js'
 import type { ComponentRenderFn } from '../../../../utils/types.js'
 import { POINTER_EVENT_DEBOUNCE_MS } from '../../constants.js'
 import {
@@ -109,9 +108,6 @@ export const PopupMenuPopup = React.forwardRef<
   // Get popup menu context for depth
   const popupMenuContext = useMaybePopupMenuContext()
   const depth = popupMenuContext?.depth ?? 0
-
-  // Get combobox context to detect if we're inside a combobox and for layout
-  const comboboxContext = useMaybeComboboxContext()
 
   // Generate surfaceId for root menus, use submenu context for submenus
   const generatedSurfaceId = React.useId()
@@ -295,8 +291,8 @@ export const PopupMenuPopup = React.forwardRef<
   //   not back to the outside element
   const finalFocus = submenuContext || externalFocus ? false : undefined
 
-  // Add data-input-embedded attribute when layout is input-embedded
-  const isInputEmbedded = comboboxContext?.layout === 'input-embedded'
+  // Add data-input-embedded attribute when the popup embeds an input (`inputEmbedded`)
+  const isInputEmbedded = popupMenuContext?.inputEmbedded ?? false
 
   // Determine if this popup is a submenu (not the root menu)
   const isSubmenu = !!submenuContext

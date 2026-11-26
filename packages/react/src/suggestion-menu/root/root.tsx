@@ -3,10 +3,11 @@
 import { Popover, type PopoverRootProps } from '@base-ui/react/popover'
 import * as React from 'react'
 import type { ListboxStore, VirtualItem } from '../../internal/listbox/index.js'
-import type { PopupMenuOpenChangeReason } from '../../internal/popup-menu/events.js'
 import {
   type ForwardKeyDown,
+  type GetResolvedIdFn,
   type PopupMenuHighlightChangeHandler,
+  type PopupMenuIdScope,
   PopupMenuProviders,
   type UsePopupMenuRootParams,
   useFocusOwner,
@@ -14,10 +15,7 @@ import {
   usePopupMenuContext,
   usePopupMenuRoot,
 } from '../../internal/popup-menu/index.js'
-import type {
-  GetResolvedIdFn,
-  PopupMenuIdScope,
-} from '../../internal/popup-menu/menu-tree/types.js'
+import type { PopupMenuOpenChangeReason } from '../../internal/popup-menu/members.js'
 import { REASONS } from '../../utils/events/index.js'
 import type {
   SuggestionMenuHighlightChangeEventDetails,

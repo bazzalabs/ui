@@ -2,8 +2,10 @@
 
 import * as React from 'react'
 import type { ListboxStore } from '../../internal/listbox/index.js'
-import { usePopupMenuKeyboard } from '../../internal/popup-menu/hooks/use-popup-menu-keyboard.js'
-import type { FocusOwnerStore } from '../../internal/popup-menu/store/FocusOwnerStore.js'
+import {
+  type FocusOwnerStore,
+  usePopupMenuKeyboard,
+} from '../../internal/popup-menu/index.js'
 import { REASONS } from '../../utils/events/index.js'
 import { resolveLabel } from '../../utils/resolve-value-label.js'
 import type { ComboboxContextValue } from '../contexts/combobox-context.js'

@@ -2,8 +2,10 @@
 
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
-import { useFocusOwner } from '../../internal/popup-menu/contexts/focus-owner-context.js'
-import { usePopupMenuContext } from '../../internal/popup-menu/contexts/popup-menu-context.js'
+import {
+  useFocusOwner,
+  usePopupMenuContext,
+} from '../../internal/popup-menu/index.js'
 import { resolveLabelFromItems } from '../../utils/items.js'
 import {
   resolveClassName,

@@ -102,7 +102,7 @@ return useRender({ render, ref, state, stateAttributesMapping, props, defaultTag
 
 Filename: `<name>.data-attrs.ts`
 
-Export only `enum`s named `*DataAttributes`. The docs type generator (`apps/web/scripts/build-types-meta.ts`) reads nothing else, so an `as const` object renders an empty `DataAttrsTable`. To share an engine part's attributes, re-export its enum by name (`export { PopupMenuPopupDataAttributes } from '…'`), never `export *` (`bazza/data-attrs-enum`).
+Export only `enum`s named `*DataAttributes`. The docs type generator (`apps/web/scripts/build-types-meta.ts`) reads nothing else, so an `as const` object renders an empty `DataAttrsTable`. To share an engine part's attributes, re-export its enum by name (`export { PopupMenuPopupDataAttributes } from '…'`), never `export *` (`bazza/data-attrs-enum`). The re-export must come from the engine part's own data-attrs file, which is a deep import the Layers rule forbids in a member, so that one line carries a reasoned `// oxlint-disable-next-line no-restricted-imports -- …`, as `select/popup/popup.data-attrs.ts` does.
 
 ```typescript
 export enum DropdownMenuItemDataAttributes {
@@ -205,6 +205,21 @@ getVisibleItemIds(): string[] {
 ```
 
 Tests that register directly with the store flush before asserting on state.
+
+## Layers
+
+`src` is layered, and imports only go down (ADR 0006). From the bottom:
+
+- **`src/utils`** imports nothing else in `src`. Code two layers or families share lives here, as the keybinding helpers and `useHotkey` do in `utils/keybinding` (`kbd` re-exports them, and CommandMenu imports `useHotkey` from there).
+- **`internal/listbox`** imports `src/utils` only. It never imports `internal/popup-menu`: the event types both need live in `internal/listbox/events.ts`, and `internal/popup-menu/events.ts` re-exports them under the same names.
+- **`internal/popup-menu`** imports `src/utils` and `internal/listbox`, deep paths included. Together with `internal/listbox` this is the engine. The engine never imports a member, a loader, `kbd` or `video-player`. When a member needs the engine to behave differently, the engine takes a generic option on its own context and the member sets it: Combobox sets `externalFocus` (focus stays in its input) and `inputEmbedded` (Popup and List render `data-input-embedded`) on `PopupMenuProviders`. Member-only behaviour lives in the member's own part, as `Combobox.Icon` wraps `PopupMenuIcon` to toggle the popup.
+- **The members** (`dropdown-menu`, `context-menu`, `command-menu`, `suggestion-menu`, `select`, `combobox`) **and `src/loaders`** import the engine only through `internal/popup-menu/index.js`, `internal/popup-menu/members.js` and `internal/listbox/index.js`. Nothing imports a member or a loader, except the docs entry `docs-types-entry.ts`.
+
+`kbd` and `video-player` are independent families: they import `src/utils` and other families' `index.js` only. Members import a family only through its `index.js` too.
+
+`internal/popup-menu/index.ts` and `internal/listbox/index.ts` are published as `@bazza-ui/react/internal/popup-menu` and `@bazza-ui/react/internal/listbox`, so their exports don't change for a member's convenience. When a member needs an engine name `index.ts` doesn't export, add it to `internal/popup-menu/members.ts`, which isn't a package entry, and import it from `members.js`. The other way past the rule is a member's data-attrs file re-exporting an engine enum, which `bazza/data-attrs-enum` requires to come from the engine's data-attrs file: that line takes an inline exception (see Data Attributes File), as `select/popup/popup.data-attrs.ts` does.
+
+Tests may import any layer. `no-restricted-imports` checks the rest, with one override per layer in `.oxlintrc.json` (one for all of `src/internal`, and a stricter one for `internal/listbox`). Each override repeats the Base UI patterns from "Lint", because an override's options replace the earlier ones for its files.
 
 ## Lint
 

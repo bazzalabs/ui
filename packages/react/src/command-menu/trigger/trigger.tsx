@@ -2,7 +2,7 @@
 
 import { Dialog } from '@base-ui/react/dialog'
 import * as React from 'react'
-import { useMaybePopupMenuContext } from '../../internal/popup-menu/contexts/popup-menu-context.js'
+import { useMaybePopupMenuContext } from '../../internal/popup-menu/index.js'
 
 export interface CommandMenuTriggerProps extends Dialog.Trigger.Props {}
 export type CommandMenuTriggerState = Dialog.Trigger.State

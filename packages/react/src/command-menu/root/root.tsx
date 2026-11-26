@@ -2,7 +2,6 @@
 
 import { Dialog } from '@base-ui/react/dialog'
 import * as React from 'react'
-import type { PopupMenuOpenChangeReason } from '../../internal/popup-menu/events.js'
 import {
   type GetResolvedIdFn,
   type PopupMenuIdScope,
@@ -10,8 +9,9 @@ import {
   type UsePopupMenuRootParams,
   usePopupMenuRoot,
 } from '../../internal/popup-menu/index.js'
-import { useHotkey } from '../../kbd/hooks/use-hotkey.js'
+import type { PopupMenuOpenChangeReason } from '../../internal/popup-menu/members.js'
 import { REASONS } from '../../utils/events/index.js'
+import { useHotkey } from '../../utils/keybinding/use-hotkey.js'
 
 export interface CommandMenuRootProps {
   children: React.ReactNode

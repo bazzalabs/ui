@@ -1062,3 +1062,48 @@ describe('<Combobox.Root />', () => {
     })
   })
 })
+
+describe('Combobox.Root layout', () => {
+  function LayoutCombobox({ layout }: { layout?: 'input-embedded' }) {
+    return (
+      <Combobox.Root defaultOpen layout={layout}>
+        <Combobox.Input data-testid="input" />
+        <Combobox.Portal>
+          <Combobox.Positioner>
+            <Combobox.Popup data-testid="popup">
+              <Combobox.Surface>
+                <Combobox.List data-testid="list">
+                  <Combobox.Item value="apple">Apple</Combobox.Item>
+                </Combobox.List>
+              </Combobox.Surface>
+            </Combobox.Popup>
+          </Combobox.Positioner>
+        </Combobox.Portal>
+      </Combobox.Root>
+    )
+  }
+
+  it('marks Popup and List with data-input-embedded for layout="input-embedded"', async () => {
+    render(<LayoutCombobox layout="input-embedded" />)
+
+    expect(await screen.findByTestId('popup')).toHaveAttribute(
+      'data-input-embedded',
+      '',
+    )
+    expect(screen.getByTestId('list')).toHaveAttribute(
+      'data-input-embedded',
+      '',
+    )
+  })
+
+  it('leaves data-input-embedded off Popup and List by default', async () => {
+    render(<LayoutCombobox />)
+
+    expect(await screen.findByTestId('popup')).not.toHaveAttribute(
+      'data-input-embedded',
+    )
+    expect(screen.getByTestId('list')).not.toHaveAttribute(
+      'data-input-embedded',
+    )
+  })
+})

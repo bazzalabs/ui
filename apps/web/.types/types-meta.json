@@ -1446,6 +1446,46 @@
           }
         ]
       },
+      "ComboboxIconProps": {
+        "name": "ComboboxIconProps",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "style",
+            "type": "CSSProperties | (CSSProperties & ((state: ComboboxIconState) => CSSProperties | undefined)) | undefined",
+            "formattedType": "CSSProperties | CSSProperties & (state: Combobox.Icon.State) => CSSProperties",
+            "required": false,
+            "description": "Style applied to the element, or a function that\nreturns a style object based on the component's state."
+          },
+          {
+            "name": "className",
+            "type": "string | ((state: ComboboxIconState) => string | undefined) | undefined",
+            "formattedType": "string | (state: Combobox.Icon.State) => string",
+            "required": false,
+            "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
+          },
+          {
+            "name": "render",
+            "type": "ComponentRenderFn<HTMLProps<any>, ComboboxIconState> | ReactElement<unknown, string | JSXElementConstructor<any>> | undefined",
+            "formattedType": "| ((\n      props: HTMLProps,\n      state: Combobox.Icon.State,\n    ) => ReactElement)\n  | ReactElement",
+            "required": false,
+            "description": "Allows you to replace the component's HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render."
+          }
+        ]
+      },
+      "ComboboxIconState": {
+        "name": "ComboboxIconState",
+        "kind": "interface",
+        "props": [
+          {
+            "name": "open",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Whether the popup is currently open."
+          }
+        ]
+      },
       "ComboboxInputCursorBehavior": {
         "name": "ComboboxInputCursorBehavior",
         "kind": "typealias",
@@ -2481,46 +2521,6 @@
             "type": "boolean",
             "formattedType": "false | true",
             "required": true
-          }
-        ]
-      },
-      "ComboboxIconProps": {
-        "name": "ComboboxIconProps",
-        "kind": "interface",
-        "props": [
-          {
-            "name": "style",
-            "type": "CSSProperties | (CSSProperties & ((state: PopupMenuIconState) => CSSProperties | undefined)) | undefined",
-            "formattedType": "CSSProperties | CSSProperties & (state: PopupMenu.Icon.State) => CSSProperties",
-            "required": false,
-            "description": "Style applied to the element, or a function that\nreturns a style object based on the component's state."
-          },
-          {
-            "name": "className",
-            "type": "string | ((state: PopupMenuIconState) => string | undefined) | undefined",
-            "formattedType": "string | (state: PopupMenu.Icon.State) => string",
-            "required": false,
-            "description": "CSS class applied to the element, or a function that\nreturns a class based on the component's state."
-          },
-          {
-            "name": "render",
-            "type": "ComponentRenderFn<HTMLProps<any>, PopupMenuIconState> | ReactElement<unknown, string | JSXElementConstructor<any>> | undefined",
-            "formattedType": "| ((\n      props: HTMLProps,\n      state: PopupMenu.Icon.State,\n    ) => ReactElement)\n  | ReactElement",
-            "required": false,
-            "description": "Allows you to replace the component's HTML element\nwith a different tag, or compose it with another component.\n\nAccepts a `ReactElement` or a function that returns the element to render."
-          }
-        ]
-      },
-      "ComboboxIconState": {
-        "name": "ComboboxIconState",
-        "kind": "interface",
-        "props": [
-          {
-            "name": "open",
-            "type": "boolean",
-            "formattedType": "false | true",
-            "required": true,
-            "description": "Whether the popup is currently open."
           }
         ]
       },
@@ -3611,6 +3611,12 @@
             "type": "Map<string, Set<string>>",
             "required": true,
             "description": "Map of group ID to set of item IDs"
+          },
+          {
+            "name": "groupParents",
+            "type": "Map<string, string>",
+            "required": true,
+            "description": "Map of a nested group's ID to the ID of the group around it"
           },
           {
             "name": "itemSelects",
@@ -12954,6 +12960,13 @@
             "description": "Internal: DOM focus stays on an element outside the popup (Combobox's\ninput, a suggestion menu's host input) for as long as the menu is open.\nThe root popup then neither moves focus in on open nor returns it on close."
           },
           {
+            "name": "inputEmbedded",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Internal: the popup is laid out around an input embedded in it (Combobox's\n`layout=\"input-embedded\"`). Popup and List render `data-input-embedded`."
+          },
+          {
             "name": "registerSurface",
             "type": "(depth: number, setOpen: (open: boolean) => void) => () => void",
             "formattedType": "(\n  depth: number,\n  setOpen: (open: boolean) => void,\n) => () => void",
@@ -13327,6 +13340,12 @@
             "type": "Map<string, Set<string>>",
             "required": true,
             "description": "Map of group ID to set of item IDs"
+          },
+          {
+            "name": "groupParents",
+            "type": "Map<string, string>",
+            "required": true,
+            "description": "Map of a nested group's ID to the ID of the group around it"
           },
           {
             "name": "itemSelects",
@@ -17970,6 +17989,12 @@
             "description": "Map of group ID to set of item IDs"
           },
           {
+            "name": "groupParents",
+            "type": "Map<string, string>",
+            "required": true,
+            "description": "Map of a nested group's ID to the ID of the group around it"
+          },
+          {
             "name": "itemSelects",
             "type": "Map<string, () => void>",
             "required": true,
@@ -21001,6 +21026,12 @@
             "type": "Map<string, Set<string>>",
             "required": true,
             "description": "Map of group ID to set of item IDs"
+          },
+          {
+            "name": "groupParents",
+            "type": "Map<string, string>",
+            "required": true,
+            "description": "Map of a nested group's ID to the ID of the group around it"
           },
           {
             "name": "itemSelects",

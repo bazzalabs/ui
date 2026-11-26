@@ -3,13 +3,16 @@
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import {
+  getChordLabels,
+  parseKeybinding,
+} from '../../utils/keybinding/parse-keybinding.js'
+import { usePlatform } from '../../utils/keybinding/platform.js'
+import {
   resolveClassName,
   resolveStyle,
 } from '../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../utils/types.js'
 import { KbdKey } from '../key/key.js'
-import { getChordLabels, parseKeybinding } from '../utils/parse-keybinding.js'
-import { usePlatform } from '../utils/platform.js'
 import { KbdRootDataAttributes } from './root.data-attrs.js'
 
 type Platform = 'apple' | 'other'

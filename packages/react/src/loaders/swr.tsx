@@ -11,7 +11,7 @@ import type {
   NodeDef,
   QueryLoaderConfig,
   StaticLoaderConfig,
-} from '../internal/popup-menu/data-first/types.js'
+} from '../internal/popup-menu/index.js'
 
 // ============================================================================
 // SWR Adapter

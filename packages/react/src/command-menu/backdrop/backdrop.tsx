@@ -2,7 +2,7 @@
 
 import { Dialog } from '@base-ui/react/dialog'
 import * as React from 'react'
-import { useMaybePopupMenuContext } from '../../internal/popup-menu/contexts/popup-menu-context.js'
+import { useMaybePopupMenuContext } from '../../internal/popup-menu/index.js'
 import { REASONS } from '../../utils/events/index.js'
 
 export interface CommandMenuBackdropProps extends Dialog.Backdrop.Props {}

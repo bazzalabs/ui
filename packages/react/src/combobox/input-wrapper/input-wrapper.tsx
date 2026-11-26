@@ -2,7 +2,7 @@
 
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
-import { usePopupMenuContext } from '../../internal/popup-menu/contexts/popup-menu-context.js'
+import { usePopupMenuContext } from '../../internal/popup-menu/index.js'
 import {
   resolveClassName,
   resolveStyle,
