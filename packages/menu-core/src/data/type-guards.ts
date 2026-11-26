@@ -2,9 +2,10 @@
 // Type Guards
 // ============================================================================
 
+import { isContainerKind } from '../tree/container.js'
 import type { MenuNodeOfKind } from '../tree/menu-node.js'
 import type { AnyNodeDef } from '../tree/node-def-map.js'
-import type { BranchMenuNode, RowMenuNode } from './types.js'
+import type { BranchMenuNode, ContainerMenuNode, RowMenuNode } from './types.js'
 
 // ============================================================================
 // Type Guards
@@ -55,4 +56,10 @@ export function isBranchMenuNode<N extends { def: AnyNodeDef }>(
   node: N,
 ): node is BranchMenuNode<N> {
   return node.def.kind === 'submenu' || node.def.kind === 'subpage'
+}
+
+export function isContainerMenuNode<N extends { def: AnyNodeDef }>(
+  node: N,
+): node is ContainerMenuNode<N> {
+  return isContainerKind(node.def.kind)
 }

@@ -1,6 +1,7 @@
 export * from './append-loaded.js'
 export * from './async.js'
 export * from './browse.js'
+export * from './container.js'
 export * from './display.js'
 export * from './flatten.js'
 export * from './pipeline.js'

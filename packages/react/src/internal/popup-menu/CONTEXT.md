@@ -33,7 +33,7 @@ A node's single definition-path component: its explicit id verbatim when present
 _Avoid_: segment, slug, part
 
 **Definition Path** (`definitionPath`):
-The Definition Keys from the menu root to a node in the definition tree, including the node's own key. Only submenu and subpage ancestors contribute keys; groups, radio groups, checkbox groups, and tree items are surface-transparent. Identical wherever the node renders — browse, deep search, or recursion.
+The Definition Keys from the menu root to a node in the definition tree, including the node's own key. Only submenu and subpage ancestors contribute keys; Containers and tree items are surface-transparent. Identical wherever the node renders — browse, deep search, or recursion.
 _Avoid_: absolute path, tree path, full path, ancestor path, segments
 
 **Breadcrumbs**:
@@ -48,7 +48,7 @@ How a branch participates in an ancestor's deep search, resolved per branch from
 _Avoid_: deep search mode, visibility, searchable
 
 **Inherited Disabled**:
-The disabled state a deep result carries from the nearest disabled branch on its breadcrumbs, as opposed to its own def's `disabled`. A row's effective disabled state is its own or an inherited one. Only branches confer it — tree items, groups, radio groups, and checkbox groups do not.
+The disabled state a deep result carries from the nearest disabled branch on its breadcrumbs, as opposed to its own def's `disabled`. A row's effective disabled state is its own or an inherited one. Only branches confer it — tree items and Containers do not.
 _Avoid_: propagated disabled, ancestor disabled, locked
 
 **Resolved ID** (`id`):
@@ -67,8 +67,12 @@ The menu's top-level surface — the one a popup opens with. Owns the Menu Tree 
 _Avoid_: root node, root page, `__root__`
 
 **Branch**:
-A submenu or subpage Menu Node — a node that opens a child surface. Only branches can own a branch loader or a subpage. Groups, radio groups, checkbox groups, and tree items contain nodes but are not branches; they open no surface.
-_Avoid_: container, parent (as a category), async submenu (a branch may be static)
+A submenu or subpage Menu Node — a node that opens a child surface. Only branches can own a branch loader or a subpage. Containers and tree items contain nodes but are not branches; they open no surface.
+_Avoid_: container (that is a group, radio group or checkbox group), parent (as a category), async submenu (a branch may be static)
+
+**Container**:
+A group, radio group, or checkbox group: one concept with a `selection` mode — `'none'` (group), `'single'` (radio group), `'multiple'` (checkbox group). Users still author the `group`, `radio-group` and `checkbox-group` kinds. In `menu-core`, the resolver and the pipeline read each as a Container (`isContainerDef`, `containerOf`, `selectionOf`) and take one path for all three, so only the selection mode and its search behavior (`groupSearchBehavior`, `radioGroupSearchBehavior`, `checkboxGroupSearchBehavior`) tell them apart. The React data-first renderers still branch per kind until they move onto the row collection. A Container is not a Branch: it opens no surface and contributes no Definition Key to its rows' paths.
+_Avoid_: group (as the category; a group is the `'none'` Container), branch, section
 
 **Resolution**:
 The phase that turns node defs into Menu Nodes in the Menu Tree: static content synchronously when the content is supplied; loader results by grafting after they arrive. The only phase permitted to mutate the Menu Tree.

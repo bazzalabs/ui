@@ -3,9 +3,19 @@
 // ============================================================================
 
 import type { IncludeInDeepSearch } from '../tree/branch-config.js'
+import { containerOf } from '../tree/container.js'
 import type { AnyMenuNode, MenuNodeOfKind } from '../tree/menu-node.js'
 import { resolveBranchIncludeMode } from './async.js'
-import { isMenuNodeOfKind, isRowMenuNode } from './type-guards.js'
+import {
+  type ContainerMembership,
+  containerMembership,
+  NO_CONTAINER,
+} from './container.js'
+import {
+  isContainerMenuNode,
+  isMenuNodeOfKind,
+  isRowMenuNode,
+} from './type-guards.js'
 import type {
   BreadcrumbNode,
   DisabledBranchBehavior,
@@ -25,12 +35,8 @@ interface FlattenOptions<N extends PipelineMenuNode<N>> {
   descendantsIncluded?: boolean
   /** Parent breadcrumb nodes (branch nodes from root to parent) */
   breadcrumbs?: BreadcrumbNode<PipelineDisplayTypes<N>>[]
-  /** Current group context (nested groups not supported) */
-  group?: FlattenedNode<PipelineDisplayTypes<N>>['group']
-  /** Current radio group context */
-  radioGroup?: FlattenedNode<PipelineDisplayTypes<N>>['radioGroup']
-  /** Current checkbox group context */
-  checkboxGroup?: FlattenedNode<PipelineDisplayTypes<N>>['checkboxGroup']
+  /** The Container the nodes are in (nested Containers are not supported) */
+  container?: ContainerMembership<N>
   /** Keywords inherited from tree ancestors. */
   inheritedKeywords?: string[]
 }
@@ -60,7 +66,7 @@ export function getSupportedTreeChildren<
 /**
  * Flattens a tree of Menu Nodes into a flat array.
  * When deep=true, includes children of branch nodes with their breadcrumb paths.
- * Tracks group, radio group, and checkbox group membership for each node.
+ * Tracks the Container (group, radio group, or checkbox group) each node is in.
  */
 export function flattenNodes<N extends PipelineMenuNode<N> = AnyMenuNode>(
   nodes: readonly N[],
@@ -72,9 +78,7 @@ export function flattenNodes<N extends PipelineMenuNode<N> = AnyMenuNode>(
     disabledBranchBehavior = 'exclude',
     descendantsIncluded = true,
     breadcrumbs = [],
-    group = null,
-    radioGroup = null,
-    checkboxGroup = null,
+    container = NO_CONTAINER,
     inheritedKeywords = [],
   } = options
   const result: FlattenedNode<PipelineDisplayTypes<N>>[] = []
@@ -85,15 +89,10 @@ export function flattenNodes<N extends PipelineMenuNode<N> = AnyMenuNode>(
       continue
     }
 
-    if (isMenuNodeOfKind(node, 'group')) {
-      // Groups are containers - recurse into their children with group context
-      // Note: Nested groups are not supported, so we pass this group directly
-      const groupInfo = {
-        id: node.def.id,
-        label: node.def.label,
-        groupDef: node.def,
-        menuNode: node,
-      }
+    if (isContainerMenuNode(node)) {
+      // Containers recurse into their rows, which carry the Container's
+      // membership. Nested Containers are not supported: the inner one wins.
+      if (containerOf(node.def)?.hidden) continue
       result.push(
         ...flattenNodes(node.children, {
           deep,
@@ -101,59 +100,7 @@ export function flattenNodes<N extends PipelineMenuNode<N> = AnyMenuNode>(
           disabledBranchBehavior,
           descendantsIncluded,
           breadcrumbs,
-          group: groupInfo,
-          radioGroup: null, // Reset radio group when entering a regular group
-          checkboxGroup: null,
-          inheritedKeywords,
-        }),
-      )
-      continue
-    }
-
-    if (isMenuNodeOfKind(node, 'radio-group')) {
-      // Radio groups are containers - recurse into their children with radio group context
-      if (node.def.hidden) continue
-
-      const radioGroupInfo = {
-        id: node.def.id,
-        label: node.def.label,
-        radioGroupDef: node.def,
-        menuNode: node,
-      }
-      result.push(
-        ...flattenNodes(node.children, {
-          deep,
-          includeInDeepSearch,
-          disabledBranchBehavior,
-          descendantsIncluded,
-          breadcrumbs,
-          group: null, // Reset regular group when entering a radio group
-          radioGroup: radioGroupInfo,
-          checkboxGroup: null,
-          inheritedKeywords,
-        }),
-      )
-      continue
-    }
-
-    if (isMenuNodeOfKind(node, 'checkbox-group')) {
-      if (node.def.hidden) continue
-      const checkboxGroupInfo = {
-        id: node.def.id,
-        label: node.def.label,
-        checkboxGroupDef: node.def,
-        menuNode: node,
-      }
-      result.push(
-        ...flattenNodes(node.children, {
-          deep,
-          includeInDeepSearch,
-          disabledBranchBehavior,
-          descendantsIncluded,
-          breadcrumbs,
-          group: null,
-          radioGroup: null,
-          checkboxGroup: checkboxGroupInfo,
+          container: containerMembership(node),
           inheritedKeywords,
         }),
       )
@@ -175,9 +122,7 @@ export function flattenNodes<N extends PipelineMenuNode<N> = AnyMenuNode>(
       result.push({
         node,
         breadcrumbs,
-        group,
-        radioGroup,
-        checkboxGroup,
+        ...container,
         inheritedKeywords,
       })
       continue
@@ -188,9 +133,7 @@ export function flattenNodes<N extends PipelineMenuNode<N> = AnyMenuNode>(
         result.push({
           node,
           breadcrumbs,
-          group,
-          radioGroup,
-          checkboxGroup,
+          ...container,
           inheritedKeywords,
         })
       }
@@ -209,9 +152,7 @@ export function flattenNodes<N extends PipelineMenuNode<N> = AnyMenuNode>(
             disabledBranchBehavior,
             descendantsIncluded,
             breadcrumbs: [...breadcrumbs, treeBreadcrumb],
-            group,
-            radioGroup,
-            checkboxGroup,
+            container,
             inheritedKeywords: [...inheritedKeywords, node.def.value],
           }),
         )
@@ -238,9 +179,7 @@ export function flattenNodes<N extends PipelineMenuNode<N> = AnyMenuNode>(
         result.push({
           node,
           breadcrumbs,
-          group,
-          radioGroup,
-          checkboxGroup,
+          ...container,
           inheritedKeywords,
         })
       }
@@ -283,10 +222,8 @@ export function flattenNodes<N extends PipelineMenuNode<N> = AnyMenuNode>(
               disabledBranchBehavior,
               descendantsIncluded: true,
               breadcrumbs: childBreadcrumbs,
-              // Reset group, radio group, and checkbox group context when entering a branch node
-              group: null,
-              radioGroup: null,
-              checkboxGroup: null,
+              // A branch's rows are outside the Container its trigger is in.
+              container: NO_CONTAINER,
               inheritedKeywords,
             },
           ),
