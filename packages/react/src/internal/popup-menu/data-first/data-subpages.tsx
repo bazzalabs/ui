@@ -1,128 +1,41 @@
 'use client'
 
 import * as React from 'react'
+import { useMaybeListboxContext } from '../../listbox/contexts/listbox-context.js'
 import { PopupMenuCheckboxGroupValue } from '../components/checkbox-group/checkbox-group-value.js'
-import { GraftPointContext } from '../contexts/graft-point-context.js'
+import {
+  GraftPointContext,
+  useGraftPoint,
+} from '../contexts/graft-point-context.js'
+import { useMenuTree } from '../contexts/menu-tree-context.js'
+import { usePopupSurfaceId } from '../contexts/popup-surface-id-context.js'
 import { staticChildrenOf } from '../menu-tree/resolve.js'
 import type { PopupMenuNode } from '../menu-tree/types.js'
 import { useAsyncMenuCoordinator } from './async-coordinator.js'
-import { useDataPopupContext } from './context.js'
-import { DataGroupContainer } from './group-container.js'
+import {
+  DataPopupContext,
+  type DataPopupContextValue,
+  ENGINE_SETTERS,
+  type ResolvedNodesSlot,
+} from './context.js'
+import {
+  getBranchAsyncState,
+  renderBranchChild,
+  renderSelectionContainer,
+} from './data-list.js'
 import { isRowMenuNode } from './type-guards.js'
 import type {
-  AsyncRenderState,
   BreadcrumbNode,
   CheckboxGroupDef,
-  CheckboxItemDef,
   DataSubpagesChildrenState,
   DataSubpagesProps,
   DisplaySubpageNode,
-  GroupDef,
-  GroupRenderContext,
-  ItemDef,
-  LinkItemDef,
-  QueryLoaderConfig,
   RadioGroupDef,
   RowNodeDef,
   RowRenderContext,
   SubmenuDef,
   SubpageDef,
 } from './types.js'
-
-interface QueryExecutionState {
-  effectiveQuery: string
-  enabled: boolean
-  isBelowMinLength: boolean
-}
-
-function resolveInitialQueryBehavior(config: QueryLoaderConfig):
-  | {
-      value: string
-      loadWhen: 'needed' | 'parent-open'
-    }
-  | false {
-  if (config.initialQueryBehavior !== undefined) {
-    if (config.initialQueryBehavior === false) {
-      return false
-    }
-    return {
-      value: config.initialQueryBehavior.value ?? '',
-      loadWhen: config.initialQueryBehavior.loadWhen ?? 'needed',
-    }
-  }
-
-  if (config.initialQuery !== undefined) {
-    return { value: config.initialQuery, loadWhen: 'needed' }
-  }
-
-  return { value: '', loadWhen: 'needed' }
-}
-
-function resolveQueryExecutionState(
-  config: QueryLoaderConfig,
-  query: string,
-): QueryExecutionState {
-  const minLength = config.minQueryLength ?? 1
-  const initialQueryBehavior = resolveInitialQueryBehavior(config)
-
-  if (query.length >= minLength) {
-    return {
-      effectiveQuery: query,
-      enabled: true,
-      isBelowMinLength: false,
-    }
-  }
-
-  if (initialQueryBehavior !== false) {
-    return {
-      effectiveQuery: initialQueryBehavior.value,
-      enabled: true,
-      isBelowMinLength: false,
-    }
-  }
-
-  return {
-    effectiveQuery: '',
-    enabled: false,
-    isBelowMinLength: true,
-  }
-}
-
-function getBranchAsyncState(
-  menuNode: PopupMenuNode<SubmenuDef | SubpageDef>,
-  searchQuery: string,
-  coordinator: ReturnType<typeof useAsyncMenuCoordinator>,
-): AsyncRenderState | undefined {
-  const node = menuNode.def
-  if (!node.asyncNodes || !coordinator) {
-    return undefined
-  }
-
-  const asyncResult = coordinator.loaders.get(menuNode.id)
-
-  if (!asyncResult) {
-    return undefined
-  }
-
-  const isBelowMinLength =
-    node.asyncNodes.type === 'query'
-      ? resolveQueryExecutionState(node.asyncNodes, searchQuery)
-          .isBelowMinLength
-      : false
-
-  return {
-    status: asyncResult.result.status,
-    fetchStatus: asyncResult.result.fetchStatus,
-    loadingPhase: asyncResult.result.loadingPhase,
-    isLoading: asyncResult.result.isLoading,
-    isFetching: asyncResult.result.isFetching,
-    isInitialLoading: asyncResult.result.isInitialLoading,
-    isRefetching: asyncResult.result.isRefetching,
-    isError: asyncResult.result.isError,
-    error: asyncResult.result.error,
-    isBelowMinLength,
-  }
-}
 
 function collectDisplaySubpages(
   nodes: readonly PopupMenuNode[],
@@ -202,6 +115,96 @@ function collectDisplaySubpages(
   return result
 }
 
+/**
+ * Reads the Menu Nodes a popup's root list renders from the menu tree: the
+ * root's nodes, or its graft point's children in a submenu popup.
+ */
+function usePopupNodes(): () => readonly PopupMenuNode[] {
+  const tree = useMenuTree()
+  const graftPoint = useGraftPoint()
+  const depth = useMaybeListboxContext()?.depth ?? 0
+  return React.useCallback(
+    () =>
+      graftPoint
+        ? graftPoint.children
+        : depth === 0
+          ? tree.resolver.rootNodes
+          : EMPTY_NODES,
+    [tree, graftPoint, depth],
+  )
+}
+
+const EMPTY_NODES: readonly PopupMenuNode[] = []
+
+/**
+ * Provides `DataPopupContext` for a popup, derived from the menu tree: the
+ * popup's root data surface, and a slot of the nodes its root list resolved
+ * (kept while the list is unmounted), or the slot a consumer set, until the
+ * root list republishes (after every content change and every graft).
+ */
+export function DataPopupProvider({ children }: { children: React.ReactNode }) {
+  const tree = useMenuTree()
+  const popupId = usePopupSurfaceId() ?? ''
+  const data = tree.useState('popup', popupId)
+  const version = tree.useState('version')
+  const getNodes = usePopupNodes()
+  const nodes = getNodes()
+
+  React.useLayoutEffect(
+    () => () => tree.updatePopup(popupId, null),
+    [tree, popupId],
+  )
+  const setters = React.useMemo(() => {
+    // The slot as the tree has it now: the consumer's, or the one derived
+    // from the content the root list resolved.
+    const current = (): ResolvedNodesSlot | null => {
+      const { slot, content } = tree.select('popup', popupId)
+      if (slot !== undefined) return slot
+      return content
+        ? { nodes: getNodes(), graftVersion: tree.state.version, content }
+        : null
+    }
+    const value: Pick<
+      DataPopupContextValue,
+      'setDataSurfaceContext' | 'setResolvedNodes'
+    > = {
+      setDataSurfaceContext: (action) =>
+        tree.updatePopup(popupId, {
+          surface:
+            typeof action === 'function'
+              ? action(tree.select('popup', popupId).surface ?? null)
+              : action,
+        }),
+      setResolvedNodes: (action) =>
+        tree.updatePopup(popupId, {
+          slot: typeof action === 'function' ? action(current()) : action,
+        }),
+    }
+    ENGINE_SETTERS.add(value.setResolvedNodes)
+    return value
+  }, [tree, popupId, getNodes])
+
+  const value = React.useMemo(
+    (): DataPopupContextValue => ({
+      ...setters,
+      dataSurfaceContext: data.surface ?? null,
+      resolvedNodes:
+        data.slot !== undefined
+          ? data.slot
+          : data.content
+            ? { nodes, graftVersion: version, content: data.content }
+            : null,
+    }),
+    [setters, data, nodes, version],
+  )
+
+  return (
+    <DataPopupContext.Provider value={value}>
+      {children}
+    </DataPopupContext.Provider>
+  )
+}
+
 export interface DataSubpagesContentProps extends DataSubpagesProps {}
 
 /**
@@ -220,23 +223,34 @@ export interface DataSubpagesContentProps extends DataSubpagesProps {}
  */
 export function DataSubpagesContent(props: DataSubpagesContentProps) {
   const { children } = props
-
   const coordinator = useAsyncMenuCoordinator()
   const searchQuery = coordinator?.searchQuery ?? ''
 
-  const { dataSurfaceContext, resolvedNodes } = useDataPopupContext()
+  const dataPopup = React.useContext(DataPopupContext)
+  const dataSurfaceContext = dataPopup?.dataSurfaceContext
+  const resolvedNodes = dataPopup?.resolvedNodes
+  const tree = useMenuTree()
+  const popupId = usePopupSurfaceId() ?? ''
+  const getNodes = usePopupNodes()
   // A retained slot is only valid while the root surface still supplies the
   // content it was published for (the root list unmounts while a subpage is
-  // active, so it cannot republish on its own).
+  // active, so it cannot resolve the new content on its own).
   const slot =
     resolvedNodes &&
     (!dataSurfaceContext ||
       resolvedNodes.content === dataSurfaceContext.content)
       ? resolvedNodes
       : null
-  const roots = slot?.nodes ?? []
+  // A slot derived from the tree (no consumer set one) takes its nodes from
+  // the tree as the outlet renders, after the root list resolved them in the
+  // same render.
+  const roots = slot
+    ? tree.select('popup', popupId).slot === undefined
+      ? getNodes()
+      : slot.nodes
+    : EMPTY_NODES
   const graftVersion = slot?.graftVersion ?? 0
-  // biome-ignore lint/correctness/useExhaustiveDependencies: graftVersion signals grafts under branch nodes, which do not change `roots` identity
+  // biome-ignore lint/correctness/useExhaustiveDependencies: graftVersion changes with grafts under branch nodes, which do not change `roots` identity
   const subpages = React.useMemo(
     () => collectDisplaySubpages(roots),
     [roots, graftVersion],
@@ -384,121 +398,8 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
             id: rowNode.id,
           }
 
-          const submenuRenderNode = (arg: PopupMenuNode) => {
-            const childNode = arg.def
-            if (childNode.kind === 'separator') {
-              return null
-            }
-
-            if (childNode.kind === 'group') {
-              const groupItems = arg.children.filter(
-                (
-                  n,
-                ): n is PopupMenuNode<
-                  | ItemDef
-                  | LinkItemDef
-                  | CheckboxItemDef
-                  | SubmenuDef
-                  | SubpageDef
-                > =>
-                  (n.def.kind === 'item' ||
-                    n.def.kind === 'link-item' ||
-                    n.def.kind === 'checkbox-item' ||
-                    n.def.kind === 'submenu' ||
-                    n.def.kind === 'subpage') &&
-                  !n.def.hidden,
-              )
-
-              if (groupItems.length === 0) {
-                return null
-              }
-
-              const groupChildren = groupItems.map((item) =>
-                renderRowNode(item, {
-                  search: null,
-                  breadcrumbs: [...rowContext.breadcrumbs, submenuBreadcrumb],
-                  isDeepSearchResult: false,
-                  highlighted: false,
-                  disabled: item.def.disabled ?? false,
-                  group: { id: childNode.id, label: childNode.label },
-                  tree: null,
-                }),
-              )
-
-              if (childNode.render) {
-                const groupContext: GroupRenderContext = {
-                  search: null,
-                  matchCount: groupItems.length,
-                  breadcrumbs: [...rowContext.breadcrumbs, submenuBreadcrumb],
-                  isDeepSearchResult: false,
-                }
-
-                const groupMenuNode = arg as PopupMenuNode<GroupDef>
-                return (
-                  <React.Fragment key={childNode.id}>
-                    {childNode.render({
-                      node: groupMenuNode,
-                      props: {},
-                      context: {
-                        ...groupContext,
-                        label: childNode.label,
-                      },
-                      children: <>{groupChildren}</>,
-                    })}
-                  </React.Fragment>
-                )
-              }
-
-              return (
-                <DataGroupContainer key={childNode.id} label={childNode.label}>
-                  {groupChildren}
-                </DataGroupContainer>
-              )
-            }
-
-            if (childNode.kind === 'radio-group') {
-              return renderRadioGroup(arg as PopupMenuNode<RadioGroupDef>, [
-                ...rowContext.breadcrumbs,
-                submenuBreadcrumb,
-              ])
-            }
-            if (childNode.kind === 'checkbox-group') {
-              if (childNode.hidden) return null
-              return renderCheckboxGroup(
-                arg as PopupMenuNode<CheckboxGroupDef>,
-                [...rowContext.breadcrumbs, submenuBreadcrumb],
-              )
-            }
-
-            if (
-              childNode.kind !== 'item' &&
-              childNode.kind !== 'link-item' &&
-              childNode.kind !== 'checkbox-item' &&
-              childNode.kind !== 'submenu' &&
-              childNode.kind !== 'subpage'
-            ) {
-              return null
-            }
-
-            return renderRowNode(
-              arg as PopupMenuNode<
-                | ItemDef
-                | LinkItemDef
-                | CheckboxItemDef
-                | SubmenuDef
-                | SubpageDef
-              >,
-              {
-                search: null,
-                breadcrumbs: [...rowContext.breadcrumbs, submenuBreadcrumb],
-                isDeepSearchResult: false,
-                highlighted: false,
-                disabled: childNode.disabled ?? false,
-                group: null,
-                tree: null,
-              },
-            )
-          }
+          const submenuRenderNode = (arg: PopupMenuNode) =>
+            renderChildNode(arg, [...rowContext.breadcrumbs, submenuBreadcrumb])
 
           return (
             <React.Fragment key={rowId}>
@@ -553,76 +454,21 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
         )
       }
 
-      const renderRadioGroup = (
-        radioGroupMenuNode: PopupMenuNode<RadioGroupDef>,
+      const renderChildNode = (
+        arg: PopupMenuNode,
+        breadcrumbs: BreadcrumbNode[],
+      ): React.ReactNode =>
+        renderBranchChild(arg, breadcrumbs, renderRowNode, renderSelectionGroup)
+
+      // A radio group or a checkbox group: the same params, and a checkbox
+      // group's rows read its value.
+      const renderSelectionGroup = (
+        groupMenuNode: PopupMenuNode<RadioGroupDef | CheckboxGroupDef>,
         breadcrumbs: BreadcrumbNode[] = [],
       ): React.ReactNode => {
-        const radioGroup = radioGroupMenuNode.def
+        const group = groupMenuNode.def
         const isDeepSearchResult = breadcrumbs.length > 0
-
-        const groupContext: GroupRenderContext = {
-          search: null,
-          matchCount: radioGroup.nodes.length,
-          breadcrumbs,
-          isDeepSearchResult,
-        }
-
-        const childElements = radioGroupMenuNode.children.map((item) => {
-          if (!isRowMenuNode(item) || item.def.hidden) return null
-
-          return renderRowNode(item, {
-            search: null,
-            breadcrumbs,
-            isDeepSearchResult,
-            highlighted: false,
-            disabled: item.def.disabled ?? false,
-            group: null,
-            tree: null,
-          })
-        })
-
-        if (radioGroup.render) {
-          return (
-            <React.Fragment key={radioGroup.id}>
-              {radioGroup.render({
-                node: radioGroupMenuNode,
-                props: {
-                  value: radioGroup.value,
-                  onValueChange: radioGroup.onValueChange,
-                  disabled: radioGroup.disabled ?? false,
-                },
-                context: {
-                  ...groupContext,
-                  label: radioGroup.label,
-                  value: radioGroup.value,
-                  disabled: radioGroup.disabled ?? false,
-                },
-                children: <>{childElements}</>,
-              })}
-            </React.Fragment>
-          )
-        }
-
-        return (
-          <DataGroupContainer key={radioGroup.id} label={radioGroup.label}>
-            {childElements}
-          </DataGroupContainer>
-        )
-      }
-
-      const renderCheckboxGroup = (
-        checkboxGroupMenuNode: PopupMenuNode<CheckboxGroupDef>,
-        breadcrumbs: BreadcrumbNode[] = [],
-      ): React.ReactNode => {
-        const checkboxGroup = checkboxGroupMenuNode.def
-        const isDeepSearchResult = breadcrumbs.length > 0
-        const groupContext: GroupRenderContext = {
-          search: null,
-          matchCount: checkboxGroup.nodes.length,
-          breadcrumbs,
-          isDeepSearchResult,
-        }
-        const childElements = checkboxGroupMenuNode.children.map((item) => {
+        const childElements = groupMenuNode.children.map((item) => {
           if (!isRowMenuNode(item) || item.def.hidden) return null
           return renderRowNode(
             item,
@@ -635,41 +481,21 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
               group: null,
               tree: null,
             },
-            {
-              id: checkboxGroup.id,
-              label: checkboxGroup.label,
-              def: checkboxGroup,
-            },
+            group.kind === 'checkbox-group'
+              ? { id: group.id, label: group.label, def: group }
+              : undefined,
           )
         })
-        if (checkboxGroup.render) {
-          return (
-            <React.Fragment key={checkboxGroup.id}>
-              {checkboxGroup.render({
-                node: checkboxGroupMenuNode,
-                props: {
-                  value: checkboxGroup.value,
-                  onValueChange: checkboxGroup.onValueChange,
-                  disabled: checkboxGroup.disabled ?? false,
-                },
-                context: {
-                  ...groupContext,
-                  label: checkboxGroup.label,
-                  value: checkboxGroup.value,
-                  disabled: checkboxGroup.disabled ?? false,
-                },
-                children: <>{childElements}</>,
-              })}
-            </React.Fragment>
-          )
-        }
-        return (
-          <DataGroupContainer
-            key={checkboxGroup.id}
-            label={checkboxGroup.label}
-          >
-            {childElements}
-          </DataGroupContainer>
+        return renderSelectionContainer(
+          groupMenuNode,
+          {
+            search: null,
+            matchCount: group.nodes.length,
+            breadcrumbs,
+            isDeepSearchResult,
+          },
+          childElements,
+          false,
         )
       }
 
@@ -691,124 +517,11 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
               },
               nodes: staticChildrenOf(resolved),
               asyncContent: node.asyncNodes,
-              renderNode: (arg: PopupMenuNode) => {
-                const childNode = arg.def
-                if (childNode.kind === 'separator') {
-                  return null
-                }
-
-                if (childNode.kind === 'group') {
-                  const groupItems = arg.children.filter(
-                    (
-                      n,
-                    ): n is PopupMenuNode<
-                      | ItemDef
-                      | LinkItemDef
-                      | CheckboxItemDef
-                      | SubmenuDef
-                      | SubpageDef
-                    > =>
-                      (n.def.kind === 'item' ||
-                        n.def.kind === 'link-item' ||
-                        n.def.kind === 'checkbox-item' ||
-                        n.def.kind === 'submenu' ||
-                        n.def.kind === 'subpage') &&
-                      !n.def.hidden,
-                  )
-
-                  if (groupItems.length === 0) {
-                    return null
-                  }
-
-                  const groupChildren = groupItems.map((item) =>
-                    renderRowNode(item, {
-                      search: null,
-                      breadcrumbs: [...context.breadcrumbs, subpageBreadcrumb],
-                      isDeepSearchResult: false,
-                      highlighted: false,
-                      disabled: item.def.disabled ?? false,
-                      group: { id: childNode.id, label: childNode.label },
-                      tree: null,
-                    }),
-                  )
-
-                  if (childNode.render) {
-                    const groupContext: GroupRenderContext = {
-                      search: null,
-                      matchCount: groupItems.length,
-                      breadcrumbs: [...context.breadcrumbs, subpageBreadcrumb],
-                      isDeepSearchResult: false,
-                    }
-
-                    const groupMenuNode = arg as PopupMenuNode<GroupDef>
-                    return (
-                      <React.Fragment key={childNode.id}>
-                        {childNode.render({
-                          node: groupMenuNode,
-                          props: {},
-                          context: {
-                            ...groupContext,
-                            label: childNode.label,
-                          },
-                          children: <>{groupChildren}</>,
-                        })}
-                      </React.Fragment>
-                    )
-                  }
-
-                  return (
-                    <DataGroupContainer
-                      key={childNode.id}
-                      label={childNode.label}
-                    >
-                      {groupChildren}
-                    </DataGroupContainer>
-                  )
-                }
-
-                if (childNode.kind === 'radio-group') {
-                  return renderRadioGroup(arg as PopupMenuNode<RadioGroupDef>, [
-                    ...context.breadcrumbs,
-                    subpageBreadcrumb,
-                  ])
-                }
-                if (childNode.kind === 'checkbox-group') {
-                  if (childNode.hidden) return null
-                  return renderCheckboxGroup(
-                    arg as PopupMenuNode<CheckboxGroupDef>,
-                    [...context.breadcrumbs, subpageBreadcrumb],
-                  )
-                }
-
-                if (
-                  childNode.kind !== 'item' &&
-                  childNode.kind !== 'link-item' &&
-                  childNode.kind !== 'checkbox-item' &&
-                  childNode.kind !== 'submenu' &&
-                  childNode.kind !== 'subpage'
-                ) {
-                  return null
-                }
-
-                return renderRowNode(
-                  arg as PopupMenuNode<
-                    | ItemDef
-                    | LinkItemDef
-                    | CheckboxItemDef
-                    | SubmenuDef
-                    | SubpageDef
-                  >,
-                  {
-                    search: null,
-                    breadcrumbs: [...context.breadcrumbs, subpageBreadcrumb],
-                    isDeepSearchResult: false,
-                    highlighted: false,
-                    disabled: childNode.disabled ?? false,
-                    group: null,
-                    tree: null,
-                  },
-                )
-              },
+              renderNode: (arg: PopupMenuNode) =>
+                renderChildNode(arg, [
+                  ...context.breadcrumbs,
+                  subpageBreadcrumb,
+                ]),
             })}
           </GraftPointContext.Provider>
         </React.Fragment>

@@ -15,11 +15,9 @@ import { PopupSurfaceIdContext } from '../../contexts/popup-surface-id-context.j
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
 import { SubpageStackContext } from '../../contexts/subpage-stack-context.js'
 import {
-  DataPopupContext,
-  type DataSurfaceContextValue,
-  type ResolvedNodesSlot,
-} from '../../data-first/context.js'
-import { DataSubpagesContent } from '../../data-first/data-subpages.js'
+  DataPopupProvider,
+  DataSubpagesContent,
+} from '../../data-first/data-subpages.js'
 import { useAimGuard } from '../../hooks/use-aim-guard.js'
 import { useMenuElement, usePressClaim } from '../../hooks/use-menu-element.js'
 import { useSubpageStackState } from '../../hooks/use-subpage-stack-state.js'
@@ -126,10 +124,6 @@ export const PopupMenuPopup = React.forwardRef<
     store: popupMenuContext?.store ?? null,
   })
 
-  const [dataSurfaceContext, setDataSurfaceContext] =
-    React.useState<DataSurfaceContextValue | null>(null)
-  const [resolvedNodes, setResolvedNodes] =
-    React.useState<ResolvedNodesSlot | null>(null)
   const activeSurfaceId = subpageStackContextValue.activeSurfaceId
 
   // Track when popup opened to ignore initial pointer events
@@ -332,20 +326,10 @@ export const PopupMenuPopup = React.forwardRef<
   const componentName = useMaybeComponentName()
   const slotAttr = getSlotAttribute(componentName, 'popup')
 
-  const dataPopupContextValue = React.useMemo(
-    () => ({
-      dataSurfaceContext,
-      setDataSurfaceContext,
-      resolvedNodes,
-      setResolvedNodes,
-    }),
-    [dataSurfaceContext, resolvedNodes],
-  )
-
   return (
     <PopupSurfaceIdContext.Provider value={surfaceId}>
       <SubpageStackContext.Provider value={subpageStackContextValue}>
-        <DataPopupContext.Provider value={dataPopupContextValue}>
+        <DataPopupProvider>
           <Popover.Popup
             ref={combinedRef}
             initialFocus={initialFocus}
@@ -379,7 +363,7 @@ export const PopupMenuPopup = React.forwardRef<
             {children}
             <DataSubpagesContent />
           </Popover.Popup>
-        </DataPopupContext.Provider>
+        </DataPopupProvider>
       </SubpageStackContext.Provider>
     </PopupSurfaceIdContext.Provider>
   )

@@ -9,7 +9,7 @@ import {
   useSurfaceContext,
   type VirtualItem,
 } from '../../../listbox/index.js'
-import { useMenuTreeResolver } from '../../contexts/menu-tree-resolver-context.js'
+import { useMenuTree } from '../../contexts/menu-tree-context.js'
 import { useOpenChain } from '../../contexts/open-chain-context.js'
 import {
   PopupMenuContext,
@@ -131,7 +131,7 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
   const parentDepth = parentListboxContext?.depth ?? 0
   const parentCloseAll = parentListboxContext?.closeAll
   const parentRegisterSurface = parentListboxContext?.registerSurface
-  const menuTreeResolver = useMenuTreeResolver()
+  const menuTreeResolver = useMenuTree().resolver
 
   const handleHighlightChange = React.useCallback(
     (
@@ -141,7 +141,7 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
     ) => {
       onHighlightChange?.(
         id,
-        id === null ? null : (menuTreeResolver?.getNodeById(id) ?? null),
+        id === null ? null : (menuTreeResolver.getNodeById(id) ?? null),
         index,
         eventDetails,
       )

@@ -11,7 +11,6 @@ import {
 } from '../contexts/component-name-context.js'
 import { FocusZoneRegistryContext } from '../contexts/focus-zone-context.js'
 import { MenuTreeContext } from '../contexts/menu-tree-context.js'
-import { MenuTreeResolverContext } from '../contexts/menu-tree-resolver-context.js'
 import {
   PopupMenuContext,
   type PopupMenuContextValue,
@@ -174,11 +173,12 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
       return rootTree
     }
     return new MenuTreeStore({
+      resolver: menuTreeResolver,
       openChain: openChainStore,
       focusOwner: focusOwnerStore,
       elements: rootTree && getElementRegistry(rootTree),
     })
-  }, [store, openChainStore, focusOwnerStore])
+  }, [store, openChainStore, focusOwnerStore, menuTreeResolver])
 
   const focusZoneRegistryRef = React.useRef<FocusZoneRegistry | null>(null)
   if (!focusZoneRegistryRef.current) {
@@ -253,24 +253,22 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
   )
 
   return (
-    <MenuTreeResolverContext.Provider value={menuTreeResolver}>
-      <ComponentNameContext.Provider value={componentName}>
-        <PopupMenuDebugContext.Provider value={popupMenuDebugContextValue}>
-          <PopupMenuContext.Provider value={popupMenuContextValue}>
-            <ListboxContextProvider.Provider value={listboxContextValue}>
-              <AimGuardProvider>
-                <MenuTreeContext.Provider value={tree}>
-                  <FocusZoneRegistryContext.Provider
-                    value={focusZoneRegistryRef.current}
-                  >
-                    {children}
-                  </FocusZoneRegistryContext.Provider>
-                </MenuTreeContext.Provider>
-              </AimGuardProvider>
-            </ListboxContextProvider.Provider>
-          </PopupMenuContext.Provider>
-        </PopupMenuDebugContext.Provider>
-      </ComponentNameContext.Provider>
-    </MenuTreeResolverContext.Provider>
+    <ComponentNameContext.Provider value={componentName}>
+      <PopupMenuDebugContext.Provider value={popupMenuDebugContextValue}>
+        <PopupMenuContext.Provider value={popupMenuContextValue}>
+          <ListboxContextProvider.Provider value={listboxContextValue}>
+            <AimGuardProvider>
+              <MenuTreeContext.Provider value={tree}>
+                <FocusZoneRegistryContext.Provider
+                  value={focusZoneRegistryRef.current}
+                >
+                  {children}
+                </FocusZoneRegistryContext.Provider>
+              </MenuTreeContext.Provider>
+            </AimGuardProvider>
+          </ListboxContextProvider.Provider>
+        </PopupMenuContext.Provider>
+      </PopupMenuDebugContext.Provider>
+    </ComponentNameContext.Provider>
   )
 }

@@ -81,6 +81,9 @@ export interface DataPopupContextValue {
 export const DataPopupContext =
   React.createContext<DataPopupContextValue | null>(null)
 
+/** The setters of the engine's own `DataPopupContext` values. */
+export const ENGINE_SETTERS = new WeakSet<object>()
+
 export function useDataSurfaceContext(): DataSurfaceContextValue {
   const context = React.useContext(DataSurfaceContext)
   if (!context) {
@@ -93,18 +96,6 @@ export function useDataSurfaceContext(): DataSurfaceContextValue {
 
 export function useMaybeDataSurfaceContext(): DataSurfaceContextValue | null {
   return React.useContext(DataSurfaceContext)
-}
-
-export function useDataPopupContext(): DataPopupContextValue {
-  const context = React.useContext(DataPopupContext)
-  if (!context) {
-    throw new Error('Data components must be used within PopupMenu.Popup')
-  }
-  return context
-}
-
-export function useMaybeDataPopupContext(): DataPopupContextValue | null {
-  return React.useContext(DataPopupContext)
 }
 
 // ============================================================================

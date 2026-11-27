@@ -4,16 +4,14 @@ import { Dialog } from '@base-ui/react/dialog'
 import { useMergedRefs } from '@base-ui/utils/useMergedRefs'
 import * as React from 'react'
 import {
-  DataPopupContext,
-  type DataSurfaceContextValue,
   PopupSurfaceIdContext,
   SubpageStackContext,
   usePopupMenuContext,
   useSubpageStackState,
 } from '../../internal/popup-menu/index.js'
 import {
+  DataPopupProvider,
   DataSubpagesContent,
-  type ResolvedNodesSlot,
   useMenuElement,
   usePressClaim,
 } from '../../internal/popup-menu/members.js'
@@ -84,11 +82,6 @@ export const CommandMenuPopup = React.forwardRef<
     store: popupMenuContext.store,
   })
 
-  const [dataSurfaceContext, setDataSurfaceContext] =
-    React.useState<DataSurfaceContextValue | null>(null)
-  const [resolvedNodes, setResolvedNodes] =
-    React.useState<ResolvedNodesSlot | null>(null)
-
   const toPopupState = React.useCallback(
     (baseState: Dialog.Popup.State): CommandMenuPopupState => ({
       ...baseState,
@@ -118,20 +111,10 @@ export const CommandMenuPopup = React.forwardRef<
     return renderProp
   }, [renderProp, toPopupState])
 
-  const dataPopupContextValue = React.useMemo(
-    () => ({
-      dataSurfaceContext,
-      setDataSurfaceContext,
-      resolvedNodes,
-      setResolvedNodes,
-    }),
-    [dataSurfaceContext, resolvedNodes],
-  )
-
   return (
     <PopupSurfaceIdContext.Provider value={surfaceId}>
       <SubpageStackContext.Provider value={subpageStackContextValue}>
-        <DataPopupContext.Provider value={dataPopupContextValue}>
+        <DataPopupProvider>
           <Dialog.Popup
             ref={popupRef}
             className={className}
@@ -145,7 +128,7 @@ export const CommandMenuPopup = React.forwardRef<
             {children}
             <DataSubpagesContent />
           </Dialog.Popup>
-        </DataPopupContext.Provider>
+        </DataPopupProvider>
       </SubpageStackContext.Provider>
     </PopupSurfaceIdContext.Provider>
   )

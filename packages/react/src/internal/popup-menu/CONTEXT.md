@@ -85,7 +85,7 @@ How rows reach a surface's Collection, one per surface, chosen once: **DOM** (co
 _Avoid_: source, provider, registry
 
 **Resolution**:
-The phase that turns node defs into Menu Nodes in the Menu Tree: static content synchronously when the content is supplied; loader results by grafting after they arrive. The only phase permitted to mutate the Menu Tree.
+The phase that turns node defs into Menu Nodes in the Menu Tree: static content synchronously when the content is supplied (with the results the surface's loaders already hold); loader results by grafting, in the Menu Tree Store update that records them. The only phase permitted to mutate the Menu Tree.
 _Avoid_: resolving (as a noun), reconciliation (reconcile is one operation inside resolution)
 
 **Element Registry** (`ElementRegistry`):
@@ -94,8 +94,20 @@ Two things opened from inside the tree belong too, as they did when membership w
 _Avoid_: membership by attribute selector, inside-check
 
 **Menu Tree Store** (`MenuTreeStore`):
-The state one menu root shares with its submenus: the root's open state (one controlled cell, with how it was opened), the **Open Chain** (an `OpenChainStore`: the open submenu surfaces, outermost first), the **Focus Owner** (a `FocusOwnerStore`: the surface that owns focus, if any) and the tree's Element Registry. One per root. The root surface's Listbox store hands open changes to it, and the cell writes that store's open state, the only copy of it. `useOpenChain` and `useFocusOwner` return its Open Chain and Focus Owner, the same instances the root publishes. Every surface keeps its own search, highlight and rows. The resolver and the loaders are still separate.
+The state one menu root shares with its submenus: the root's open state (one controlled cell, with how it was opened), the **Open Chain** (an `OpenChainStore`: the open submenu surfaces, outermost first), the **Focus Owner** (a `FocusOwnerStore`: the surface that owns focus, if any) and the tree's Element Registry. One per root. The root surface's Listbox store hands open changes to it, and the cell writes that store's open state, the only copy of it. `useOpenChain` and `useFocusOwner` return its Open Chain and Focus Owner, the same instances the root publishes. Every surface keeps its own search, highlight and rows. It also owns the tree's resolver, the **Loader Scope** of each data surface, each popup's data-first state (its root data surface, the content its root list last resolved, and a slot a consumer set) and the tree's version, one number that changes with every graft or render-time change to the tree. Readers of the resolved tree read the nodes there, never from state a list lifts up: a data list renders its **Tree Slice**, and a popup's **Subpage Outlet** renders the subpages of the nodes its root list resolves.
 _Avoid_: open chain store, focus owner store (as names for the tree itself)
+
+**Loader Scope**:
+One data surface's loaders, kept in its Menu Tree Store (`LoaderScope`): each branch loader by the branch's Resolved ID, the surface's own `asyncContent` loader, their errors and the root content's reveal state. The surface's coordinator (`useAsyncMenuCoordinator`) is derived from it. Its list registers a **grafter** with the store, so a result reaches the Menu Tree in the update that records it (`updateLoaders`), and every reader (the list's deep search, the popup's Subpage Outlet) renders the grafted nodes in one commit. The loaders' own state machine is still each loader component's.
+_Avoid_: coordinator state, loader map
+
+**Tree Slice**:
+The part of the Menu Tree a data list renders: the root's nodes, its graft point's children, or its subpage branch's children. A new slice whenever those nodes change, or the list's own resolution changed a node under them while it rendered. A graft a store update makes changes neither: it comes with a new Loader Scope and a new tree version, so the list's derived state keys on the slice together with its coordinator, and the root list republishes its popup's slot on the tree version. Replaces the list's graft counter.
+_Avoid_: graft version, resolved-nodes slot
+
+**Subpage Outlet**:
+What renders a popup's data-first subpages, once per popup, after its content (`DataSubpagesContent`). It reads `DataPopupContext`, which the popup derives from its menu tree (`DataPopupProvider`): the popup's root data surface, and a slot of the nodes its root list resolved, which the tree keeps while the list is unmounted (a subpage is active), or the slot a consumer set with `setResolvedNodes`. The root list republishes after every content change and every graft, which replaces a consumer's slot, as the list's publish always did. A slot derived from the tree is read from the tree as the outlet renders, after the root list resolved it in the same render; the tree's version is its `graftVersion`. A surface or list under a consumer's own `DataPopupContext.Provider` registers into that provider instead, and the root list publishes its nodes there after every content change and graft. The popup's record in the tree is dropped when the popup unmounts.
+_Avoid_: data popup slot, lifting
 
 **Listbox**:
 The state layer beneath the engine: rows register into a `ListboxStore`, which owns highlight state and keyboard navigation. Implements the WAI-ARIA listbox pattern; shared by every menu family.

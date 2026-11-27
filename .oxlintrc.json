@@ -404,8 +404,7 @@
       // Context modules without `'use client'`.
       "files": [
         "packages/react/src/combobox/input-wrapper/input-wrapper-context.ts",
-        "packages/react/src/internal/popup-menu/contexts/graft-point-context.ts",
-        "packages/react/src/internal/popup-menu/contexts/menu-tree-resolver-context.ts"
+        "packages/react/src/internal/popup-menu/contexts/graft-point-context.ts"
       ],
       "rules": { "bazza/use-client": "off" }
     },
@@ -426,7 +425,6 @@
         "packages/react/src/combobox/contexts/combobox-positioner-context.ts",
         "packages/react/src/internal/listbox/contexts/group-context.ts",
         "packages/react/src/internal/popup-menu/contexts/graft-point-context.ts",
-        "packages/react/src/internal/popup-menu/contexts/menu-tree-resolver-context.ts",
         "packages/react/src/internal/popup-menu/contexts/popup-surface-id-context.ts",
         "packages/react/src/internal/popup-menu/data-first/async-coordinator.tsx",
         "packages/react/src/select/contexts/select-positioner-context.ts"
