@@ -15,7 +15,7 @@ import {
   useListboxContext,
   type useSurfaceContext,
 } from '../../listbox/index.js'
-import { setExternalCollection } from '../../listbox/store/ListboxStore.js'
+import { publishDataRows } from '../../listbox/store/ListboxStore.js'
 import { PopupMenuCheckboxGroupValue } from '../components/checkbox-group/checkbox-group-value.js'
 import { PopupMenuGroupLabel } from '../components/group-label/group-label.js'
 import {
@@ -1460,9 +1460,9 @@ export const DataListInner = React.forwardRef<
     [isDeepSearching, displayNodes],
   )
 
-  // The list's Collection owns this surface's rows until it unmounts
-  // (temporary external-collection mode, removed by UI-679).
-  React.useLayoutEffect(() => () => setExternalCollection(store, null), [store])
+  // The list's rows are this surface's Collection (the store's Data
+  // adapter) until it unmounts.
+  React.useLayoutEffect(() => () => publishDataRows(store, null), [store])
 
   // The Collection the store reads order, visibility and row metadata from.
   // An unchanged build returns the last snapshot.
@@ -1522,7 +1522,7 @@ export const DataListInner = React.forwardRef<
   // in one publish, in the commit that mounts and unmounts the rows.
   const publish = React.useCallback(() => {
     publishedSnapshotRef.current = snapshot
-    setExternalCollection(store, snapshot)
+    publishDataRows(store, snapshot)
 
     const last = lastSyncRef.current
     lastSyncRef.current = { ids: orderedItemIds, search: normalizedSearch }

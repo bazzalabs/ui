@@ -2,14 +2,18 @@ import { createSelector, ReactStore } from '@base-ui/utils/store'
 import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect'
 import { useRefWithInit } from '@base-ui/utils/useRefWithInit'
 import {
+  buildSnapshotWithoutPositions,
   type CollectionSnapshot,
   type ControlledCell,
   cellValue,
   changeCell,
   createCell,
+  emptyCollection,
   type FilterFn,
+  filteredSnapshotInput,
   type ItemRowMeta,
   isItemRow,
+  mergeByPosition,
   type SearchNormalizer,
 } from '@bazza-ui/menu-core'
 import {
@@ -287,12 +291,7 @@ interface ValidateHighlightOptions {
    */
   forceFirst?: boolean
   /**
-   * The newly computed filteredItems map. If not provided, uses state.filteredItems.
-   * This is needed when calling from recomputeFilteredItems before state is updated.
-   */
-  filteredItems?: Map<string, number>
-  /**
-   * The new search query that corresponds to filteredItems.
+   * The new search query the Collection was just built for.
    * Used together with prevSearch to detect when search is cleared.
    */
   newSearch?: string
@@ -374,20 +373,20 @@ function getRowPositions(rows: readonly ListboxOrderedRow[]): RowPositions {
 // ============================================================================
 
 /**
- * A state key, off the published `ListboxState`, for whether a data-first
- * list's Collection owns the surface's rows: selectors read it, so rows
- * re-render when it changes. Temporary, removed by UI-679.
+ * A state key, off the published `ListboxState`, for whether the Data
+ * adapter fills the store's Collection: a data-first list mounts only the
+ * rows and groups it shows, so the visibility selectors read every one as
+ * visible while it does. Selectors read it, so rows re-render when it
+ * changes.
  */
-const externalCollectionKey: unique symbol = Symbol('externalCollection')
+const dataAdapterKey: unique symbol = Symbol('dataAdapter')
 
-/** `ListboxState` with the external-collection flag. */
-type StateWithExternal = ListboxState & {
-  [externalCollectionKey]?: boolean
-}
+/** `ListboxState` with the Data adapter's flag. */
+type StateWithDataAdapter = ListboxState & { [dataAdapterKey]?: boolean }
 
-/** Whether a data-first list's Collection owns the rows, from state. */
-function isExternalState(state: ListboxState): boolean {
-  return (state as StateWithExternal)[externalCollectionKey] === true
+/** Whether a data-first list's rows fill the store's Collection. */
+function hasDataAdapter(state: ListboxState): boolean {
+  return (state as StateWithDataAdapter)[dataAdapterKey] === true
 }
 
 /** The store's controlled values, by the state field that mirrors each. */
@@ -427,8 +426,7 @@ const selectors = {
 
   isGroupVisible: createSelector(
     (state: ListboxState, groupId: string) =>
-      // A data-first list mounts only the groups its Collection shows.
-      isExternalState(state) ||
+      hasDataAdapter(state) ||
       state.normalizedSearch.length === 0 ||
       state.visibleGroups.has(groupId),
   ),
@@ -476,8 +474,7 @@ const selectors = {
    */
   isItemVisible: createSelector(
     (state: ListboxState, itemId: string) =>
-      // A data-first list mounts only the rows its Collection shows.
-      isExternalState(state) ||
+      hasDataAdapter(state) ||
       state.normalizedSearch.length === 0 ||
       (state.filteredItems.get(itemId) ?? 0) > 0,
   ),
@@ -530,14 +527,14 @@ const defaultSearchNormalizer: SearchNormalizer = (search) => {
 }
 
 // ============================================================================
-// External Collection (temporary, removed by UI-679)
+// Collection rows
 // ============================================================================
 
 /**
  * A data-first row's element, the JSX group around it if any, and what its
  * part was given (a `render` can override the def's props on the part, as
- * `<Item {...props} disabled={x}>`).
- * Temporary external-collection mode, removed by UI-679.
+ * `<Item {...props} disabled={x}>`). The Data adapter's rows bind this
+ * instead of registering.
  */
 export interface BoundRow {
   /** The row's element, read when it's needed, so it can change. */
@@ -548,6 +545,39 @@ export interface BoundRow {
   activatable: boolean
   isSubmenuTrigger: boolean
   shortcut: string | undefined
+}
+
+/**
+ * The Collection Adapter filling a store's Collection: composable JSX rows
+ * (`dom`), a virtualized list's items (`virtual`), or a data-first list's
+ * rows (`data`).
+ */
+type AdapterKind = 'dom' | 'virtual' | 'data'
+
+/** A registered item's row in the Collection, made once per registration. */
+const registrationRows = new WeakMap<ItemRegistration, ItemRowMeta>()
+
+function registrationRow(
+  id: string,
+  registration: ItemRegistration,
+): ItemRowMeta {
+  let row = registrationRows.get(registration)
+  if (row?.id === id) return row
+  row = {
+    id,
+    kind: registration.isSubmenuTrigger ? 'submenu-trigger' : 'item',
+    textValue: registration.value,
+    keywords: registration.keywords,
+    containerId: registration.groupId,
+    disabled: registration.disabled ?? false,
+    activatable: registration.activatable ?? true,
+    closeOnClick: registration.closeOnClick ?? true,
+    forceOrder: registration.forceOrder,
+    forceScore: registration.forceScore,
+    shortcut: registration.shortcut,
+  }
+  registrationRows.set(registration, row)
+  return row
 }
 
 // Derived once per snapshot, so lookups stay O(1) between snapshot changes.
@@ -621,6 +651,20 @@ function countVisibleItemRows(snapshot: CollectionSnapshot): number {
   return count
 }
 
+function sameIds(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((id, i) => id === b[i])
+}
+
+/** `snapshot` navigating `navOrder`, itself when that's its order already. */
+function withNavOrder(
+  snapshot: CollectionSnapshot,
+  navOrder: readonly string[],
+): CollectionSnapshot {
+  return sameIds(snapshot.navOrder, navOrder)
+    ? snapshot
+    : { ...snapshot, navOrder }
+}
+
 function orderedRowsEqual(
   a: readonly ListboxOrderedRow[],
   b: readonly ListboxOrderedRow[],
@@ -645,104 +689,68 @@ function precedes(a: HTMLElement, b: HTMLElement): boolean {
   return (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0
 }
 
-/**
- * Inserts `extras` (few, in document order) among `base` (in the
- * Collection's order) by document position: each extra goes right after the
- * last base entry with an element that comes before it, or after every base
- * entry when none with an element comes after it. Base entries with no
- * element (a virtualized list's rows outside its window) stay in place
- * around the ones that have one, so an extra above the window goes before
- * the rows above the window, and one below it after the rows below it. An
- * extra with no element goes last.
- */
-function insertByDocumentPosition<T>(
-  base: readonly T[],
-  extras: readonly T[],
-  elementOf: (entry: T) => HTMLElement | null | undefined,
-): T[] {
-  if (extras.length === 0) return base as T[]
-  const merged: T[] = []
-  let next = 0
-  for (const extra of extras) {
-    const element = elementOf(extra)
-    let cut = base.length
-    if (element?.isConnected) {
-      cut = next
-      let followed = false
-      for (let i = next; i < base.length; i++) {
-        const baseElement = elementOf(base[i]!)
-        if (!baseElement?.isConnected) continue
-        if (!precedes(baseElement, element)) {
-          followed = true
-          break
-        }
-        cut = i + 1
-      }
-      // No element follows the extra: it goes after every base entry, the
-      // ones below a virtualized window included.
-      if (!followed) cut = base.length
-    }
-    while (next < cut) merged.push(base[next++]!)
-    merged.push(extra)
-  }
-  while (next < base.length) merged.push(base[next++]!)
-  return merged
+/** `element` while it's in the document. */
+function connected(
+  element: HTMLElement | null | undefined,
+): HTMLElement | undefined {
+  return element?.isConnected ? element : undefined
 }
 
 // ============================================================================
-// External Collection entry points (temporary, removed by UI-679)
+// Data adapter entry points
 //
 // Exported from this module only, never from `internal/listbox/index.ts`, so
 // the published `ListboxStore` type doesn't carry them.
 // ============================================================================
 
-interface ExternalCollectionAccess {
-  setExternalCollection(
+interface DataRowsAccess {
+  publishDataRows(
     store: ListboxStore,
     snapshot: CollectionSnapshot | null,
   ): void
-  bindRow(store: ListboxStore, id: string, row: BoundRow): () => void
-  refreshBoundRows(store: ListboxStore): void
+  bindDataRow(store: ListboxStore, id: string, row: BoundRow): () => void
+  refreshDataRows(store: ListboxStore): void
   getRegistration(store: ListboxStore, id: string): ItemRegistration | undefined
   getShortcutItemId(store: ListboxStore, key: string): string | undefined
 }
 
-let externalCollectionAccess: ExternalCollectionAccess
+let dataRowsAccess: DataRowsAccess
 
 /**
- * Publishes a data-first list's Collection to its surface's store: its
- * order, visibility and row metadata. The list calls it from a layout effect
- * that runs after its rows' (so they're bound) and before the list
- * primitive's flush, so rows see one publish per commit. Highlight changes
- * stay with the caller (`setOrderedItems`, `highlightFirstOrderedItem`).
- * `null` hands the rows back to registration, as when the list unmounts.
+ * The Data adapter: a data-first list hands the store the rows it already
+ * filtered, scored and ordered, which become the store's Collection. The
+ * list calls it from a layout effect that runs after its rows' (so they're
+ * bound) and before the list primitive's flush, so rows see one publish per
+ * commit. Highlight changes stay with the caller (`setOrderedItems`,
+ * `highlightFirstOrderedItem`). `null` hands the rows back to the DOM
+ * adapter, as when the list unmounts.
  */
-export function setExternalCollection(
+export function publishDataRows(
   store: ListboxStore,
   snapshot: CollectionSnapshot | null,
 ): void {
-  externalCollectionAccess.setExternalCollection(store, snapshot)
+  dataRowsAccess.publishDataRows(store, snapshot)
 }
 
 /**
  * Binds a data-first row under its Resolved ID, with its element (which may
  * attach later, or never) and the props its part was given. Returns the
- * unbind.
+ * unbind. A bound row doesn't register: the Collection already has it.
  */
-export function bindRow(
+export function bindDataRow(
   store: ListboxStore,
   id: string,
   row: BoundRow,
 ): () => void {
-  return externalCollectionAccess.bindRow(store, id, row)
+  return dataRowsAccess.bindDataRow(store, id, row)
 }
 
 /**
  * Works positions out again once a row that bound without its element gets
  * one, at the next microtask.
  */
-export function refreshBoundRows(store: ListboxStore): void {
-  externalCollectionAccess.refreshBoundRows(store)
+export function refreshDataRows(store: ListboxStore): void {
+  dataRowsAccess.refreshDataRows(store)
 }
 
 /**
@@ -754,7 +762,7 @@ export function getRegistration(
   store: ListboxStore,
   id: string,
 ): ItemRegistration | undefined {
-  return externalCollectionAccess.getRegistration(store, id)
+  return dataRowsAccess.getRegistration(store, id)
 }
 
 /**
@@ -765,7 +773,7 @@ export function getShortcutItemId(
   store: ListboxStore,
   key: string,
 ): string | undefined {
-  return externalCollectionAccess.getShortcutItemId(store, key)
+  return dataRowsAccess.getShortcutItemId(store, key)
 }
 
 // ============================================================================
@@ -956,14 +964,13 @@ export class ListboxStore extends ReactStore<
   typeof selectors
 > {
   static {
-    // The external-collection mode's entry points, off the class's public
-    // surface (and its published types): see `setExternalCollection` below.
-    externalCollectionAccess = {
-      setExternalCollection: (store, snapshot) =>
-        store.#setExternalCollection(snapshot),
-      bindRow: (store, id, row) => store.#bindRow(id, row),
-      refreshBoundRows: (store) => {
-        store.#externalRowsDirty = true
+    // The Data adapter's entry points, off the class's public surface (and
+    // its published types): see `publishDataRows` above.
+    dataRowsAccess = {
+      publishDataRows: (store, snapshot) => store.#publishDataRows(snapshot),
+      bindDataRow: (store, id, row) => store.#bindDataRow(id, row),
+      refreshDataRows: (store) => {
+        store.#dataRowsDirty = true
         store.#scheduleBindFlush()
       },
       getRegistration: (store, id) => store.#getRegistration(id),
@@ -1080,7 +1087,7 @@ export class ListboxStore extends ReactStore<
         // Reset pointer position when search changes - content is about to shift
         // and we don't want stationary pointers to trigger phantom highlights
         this.resetPointerPosition()
-        this.recomputeFilteredItems(prevSearch)
+        this.#publishCollection(prevSearch)
 
         if (this.context.resetScrollOnSearch && !this.state.virtualized) {
           this.scrollListToTop()
@@ -1154,7 +1161,7 @@ export class ListboxStore extends ReactStore<
     // After the update, unlike `setOpen`: the search has no cancel, and the
     // highlight change the new search causes is reported first.
     this.context.onSearchChange?.(search)
-    // Note: recomputeFilteredItems is called by the 'normalizedSearch' observer
+    // Note: the Collection is rebuilt by the 'normalizedSearch' observer
   }
 
   setSearchNormalizer(normalizeSearch: SearchNormalizer) {
@@ -1387,8 +1394,8 @@ export class ListboxStore extends ReactStore<
     // Update count in state for selectors to use
     this.set('virtualItemsCount', items.length)
 
-    // Pre-register all virtual items so filtering works for unmounted items
-    this.preRegisterVirtualItems()
+    // The Collection takes every virtual item, mounted or not
+    if (items.length > 0) this.#publishCollection()
 
     // Skip if items reference didn't change (same array)
     if (items === prevItems) {
@@ -1465,16 +1472,12 @@ export class ListboxStore extends ReactStore<
       (reason === 'append' || reason === 'refresh') &&
       this.state.highlightedId !== null
     ) {
-      // Virtual items are pre-registered, so an unmounted virtualized row is
-      // still found here.
+      // A virtualized list's unmounted rows are reachable through its items.
       const highlightedId = this.state.highlightedId
       const registration = this.#getRegistration(highlightedId)
-      const present = this.#external
-        ? this.#isItemReachable(highlightedId)
-        : registration !== undefined
       if (
         items.includes(highlightedId) &&
-        present &&
+        this.#isItemReachable(highlightedId) &&
         registration !== undefined &&
         !registration.disabled
       ) {
@@ -1512,7 +1515,7 @@ export class ListboxStore extends ReactStore<
       return
     }
 
-    if (this.context.filter !== false && !this.#external) {
+    if (this.context.filter !== false && !this.#dataRows) {
       return
     }
     if (!this.select('open')) {
@@ -1641,31 +1644,6 @@ export class ListboxStore extends ReactStore<
    */
   resetPointerPosition() {
     this.context.lastPointerPosition = null
-  }
-
-  /**
-   * Pre-register virtual items so they appear in filteredItems.
-   * This allows filtering to work for items that aren't mounted yet.
-   */
-  private preRegisterVirtualItems() {
-    const virtualItems = this.context.virtualItems
-    if (virtualItems.length === 0) return
-
-    // Register each virtual item (using value as the unique identifier)
-    for (const item of virtualItems) {
-      // A data-first row's registration is its Collection row.
-      if (this.#collection?.rows.has(item.value)) continue
-      if (!this.context.items.has(item.value)) {
-        this.context.items.set(item.value, {
-          value: item.value,
-          keywords: item.keywords,
-          disabled: item.disabled,
-        })
-      }
-    }
-
-    // Recompute filtered items to include virtual items
-    this.recomputeFilteredItems()
   }
 
   // ============================================================================
@@ -1808,7 +1786,7 @@ export class ListboxStore extends ReactStore<
 
   /**
    * Publish the rows and items registered or unregistered since the last
-   * flush: one sort of `orderedRows`, one `recomputeFilteredItems`. The list
+   * flush: one sort of `orderedRows`, one rebuild of the Collection. The list
    * calls this from its layout effect, which runs after its rows' layout
    * effects; registrations that arrive later bump `registrationBatch`, which
    * re-renders the list. Store methods that read registration state call it
@@ -1816,11 +1794,12 @@ export class ListboxStore extends ReactStore<
    */
   flushPendingRegistrations() {
     this.registrationBatchOpen = false
-    if (this.#external) {
-      this.#flushExternalCollection()
+    const rows = this.#applyPendingRows(this.#registeredRows)
+    if (rows) this.#registeredRows = rows
+    if (this.#dataRows) {
+      this.#flushDataRows(rows !== null)
       return
     }
-    const rows = this.#applyPendingRows(this.state.orderedRows)
     if (rows) this.set('orderedRows', rows)
 
     if (this.pendingRescore || this.pendingRegisteredItems.size > 0) {
@@ -1828,7 +1807,7 @@ export class ListboxStore extends ReactStore<
       this.pendingRegisteredItems = new Set()
       // A search change may already have recomputed with these items.
       if (this.pendingRescore) {
-        this.recomputeFilteredItems()
+        this.#publishCollection()
       }
       this.maybeAutoHighlightOnRegister(registered)
     }
@@ -1859,100 +1838,275 @@ export class ListboxStore extends ReactStore<
   }
 
   // ==========================================================================
-  // External Collection (temporary, removed by UI-679)
+  // The Collection
   //
-  // A data-first list already filters, scores and orders its rows, so it
-  // hands the store its row Collection instead of letting every row register
-  // and be rescored. Its rows (marked by `CollectionRowContext`) only bind
-  // their element (`bindRow`), with the props their part was given. The
-  // Collection supplies order, visibility and row metadata; the bound row
-  // supplies what the part overrides. Rows that still register (a JSX `Item`
-  // next to the data rows, or a `Separator`, `Group`, `Empty` or `Loading`
-  // part) take their place among the data rows by document position, for
-  // navigation and positions alike, so positions come out as they did when
-  // every row registered. Composable JSX surfaces never enter this mode.
-  // UI-679 replaces the store, and this mode with it.
+  // The store keeps one Collection of its surface's rows (`#collection`),
+  // which one Collection Adapter (`#adapter`) fills:
+  // - DOM: composable JSX rows register (`registerItem`), and the store
+  //   scores them against the search. Navigation orders them by document
+  //   position when it reads them; with `filter={false}`, by the consumer's
+  //   `orderedItems`.
+  // - Virtual: a virtualized list's `virtualItems`, mounted or not, in their
+  //   order, scored the same way.
+  // - Data: a data-first list publishes the rows it already filtered, scored
+  //   and ordered (`publishDataRows`). Its rows bind their element and part
+  //   props (`bindDataRow`) instead of registering. Rows that still register
+  //   next to them (a JSX `Item`, or a `Separator`, `Group`, `Empty` or
+  //   `Loading` part) go in among them by document position, for navigation
+  //   and positions alike.
+  // Navigation reads its `navOrder`. `filteredItems`, `visibleGroups` and
+  // `filteredCount` in state are derived from it when the store publishes
+  // (a search, a flush, new virtual items); a data-first list's `filteredCount`
+  // when it publishes. Positions come from `orderedRows`: the rows that
+  // registered their element, in document order, with a data list's bound
+  // rows among them.
   // ==========================================================================
 
+  #collection: CollectionSnapshot = emptyCollection
   /**
-   * The row Collection the list published, or `null` while rows register.
-   * Not state: nothing renders from it directly, only from what it changes
-   * (`orderedRows`, `filteredCount`, the highlight).
+   * The DOM or Virtual adapter's build before a navigation override: the
+   * next build compares against it, so an override never narrows the next.
    */
-  #collection: CollectionSnapshot | null = null
-  /** Whether a data-first list's Collection owns this surface's rows. */
-  #external = false
+  #base: CollectionSnapshot = emptyCollection
+  #adapter: AdapterKind = 'dom'
+  /** Whether the consumer orders the DOM adapter's rows (`orderedItems`). */
+  #ordered = false
+  /** What `#collection` was built from: rebuilt when any of it changes. */
+  #collectionInputs: readonly unknown[] = []
+
+  /** The rows a data-first list published (the Data adapter), or `null`. */
+  #dataRows: CollectionSnapshot | null = null
   #boundRows = new Map<string, BoundRow>()
   /** The shortcuts bound rows' parts were given, by key. */
   #boundShortcuts = new Map<string, string>()
   #pendingBoundIds = new Set<string>()
-  #externalRowsDirty = false
-  /** Rows registered with `registerRow` while external, in document order. */
+  #dataRowsDirty = false
+  /** Rows registered with `registerRow`, in document order. */
   #registeredRows: readonly ListboxOrderedRow[] = []
 
   /**
-   * Publishes the data-first list's Collection: its order, visibility and row
-   * metadata. The list calls it from a layout effect that runs after its
-   * rows' (so they're bound) and before the list primitive's flush, so rows
-   * see one publish per commit. Highlight changes stay with the caller
-   * (`setOrderedItems`, `highlightFirstOrderedItem`). `null` hands the rows
-   * back to registration, as when the list unmounts.
-   * Temporary external-collection mode, removed by UI-679.
+   * What the Collection is built from, the adapter first: a data-first
+   * list's rows, else a virtualized list's items, else the rows that
+   * registered.
    */
-  /**
-   * Sets the external-collection flag in state, with `changes`. Through
-   * `setState`: `update` only looks at string keys, so it would drop the
-   * flag's symbol key on its own.
-   */
-  #setExternalState(external: boolean, changes: Partial<ListboxState> = {}) {
-    const next: StateWithExternal = {
-      ...this.state,
-      ...changes,
-      [externalCollectionKey]: external,
-    }
-    this.setState(next)
+  #inputs(): readonly unknown[] {
+    const { virtualItems, orderedItems, filter } = this.context
+    const { virtualized, normalizedSearch } = this.state
+    const adapter: AdapterKind = this.#dataRows
+      ? 'data'
+      : virtualized && virtualItems.length > 0
+        ? 'virtual'
+        : 'dom'
+    return [
+      adapter,
+      this.#dataRows,
+      virtualItems,
+      orderedItems,
+      filter === false,
+      normalizedSearch,
+      virtualized,
+    ]
   }
 
-  #setExternalCollection(snapshot: CollectionSnapshot | null) {
+  /** The Collection, rebuilt first when what it's built from changed. */
+  #current(): CollectionSnapshot {
+    const inputs = this.#inputs()
+    const built = this.#collectionInputs
+    if (inputs.some((input, i) => input !== built[i])) this.#rebuild()
+    return this.#collection
+  }
+
+  /** Builds the Collection from its adapter's rows. */
+  #rebuild(): void {
+    const inputs = this.#inputs()
+    const adapter = inputs[0] as AdapterKind
+    const previous = this.#collection
+    // A build for another adapter has a navigation order of its own.
+    const sameAdapter = this.#adapter === adapter
+    const { filter, orderedItems } = this.context
+    this.#adapter = adapter
+    this.#ordered =
+      adapter === 'dom' && filter === false && orderedItems.length > 0
+    this.#collectionInputs = inputs
+
+    if (adapter === 'data') {
+      const data = this.#dataRows!
+      const navOrder = mergeByPosition(
+        this.#dataNavIds(data),
+        this.#registeredItemsOutsideData(data, true),
+        (id) => connected(this.#itemElement(id)),
+        precedes,
+      )
+      // The same rows in the same order are the same Collection.
+      this.#collection =
+        sameAdapter &&
+        previous.rows === data.rows &&
+        sameIds(previous.navOrder, navOrder)
+          ? previous
+          : withNavOrder(data, navOrder)
+      return
+    }
+
+    const { items, groups, groupParents, virtualItems } = this.context
+    const rows: ItemRowMeta[] = []
+    // Navigation's rows, when not every visible row is one.
+    let navigable: ReadonlySet<string> | null = null
+    if (adapter === 'virtual') {
+      const virtualIds = new Set<string>()
+      for (const item of virtualItems) {
+        virtualIds.add(item.value)
+        const registration = items.get(item.value)
+        const row = registrationRow(item.value, registration ?? item)
+        // The items array decides which rows navigation skips, mounted or
+        // not.
+        const disabled = item.disabled ?? false
+        rows.push(row.disabled === disabled ? row : { ...row, disabled })
+      }
+      // Registered rows outside the items array score and count, but
+      // navigation doesn't visit them.
+      for (const [id, registration] of items) {
+        if (!virtualIds.has(id)) rows.push(registrationRow(id, registration))
+      }
+      navigable = virtualIds
+    } else if (this.#ordered) {
+      // The consumer's order first; the rows it leaves out show but aren't
+      // navigated to.
+      const ordered = new Set<string>()
+      for (const id of orderedItems) {
+        const registration = items.get(id)
+        if (!registration || ordered.has(id)) continue
+        ordered.add(id)
+        rows.push(registrationRow(id, registration))
+      }
+      for (const [id, registration] of items) {
+        if (!ordered.has(id)) rows.push(registrationRow(id, registration))
+      }
+      navigable = ordered
+    } else {
+      // Registration order: navigation sorts it by document position.
+      for (const [id, registration] of items) {
+        rows.push(registrationRow(id, registration))
+      }
+    }
+
+    // Against the last build, never the last override: an unchanged build
+    // returns it, and its every visible enabled row.
+    const base = buildSnapshotWithoutPositions(
+      filteredSnapshotInput({
+        items: rows,
+        containers: groups.keys(),
+        containerParents: groupParents,
+        search: this.state.normalizedSearch,
+        filter,
+      }),
+      sameAdapter ? this.#base : undefined,
+    )
+    this.#base = base
+    this.#collection = navigable
+      ? withNavOrder(
+          base,
+          base.navOrder.filter((id) => navigable.has(id)),
+        )
+      : base
+  }
+
+  /**
+   * Rebuilds the Collection and publishes what state derives from it:
+   * `filteredItems`, `visibleGroups` and `filteredCount`, and, when the
+   * store filters, the highlight it keeps. Runs for a new search, a flush of
+   * new registrations and new virtual items.
+   */
+  #publishCollection(prevSearch?: string) {
+    if (this.#dataRows) {
+      this.#publishDataResults()
+      return
+    }
+    // Scores every registered item, so a queued rescore is covered.
+    this.pendingRescore = false
+    this.#rebuild()
+    const collection = this.#collection
+
+    const { filter, virtualItems } = this.context
+    // The Collection's scores, every item row's. While browsing, a
+    // virtualized list's results are its items.
+    let filteredItems = collection.scores as Map<string, number>
+    let filteredCount = countVisibleItemRows(collection)
+    if (
+      this.#adapter === 'virtual' &&
+      (!this.state.normalizedSearch || filter === false)
+    ) {
+      filteredItems = new Map()
+      for (const item of virtualItems) filteredItems.set(item.value, 1)
+      filteredCount = virtualItems.length
+    }
+    const results = {
+      filteredItems,
+      visibleGroups: new Set(collection.visibleContainers),
+      filteredCount,
+      filterTrigger: this.state.filterTrigger + 1,
+    }
+
+    // When filter={false}, the consumer moves the highlight with
+    // `setOrderedItems`, once its rows are in.
+    if (filter === false) {
+      this.update(results)
+      return
+    }
+    const highlightedId = this.validateHighlight({
+      newSearch: this.state.normalizedSearch,
+      prevSearch,
+    })
+    this.update({
+      ...results,
+      highlightedId,
+      // Auto-highlight shouldn't trigger scroll
+      highlightSource: null,
+    })
+  }
+
+  // ==========================================================================
+  // The Data adapter
+  // ==========================================================================
+
+  #publishDataRows(snapshot: CollectionSnapshot | null) {
     if (snapshot === null) {
-      if (!this.#external) return
+      if (!this.#dataRows) return
       this.flushPendingRegistrations()
-      this.#external = false
+      this.#dataRows = null
       this.#pendingBoundIds.clear()
-      const rows = this.#registeredRows
-      this.#registeredRows = []
-      this.#collection = null
-      this.#setExternalState(false, { orderedRows: rows })
+      this.#setDataAdapterState(false, { orderedRows: this.#registeredRows })
       this.queueRescore()
       return
     }
 
-    if (!this.#external) {
-      // Rows registered before the list took over stay rows.
-      this.#external = true
-      this.#setExternalState(true)
-      this.#registeredRows = this.state.orderedRows
-      this.#externalRowsDirty = true
+    if (!this.#dataRows) {
+      this.#setDataAdapterState(true)
       this.pendingRescore = true
     }
-    if (snapshot !== this.#collection) {
-      this.#externalRowsDirty = true
-      this.#flushExternalCollection(snapshot)
-    } else {
-      this.#flushExternalCollection()
-    }
+    if (snapshot !== this.#dataRows) this.#dataRowsDirty = true
+    this.#dataRows = snapshot
+    this.flushPendingRegistrations()
   }
 
   /**
-   * Binds a data-first row's element under its Resolved ID, with the props
-   * its part was given. Returns the unbind.
-   * Temporary external-collection mode, removed by UI-679.
+   * Sets the Data adapter's flag in state, with `changes`. Through
+   * `setState`: `update` only looks at string keys, so it would drop the
+   * flag's symbol key on its own.
    */
-  #bindRow(id: string, row: BoundRow): () => void {
+  #setDataAdapterState(on: boolean, changes: Partial<ListboxState> = {}) {
+    const next: StateWithDataAdapter = {
+      ...this.state,
+      ...changes,
+      [dataAdapterKey]: on,
+    }
+    this.setState(next)
+  }
+
+  #bindDataRow(id: string, row: BoundRow): () => void {
     this.#boundRows.set(id, row)
     if (row.shortcut) this.#boundShortcuts.set(row.shortcut.toLowerCase(), id)
     this.#pendingBoundIds.add(id)
-    this.#externalRowsDirty = true
+    this.#dataRowsDirty = true
     this.#scheduleBindFlush()
 
     return () => {
@@ -1963,7 +2117,7 @@ export class ListboxStore extends ReactStore<
         this.#boundShortcuts.delete(key)
       }
       this.#pendingBoundIds.delete(id)
-      this.#externalRowsDirty = true
+      this.#dataRowsDirty = true
       this.#scheduleBindFlush()
     }
   }
@@ -1981,29 +2135,34 @@ export class ListboxStore extends ReactStore<
     this.#bindFlushQueued = true
     queueMicrotask(() => {
       this.#bindFlushQueued = false
-      if (this.#externalRowsDirty || this.#pendingBoundIds.size > 0) {
+      if (this.#dataRowsDirty || this.#pendingBoundIds.size > 0) {
         this.flushPendingRegistrations()
       }
     })
   }
 
   /**
-   * An item's registration: in external mode, a Collection row's, with what
-   * its part overrides while it's bound; otherwise (or for a row the
-   * Collection doesn't have) what the item registered. Read registrations
-   * through this, never `context.items`.
-   * Its Collection half is temporary, removed by UI-679.
+   * An item's registration: a data-first row's from the Collection, with what
+   * its part overrides while it's bound; a virtualized list's item from the
+   * Collection until it mounts; otherwise what the item registered. Read
+   * registrations through this, never `context.items`.
    */
   #getRegistration(id: string): ItemRegistration | undefined {
-    const collection = this.#collection
-    const fromCollection = collection
-      ? collectionRegistrations(collection).get(id)
-      : undefined
-    if (!fromCollection) return this.context.items.get(id)
+    const data = this.#dataRows
+    const fromData = data ? collectionRegistrations(data).get(id) : undefined
+    if (!fromData) {
+      const registration = this.context.items.get(id)
+      if (registration) return registration
+      // A virtualized list's item that hasn't mounted: its Collection row.
+      const row = this.#current().rows.get(id)
+      return this.#adapter === 'virtual' && row && isItemRow(row)
+        ? itemRowRegistration(row)
+        : undefined
+    }
     const bound = this.#boundRows.get(id)
-    if (!bound) return fromCollection
+    if (!bound) return fromData
     return {
-      ...fromCollection,
+      ...fromData,
       groupId: bound.groupId,
       disabled: bound.disabled,
       closeOnClick: bound.closeOnClick,
@@ -2016,34 +2175,33 @@ export class ListboxStore extends ReactStore<
   /**
    * The item a shortcut key selects, if any. Read shortcuts through this,
    * never `context.shortcuts`.
-   * Its Collection half is temporary, removed by UI-679.
    */
   #getShortcutItemId(key: string): string | undefined {
     const normalized = key.toLowerCase()
-    const collection = this.#collection
-    if (!collection) return this.context.shortcuts.get(normalized)
+    const data = this.#dataRows
+    if (!data) return this.context.shortcuts.get(normalized)
     // A bound row's shortcut is the one its part was given; an unbound row's
     // (outside a virtualized window) is its def's.
     const bound = this.#boundShortcuts.get(normalized)
     if (bound !== undefined) return bound
-    const fromCollection = collectionShortcuts(collection).get(normalized)
-    if (fromCollection !== undefined && !this.#boundRows.has(fromCollection)) {
-      return fromCollection
+    const fromData = collectionShortcuts(data).get(normalized)
+    if (fromData !== undefined && !this.#boundRows.has(fromData)) {
+      return fromData
     }
     return this.context.shortcuts.get(normalized)
   }
 
   /**
-   * Whether navigation can reach an item, disabled or not: registered, or in
-   * external mode, a Collection row that's bound (any Collection row while
-   * virtualized, as virtual items count without being mounted).
+   * Whether navigation can reach an item, disabled or not: registered, a
+   * virtualized list's item, or a data-first row that's bound (any
+   * data-first row while virtualized, as virtual items count without being
+   * mounted).
    */
   #isItemReachable(id: string): boolean {
-    const collection = this.#collection
-    if (collection?.rows.has(id)) {
+    if (this.#dataRows?.rows.has(id)) {
       return this.state.virtualized || this.#boundRows.has(id)
     }
-    return this.context.items.has(id)
+    return this.#getRegistration(id) !== undefined
   }
 
   /** Whether navigation can land on an item: reachable and enabled. */
@@ -2051,13 +2209,13 @@ export class ListboxStore extends ReactStore<
     return this.#isItemReachable(id) && !this.#getRegistration(id)?.disabled
   }
 
-  /** The data rows navigation visits, in the Collection's order. */
-  #collectionNavIds(collection: CollectionSnapshot): string[] {
+  /** The data rows navigation visits, in the list's order. */
+  #dataNavIds(data: CollectionSnapshot): string[] {
     const ids: string[] = []
     const { virtualized } = this.state
-    for (const id of collection.orderedIds) {
-      if (!collection.visible.has(id)) continue
-      const row = collection.rows.get(id)
+    for (const id of data.orderedIds) {
+      if (!data.visible.has(id)) continue
+      const row = data.rows.get(id)
       if (!row || !isItemRow(row)) continue
       const bound = this.#boundRows.get(id)
       if (!bound && !virtualized) continue
@@ -2067,18 +2225,17 @@ export class ListboxStore extends ReactStore<
   }
 
   /**
-   * The enabled items that registered next to the data rows, in document
-   * order. Virtual items' placeholder registrations have no element, so they
-   * don't count.
+   * The items that registered next to the data rows, in document order.
+   * Only rows in the document count.
    */
-  #registeredItemsOutsideCollection(
-    collection: CollectionSnapshot,
+  #registeredItemsOutsideData(
+    data: CollectionSnapshot,
     enabledOnly: boolean,
   ): string[] {
     const ids: string[] = []
     if (this.context.items.size === 0) return ids
     for (const [id, registration] of this.context.items) {
-      if (collection.rows.has(id)) continue
+      if (data.rows.has(id)) continue
       if (enabledOnly && registration.disabled) continue
       if (!this.context.refs.itemRefs.get(id)?.current?.isConnected) continue
       ids.push(id)
@@ -2093,15 +2250,6 @@ export class ListboxStore extends ReactStore<
     return ids
   }
 
-  /** Visible Collection rows plus the items registered next to them. */
-  #externalFilteredCount(collection: CollectionSnapshot | null): number {
-    if (!collection) return 0
-    return (
-      countVisibleItemRows(collection) +
-      this.#registeredItemsOutsideCollection(collection, false).length
-    )
-  }
-
   #itemElement(id: string): HTMLElement | null | undefined {
     return (
       this.#boundRows.get(id)?.elementRef.current ??
@@ -2110,31 +2258,15 @@ export class ListboxStore extends ReactStore<
     )
   }
 
-  #flushExternalCollection(snapshot?: CollectionSnapshot) {
-    const rows = this.#applyPendingRows(this.#registeredRows)
-    if (rows) this.#registeredRows = rows
-
-    if (rows || this.#externalRowsDirty) {
-      this.#externalRowsDirty = false
-      const collection = snapshot ?? this.#collection
-      const merged = this.#mergeExternalRows(collection)
-      const collectionChanged = collection !== this.#collection
-      this.#collection = collection
-      const rowsChanged = !orderedRowsEqual(merged, this.state.orderedRows)
-      if (collectionChanged || rowsChanged) {
-        // One publish: positions and the count together.
-        this.pendingRescore = false
-        const filteredCount = this.#externalFilteredCount(collection)
-        if (rowsChanged || filteredCount !== this.state.filteredCount) {
-          this.update({
-            orderedRows: rowsChanged ? merged : this.state.orderedRows,
-            filteredCount,
-          })
-        }
-      }
+  /**
+   * Publishes the data rows with what bound, unbound and registered since
+   * the last flush, and auto-highlights rows that just came in.
+   */
+  #flushDataRows(rowsChanged: boolean) {
+    if (rowsChanged || this.#dataRowsDirty || this.pendingRescore) {
+      this.#dataRowsDirty = false
+      this.#publishDataResults()
     }
-
-    if (this.pendingRescore) this.recomputeFilteredItems()
 
     const registered = this.#pendingBoundIds
     if (registered.size > 0 || this.pendingRegisteredItems.size > 0) {
@@ -2146,20 +2278,40 @@ export class ListboxStore extends ReactStore<
   }
 
   /**
-   * The rows positions are worked out over: the Collection's visible bound
-   * rows in its order, with registered rows placed among them by document
+   * Rebuilds the Collection from the data rows and publishes what state
+   * derives from them, in one update: positions (`orderedRows`) and the
+   * count of the rows shown with the items registered next to them. The
+   * list filters its rows, so they change when it publishes.
+   */
+  #publishDataResults() {
+    this.pendingRescore = false
+    this.#rebuild()
+    const data = this.#dataRows!
+    const merged = this.#mergeDataRows(data)
+    const filteredCount =
+      countVisibleItemRows(data) +
+      this.#registeredItemsOutsideData(data, false).length
+    const { state } = this
+    const orderedRowsChanged = !orderedRowsEqual(merged, state.orderedRows)
+    if (orderedRowsChanged || filteredCount !== state.filteredCount) {
+      this.update({
+        orderedRows: orderedRowsChanged ? merged : state.orderedRows,
+        filteredCount,
+      })
+    }
+  }
+
+  /**
+   * The rows positions are worked out over: the visible bound data rows in
+   * the list's order, with registered rows placed among them by document
    * position.
    */
-  #mergeExternalRows(
-    collection: CollectionSnapshot | null,
-  ): ListboxOrderedRow[] {
+  #mergeDataRows(data: CollectionSnapshot): ListboxOrderedRow[] {
     const items: ListboxOrderedRow[] = []
-    if (collection) {
-      for (const id of collection.orderedIds) {
-        const bound = this.#boundRows.get(id)
-        if (!bound || !collection.visible.has(id)) continue
-        items.push({ id, kind: 'item', groupId: bound.groupId })
-      }
+    for (const id of data.orderedIds) {
+      const bound = this.#boundRows.get(id)
+      if (!bound || !data.visible.has(id)) continue
+      items.push({ id, kind: 'item', groupId: bound.groupId })
     }
     // Registered rows sort again here: they're few, and a search can move
     // them (a `Group` part that `sortGroups` reorders) without registering
@@ -2168,12 +2320,15 @@ export class ListboxStore extends ReactStore<
       this.#registeredRows.length > 1
         ? [...this.#registeredRows].sort((a, b) => this.compareRowOrder(a, b))
         : this.#registeredRows
-    return insertByDocumentPosition(
+    return mergeByPosition(
       items,
       registered,
       (row) =>
-        this.#boundRows.get(row.id)?.elementRef.current ??
-        this.context.rowElements.get(row.id),
+        connected(
+          this.#boundRows.get(row.id)?.elementRef.current ??
+            this.context.rowElements.get(row.id),
+        ),
+      precedes,
     )
   }
 
@@ -2332,16 +2487,17 @@ export class ListboxStore extends ReactStore<
     if (!registration || registration.disabled) return false
 
     // Check if item is visible (passes filter)
-    const collection = this.#collection
-    if (collection?.rows.has(itemId)) {
-      // A Collection row needs to be shown and mounted: an unmounted row has
+    const data = this.#dataRows
+    if (data?.rows.has(itemId)) {
+      // A data-first row needs to be shown and mounted: an unmounted row has
       // no select handler to run.
-      if (!collection.visible.has(itemId) || !this.#boundRows.has(itemId)) {
+      if (!data.visible.has(itemId) || !this.#boundRows.has(itemId)) {
         return false
       }
-    } else if (!this.#external) {
-      const score = this.state.filteredItems.get(itemId) ?? 0
-      const isVisible = this.state.normalizedSearch.length === 0 || score > 0
+    } else if (!data) {
+      const isVisible =
+        this.state.normalizedSearch.length === 0 ||
+        this.#current().visible.has(itemId)
       if (!isVisible) return false
     }
 
@@ -2445,103 +2601,60 @@ export class ListboxStore extends ReactStore<
    * Returns whether filtering is disabled (consumer handles filtering externally).
    */
   isFilterDisabled(): boolean {
-    return this.context.filter === false || this.#external
+    return this.context.filter === false || this.#dataRows !== null
   }
 
   getVisibleItemIds(): string[] {
     this.flushPendingRegistrations()
-    const result: string[] = []
-    const search = this.state.normalizedSearch
-    const filteredItems = this.state.filteredItems
-    const virtualItems = this.context.virtualItems
-    const orderedItems = this.context.orderedItems
+    const ids = this.#navIds()
+    if (this.#ordered) this.#warnUnregisteredOrderedItems(ids)
+    return [...ids]
+  }
 
-    // A data-first list's Collection orders its rows, virtualized or not;
-    // rows that registered next to them go in by document position.
-    const collection = this.#collection
-    if (collection) {
-      return insertByDocumentPosition(
-        this.#collectionNavIds(collection),
-        this.#registeredItemsOutsideCollection(collection, true),
-        (id) => this.#itemElement(id),
+  /**
+   * The rows navigation visits, in order: the Collection's `navOrder`, which
+   * the DOM adapter keeps in registration order and sorts by document
+   * position here. Registration order drifts when a subset remounts (Fast
+   * Refresh effects, Suspense retries, key changes), which made keyboard
+   * navigation jump; it's the fallback for rows not in the document.
+   */
+  #navIds(): readonly string[] {
+    const entries = this.#documentEntries()
+    return entries
+      ? entries.sort(compareByDomOrder).map((entry) => entry.id)
+      : this.#collection.navOrder
+  }
+
+  /**
+   * The DOM adapter's `navOrder` with each row's element, to order by
+   * document position, or `null` when the Collection's order stands.
+   */
+  #documentEntries(): DomOrderEntry[] | null {
+    const { navOrder } = this.#current()
+    if (this.#adapter !== 'dom' || this.#ordered) return null
+    return navOrder.map((id, index) => ({
+      id,
+      element: this.context.refs.itemRefs.get(id)?.current ?? null,
+      index,
+    }))
+  }
+
+  /**
+   * Warns, in development, about `orderedItems` entries that never
+   * registered, once some have: keyboard navigation skips them.
+   */
+  #warnUnregisteredOrderedItems(navOrder: readonly string[]) {
+    // No item registered yet: they're likely still mounting, and register
+    // shortly (`maybeAutoHighlightOnRegister`).
+    if (process.env.NODE_ENV === 'production' || navOrder.length === 0) return
+    for (const itemId of this.context.orderedItems) {
+      if (this.context.items.has(itemId)) continue
+      console.warn(
+        `[ListboxStore] Item "${itemId}" is in orderedItems but not registered. ` +
+          'This may cause keyboard navigation to skip this item. ' +
+          'Make sure the render function passes the `id` prop: <Item {...props}>...</Item>',
       )
     }
-
-    // When virtualized with items, use the virtualItems order
-    // This ensures navigation order matches the data array order
-    if (this.state.virtualized && virtualItems.length > 0) {
-      for (const item of virtualItems) {
-        const score = filteredItems.get(item.value) ?? 0
-        const isVisible = search.length === 0 || score > 0
-        if (isVisible && !item.disabled) {
-          result.push(item.value)
-        }
-      }
-      return result
-    }
-
-    // When consumer provides ordered items (filter={false}), use that order
-    // This ensures navigation matches the consumer's intended display order
-    if (this.context.filter === false && orderedItems.length > 0) {
-      // Track unregistered items for warning
-      const unregisteredItems: string[] = []
-
-      for (const itemId of orderedItems) {
-        const registration = this.context.items.get(itemId)
-        // Only include if registered (mounted) and not disabled
-        if (registration && !registration.disabled) {
-          result.push(itemId)
-        } else if (!registration) {
-          unregisteredItems.push(itemId)
-        }
-      }
-
-      // Only warn about unregistered items if SOME items are registered
-      // If no items are registered, we're likely in the initial mount phase
-      // and items will register shortly via maybeAutoHighlightOnRegister
-      if (
-        process.env.NODE_ENV !== 'production' &&
-        unregisteredItems.length > 0 &&
-        result.length > 0
-      ) {
-        for (const itemId of unregisteredItems) {
-          console.warn(
-            `[ListboxStore] Item "${itemId}" is in orderedItems but not registered. ` +
-              'This may cause keyboard navigation to skip this item. ' +
-              'Make sure the render function passes the `id` prop: <Item {...props}>...</Item>',
-          )
-        }
-      }
-
-      return result
-    }
-
-    // Non-virtualized: sort mounted items by DOM order. Registration order
-    // (Map insertion) drifts when a subset remounts (Fast Refresh effects,
-    // Suspense retries, key changes), which made keyboard navigation jump.
-    const visibleItems: DomOrderEntry[] = []
-
-    let registrationIndex = 0
-    this.context.items.forEach((registration, id) => {
-      const index = registrationIndex++
-      const score = filteredItems.get(id) ?? 0
-      const isVisible = search.length === 0 || score > 0
-      if (isVisible && !registration.disabled) {
-        visibleItems.push({
-          id,
-          element: this.context.refs.itemRefs.get(id)?.current ?? null,
-          index,
-        })
-      }
-    })
-
-    visibleItems.sort(compareByDomOrder)
-
-    for (const { id } of visibleItems) {
-      result.push(id)
-    }
-
-    return result
   }
 
   /**
@@ -2568,8 +2681,7 @@ export class ListboxStore extends ReactStore<
    * This is the single source of truth for highlight management.
    *
    * @param options.forceFirst - Force highlight first item even if current is valid
-   * @param options.filteredItems - Use this map instead of state (for mid-update calls)
-   * @param options.newSearch - The search query for filteredItems (to detect search cleared)
+   * @param options.newSearch - The search query the Collection was built for (to detect search cleared)
    */
   private validateHighlight(
     options: ValidateHighlightOptions = {},
@@ -2578,7 +2690,6 @@ export class ListboxStore extends ReactStore<
     this.flushPendingRegistrations()
     const {
       forceFirst = false,
-      filteredItems = this.state.filteredItems,
       newSearch,
       prevSearch: optionsPrevSearch,
     } = options
@@ -2589,7 +2700,6 @@ export class ListboxStore extends ReactStore<
       optionsPrevSearch !== undefined
         ? optionsPrevSearch
         : this.state.normalizedSearch
-    const effectiveSearch = newSearch !== undefined ? newSearch : prevSearch
     const searchChanged = newSearch !== undefined && newSearch !== prevSearch
 
     // If not open or autoHighlightFirst disabled, don't change anything
@@ -2598,221 +2708,64 @@ export class ListboxStore extends ReactStore<
     }
 
     const currentHighlight = this.state.highlightedId
-    const { filter } = this.context
-
     // If search changed, force reset to first item
     const shouldForceFirst = forceFirst || searchChanged
-
-    // A data-first list's rows, virtualized or not: keep a highlight
-    // navigation can still reach, else move to the first data row.
-    const collection = this.#collection
-    if (collection) {
-      const keep =
-        currentHighlight !== null &&
-        !shouldForceFirst &&
-        this.#isItemNavigable(currentHighlight) &&
-        (collection.visible.has(currentHighlight) ||
-          !collection.rows.has(currentHighlight))
-      const next = keep
-        ? currentHighlight
-        : (this.#collectionNavIds(collection)[0] ?? null)
-      if (next !== currentHighlight) {
-        this.update({ highlightedId: next, highlightSource: null })
-      }
-      return next
-    }
-
-    // Check if current highlight is valid
-    let isCurrentValid = false
-    if (currentHighlight && !shouldForceFirst) {
-      // Check if item exists and passes filter
-      const score = filteredItems.get(currentHighlight) ?? 0
-      const isVisible =
-        effectiveSearch.length === 0 || filter === false || score > 0
-
-      // Check if item is disabled
-      const registration = this.context.items.get(currentHighlight)
-      const virtualItem = this.context.virtualItems.find(
-        (v) => v.value === currentHighlight,
-      )
-      const isDisabled =
-        registration?.disabled ?? virtualItem?.disabled ?? false
-
-      // Item must be registered (in items map) for non-virtualized mode
-      const isRegistered = this.state.virtualized || registration !== undefined
-
-      // In virtualized mode, item must also be in virtualItems array
-      const inVirtualItems =
-        !this.state.virtualized ||
-        this.context.virtualItems.length === 0 ||
-        virtualItem !== undefined
-
-      isCurrentValid =
-        isVisible && !isDisabled && isRegistered && inVirtualItems
-    }
-
-    // If current highlight is valid and we're not forcing first, keep it
-    if (isCurrentValid) {
-      return currentHighlight
-    }
-
-    // Find the first valid item to highlight
-    let newHighlightId: string | null = null
-
-    if (this.state.virtualized && this.context.virtualItems.length > 0) {
-      // Virtualized mode: use virtualItems order
-      for (const item of this.context.virtualItems) {
-        const score = filteredItems.get(item.value) ?? 0
-        const isVisible =
-          effectiveSearch.length === 0 || filter === false || score > 0
-        if (isVisible && !item.disabled) {
-          newHighlightId = item.value
-          break
-        }
-      }
-    } else if (filter === false && this.context.orderedItems.length > 0) {
-      // Consumer-controlled filtering: use orderedItems order
-      for (const itemId of this.context.orderedItems) {
-        const registration = this.context.items.get(itemId)
-        // Only include if registered (mounted) and not disabled
-        if (registration && !registration.disabled) {
-          newHighlightId = itemId
-          break
-        }
-      }
-    } else {
-      // Non-virtualized mode: first valid item in DOM order — must agree with
-      // getVisibleItemIds(), which also sorts by DOM order (registration order
-      // drifts when a subset of items remounts).
-      let first: DomOrderEntry | null = null
-      let registrationIndex = 0
-      for (const [id, registration] of this.context.items) {
-        const index = registrationIndex++
-        const score = filteredItems.get(id) ?? 0
-        const isVisible = effectiveSearch.length === 0 || score > 0
-        if (isVisible && !registration.disabled) {
-          const candidate: DomOrderEntry = {
-            id,
-            element: this.context.refs.itemRefs.get(id)?.current ?? null,
-            index,
-          }
-          if (first === null || compareByDomOrder(candidate, first) < 0) {
-            first = candidate
-          }
-        }
-      }
-      newHighlightId = first?.id ?? null
-    }
+    const keep =
+      currentHighlight !== null &&
+      !shouldForceFirst &&
+      this.#canKeepHighlight(currentHighlight)
+    const next = keep ? currentHighlight : this.#firstNavigable()
 
     // Only update if highlight actually changed
-    if (newHighlightId !== currentHighlight) {
+    if (next !== currentHighlight) {
       this.update({
-        highlightedId: newHighlightId,
+        highlightedId: next,
         highlightSource: null, // Auto-highlight shouldn't trigger scroll
       })
     }
-
-    return newHighlightId
+    return next
   }
 
-  private recomputeFilteredItems(prevSearch?: string) {
-    // Scores every registered item, so a queued rescore is covered.
-    this.pendingRescore = false
-
-    // A data-first list's Collection is already filtered and scored, and
-    // rows registered next to its rows all show, as with `filter={false}`.
-    // Groups need no visibility here: `isGroupVisible` shows every group
-    // while a Collection is published.
-    if (this.#external) {
-      const filteredCount = this.#externalFilteredCount(this.#collection)
-      if (filteredCount !== this.state.filteredCount) {
-        this.set('filteredCount', filteredCount)
-      }
-      return
+  /** Whether a highlighted item can keep the highlight. */
+  #canKeepHighlight(id: string): boolean {
+    // A data-first list's rows, virtualized or not: one navigation can still
+    // reach. A row registered next to them always shows.
+    const data = this.#dataRows
+    if (data) {
+      return (
+        this.#isItemNavigable(id) &&
+        (data.visible.has(id) || !data.rows.has(id))
+      )
     }
-
-    const { filter } = this.context
-    const normalizedSearch = this.state.normalizedSearch
-    const items = this.context.items
-    const groups = this.context.groups
-
-    const filteredItems = new Map<string, number>()
-    const visibleGroups = new Set<string>()
-    let filteredCount = 0
-
-    // If no search or filtering disabled, all items are visible
-    if (!normalizedSearch || filter === false) {
-      // When virtualized with consumer-side filtering (filter === false),
-      // use virtualItems as the source of truth for what's visible.
-      // This ensures the scores match the consumer's filtered array,
-      // not just what's currently mounted.
-      if (this.state.virtualized && this.context.virtualItems.length > 0) {
-        for (const item of this.context.virtualItems) {
-          filteredItems.set(item.value, 1)
-          filteredCount++
-        }
-      } else {
-        items.forEach((_, id) => {
-          filteredItems.set(id, 1)
-          filteredCount++
-        })
-      }
-      groups.forEach((_, groupId) => {
-        visibleGroups.add(groupId)
-      })
-    } else {
-      // Apply filter function
-      const filterFn = filter || commandScore
-      items.forEach((registration, id) => {
-        const fuzzyScore = filterFn(
-          registration.value,
-          normalizedSearch,
-          registration.keywords,
-        )
-        const score = registration.forceScore ?? fuzzyScore
-        filteredItems.set(id, score)
-        if (score > 0) {
-          filteredCount++
-          let groupId = registration.groupId
-          while (groupId && !visibleGroups.has(groupId)) {
-            visibleGroups.add(groupId)
-            groupId = this.context.groupParents.get(groupId)
-          }
-        }
-      })
+    // With `filter={false}` the store never validates (the consumer moves
+    // the highlight with `setOrderedItems`), so `orderedItems` mode needs no
+    // rule of its own here.
+    const collection = this.#current()
+    if (this.#adapter === 'virtual') {
+      // A virtualized list's item, shown, and enabled by its mounted row's
+      // part when it has one, else by the item.
+      const item = this.context.virtualItems.find((v) => v.value === id)
+      const disabled =
+        this.context.items.get(id)?.disabled ?? item?.disabled ?? false
+      return item !== undefined && collection.visible.has(id) && !disabled
     }
+    return collection.navOrder.includes(id)
+  }
 
-    // When filter={false}, consumer controls highlighting via setConsumerFilteredItems.
-    // Don't call validateHighlight here because consumerFilteredItems hasn't been updated yet.
-    // The highlight will be set when setConsumerFilteredItems is called from the Surface effect.
-    if (filter === false) {
-      this.update({
-        filteredItems,
-        visibleGroups,
-        filteredCount,
-        filterTrigger: this.state.filterTrigger + 1,
-        // Don't change highlight - let setConsumerFilteredItems handle it
-      })
-      return
+  /** The item an automatic highlight goes to: the first navigation visits. */
+  #firstNavigable(): string | null {
+    // A data-first list's own first row, before rows registered next to it.
+    const data = this.#dataRows
+    if (data) return this.#dataNavIds(data)[0] ?? null
+    const entries = this.#documentEntries()
+    if (!entries) return this.#collection.navOrder[0] ?? null
+    // The first in document order, without sorting them all: a search asks
+    // on every key.
+    let first: DomOrderEntry | null = null
+    for (const entry of entries) {
+      if (first === null || compareByDomOrder(entry, first) < 0) first = entry
     }
-
-    // Validate highlight using the newly computed filteredItems
-    // We pass filteredItems, newSearch, and prevSearch here because we need to detect search cleared
-    const highlightedId = this.validateHighlight({
-      filteredItems,
-      newSearch: normalizedSearch,
-      prevSearch,
-    })
-
-    this.update({
-      filteredItems,
-      visibleGroups,
-      filteredCount,
-      filterTrigger: this.state.filterTrigger + 1,
-      highlightedId,
-      // Auto-highlight shouldn't trigger scroll
-      highlightSource: null,
-    })
+    return first?.id ?? null
   }
 
   // ============================================================================

@@ -1,7 +1,9 @@
+import { buildSnapshot } from '@bazza-ui/menu-core'
 import { renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { defaultFilter } from '../utils/command-score.js'
 import type { ListboxContext, ListboxState } from './ListboxStore.js'
-import { ListboxStore } from './ListboxStore.js'
+import { ListboxStore, publishDataRows } from './ListboxStore.js'
 
 // ============================================================================
 // Test Helpers
@@ -775,6 +777,90 @@ describe('ListboxStore', () => {
       expect(ids).toEqual(['item-1', 'item-3'])
     })
 
+    it("follows the items' disabled over a mounted row's in navigation", () => {
+      const store = createStore({ open: true })
+      store.setVirtualized(true)
+      store.setVirtualItems([
+        { value: 'item-1' },
+        { value: 'item-2' },
+        { value: 'item-3', disabled: true },
+      ])
+      // Mounted rows that disagree with the items array.
+      store.registerItem('item-2', { value: 'item-2', disabled: true })
+      store.registerItem('item-3', { value: 'item-3', disabled: false })
+
+      expect(store.getVisibleItemIds()).toEqual(['item-1', 'item-2'])
+    })
+
+    it("keeps a highlight on a row its part enables though its item doesn't", () => {
+      const store = createStore({ open: true })
+      store.setVirtualized(true)
+      store.setVirtualItems([
+        { value: 'item-1' },
+        { value: 'item-2', disabled: true },
+      ])
+      registerItems(store, [{ id: 'item-2', value: 'item-2', disabled: false }])
+      store.setHighlightedId('item-2', 'pointer')
+
+      // A registration flushes and the highlight is validated again.
+      registerItems(store, [{ id: 'other', value: 'other' }])
+      expect(store.state.highlightedId).toBe('item-2')
+      // Navigation still skips it, as its item says.
+      expect(store.getVisibleItemIds()).toEqual(['item-1'])
+    })
+
+    it('navigates the items added to the array, a registered row among them', () => {
+      const store = createStore({ open: true })
+      store.setVirtualized(true)
+      store.setVirtualItems([{ value: 'a' }])
+      registerItems(store, [{ id: 'b', value: 'b' }])
+      expect(store.getVisibleItemIds()).toEqual(['a'])
+
+      store.setVirtualItems([{ value: 'a' }, { value: 'b' }])
+      expect(store.getVisibleItemIds()).toEqual(['a', 'b'])
+    })
+
+    it('reads an item registered before virtualization starts', () => {
+      const store = createStore({ open: true })
+      store.setVirtualItems([{ value: 'a' }, { value: 'b', keywords: ['bee'] }])
+      store.setVirtualized(true)
+
+      store.setHighlightedId('b', 'keyboard')
+      expect(store.getHighlightedItem()).toMatchObject({
+        value: 'b',
+        keywords: ['bee'],
+      })
+    })
+
+    it("reads an item's registration before it mounts", () => {
+      const store = createStore({ open: true })
+      store.setVirtualized(true)
+      store.setVirtualItems([
+        { value: 'item-1' },
+        { value: 'item-2', keywords: ['two'], disabled: true },
+      ])
+
+      store.setHighlightedId('item-2', 'keyboard')
+      expect(store.getHighlightedItem()).toMatchObject({
+        value: 'item-2',
+        keywords: ['two'],
+        disabled: true,
+      })
+    })
+
+    it('navigates the mounted rows alone once virtualization ends', () => {
+      const store = createStore({ open: true })
+      store.setVirtualized(true)
+      store.setVirtualItems([{ value: 'a' }, { value: 'b' }, { value: 'c' }])
+      registerItems(store, [{ id: 'a', value: 'a' }])
+      expect(store.state.filteredCount).toBe(3)
+
+      store.setVirtualized(false)
+      store.setVirtualItems([])
+      // The items that never mounted were never registered.
+      expect(store.getVisibleItemIds()).toEqual(['a'])
+    })
+
     it('getVirtualItemIndex returns correct index', () => {
       const store = createStore({ virtualized: true })
       store.setVirtualItems([
@@ -1097,6 +1183,33 @@ describe('ListboxStore', () => {
 
       // Should not change highlight when closed
       expect(store.state.highlightedId).toBe(null)
+    })
+
+    it('navigates the rows the ordered items add back', () => {
+      const store = createStore({ open: true }, { filter: false })
+      registerItems(store, [
+        { id: 'a', value: 'a' },
+        { id: 'b', value: 'b' },
+      ])
+      store.setOrderedItems(['a'])
+      expect(store.getVisibleItemIds()).toEqual(['a'])
+
+      store.setOrderedItems(['a', 'b'])
+      expect(store.getVisibleItemIds()).toEqual(['a', 'b'])
+    })
+
+    it('navigates every row once the store filters again', () => {
+      const store = createStore({ open: true }, { filter: false })
+      registerItems(store, [
+        { id: 'a', value: 'a' },
+        { id: 'b', value: 'b' },
+      ])
+      store.setOrderedItems(['a'])
+      expect(store.getVisibleItemIds()).toEqual(['a'])
+
+      // The Surface's settings switch the filter on.
+      store.context.filter = defaultFilter
+      expect(store.getVisibleItemIds()).toEqual(['a', 'b'])
     })
 
     it('getVisibleItemIds returns items in ordered order', () => {
@@ -1577,6 +1690,30 @@ describe('ListboxStore', () => {
       store.initializeDefaultSearch('x')
 
       expect(store.state.search).toBe('y')
+    })
+  })
+
+  describe('a data-first list', () => {
+    const dataRow = (id: string) => ({
+      id,
+      kind: 'item' as const,
+      textValue: id,
+      disabled: false,
+      activatable: true,
+      closeOnClick: true,
+    })
+
+    it('shows every row while its rows fill the store, and not after', () => {
+      const store = createStore({ open: true })
+      publishDataRows(store, buildSnapshot({ rows: [dataRow('data')] }))
+      registerItems(store, [{ id: 'x', value: 'x' }])
+
+      store.setSearch('zzz')
+      expect(store.select('isItemVisible', 'x')).toBe(true)
+
+      publishDataRows(store, null)
+      store.flushPendingRegistrations()
+      expect(store.select('isItemVisible', 'x')).toBe(false)
     })
   })
 

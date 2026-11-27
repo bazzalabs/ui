@@ -1,4 +1,6 @@
 export * from './data.js'
+export * from './filtered.js'
+export * from './merge.js'
 export * from './positions.js'
 export * from './snapshot.js'
 export * from './types.js'
