@@ -21,6 +21,7 @@ import {
   deriveOpenMethod,
   type OpenMethod,
 } from '../../../utils/input-modality.js'
+import type { VirtualizationConfig } from '../contexts/listbox-context.js'
 import type {
   HighlightChangeEventDetails,
   HighlightChangeReason,
@@ -872,6 +873,71 @@ export function controlCell<State, Name extends keyof State & string>(
     [name]: controlled,
     [`${name}Prop`]: controlled,
   } as Partial<State>)
+}
+
+// ============================================================================
+// Surface settings
+//
+// Exported from this module only, like the entry points above.
+// ============================================================================
+
+/**
+ * A Surface's settings but `orderedItems`. The Surface memoizes them over the
+ * props they come from: a new object means one of those changed, and a sync
+ * writes them all.
+ */
+export interface SurfaceSettings {
+  /**
+   * What the store's context takes as it is. `filter` is `false` for a
+   * data-first Surface, whose list filters.
+   */
+  context: Pick<
+    ListboxContext,
+    | 'filter'
+    | 'loop'
+    | 'autoHighlightFirst'
+    | 'clearSearchOnClose'
+    | 'resetScrollOnSearch'
+    | 'listId'
+    | 'inputId'
+    | 'onSearchChange'
+  >
+  normalizeSearch: SearchNormalizer
+  virtualization: VirtualizationConfig | undefined
+}
+
+/**
+ * Writes a Surface's settings into its store, before the commit's rows
+ * flush: the Surface calls it from a layout effect of `SurfaceConfigSync`,
+ * its first child, keyed on the settings. With no `virtualization`, the
+ * virtualization slot is left alone, for a child's own virtual list to write.
+ */
+export function syncSurfaceSettings(
+  store: ListboxStore,
+  settings: SurfaceSettings,
+): void {
+  Object.assign(store.context, settings.context)
+  store.setSearchNormalizer(settings.normalizeSearch)
+  const { virtualization } = settings
+  if (virtualization) {
+    store.setVirtualized(virtualization.virtualized)
+    store.setVirtualItems(virtualization.items)
+    store.setOnHighlightChange(virtualization.onHighlightChange)
+  }
+}
+
+/**
+ * Whether the Surface applies `autoHighlightFirst` again (`applyAutoHighlight`)
+ * once a commit's items register: when it's a value. The Surface asks from a
+ * passive effect keyed on its settings, so any setting's change re-applies
+ * it, a new `virtualization` or `onSearchChange` included (Ship-usage audit
+ * bug 1). Re-applying only for a new `autoHighlightFirst` is one line: that
+ * effect's dependencies, `[store, settings.context.autoHighlightFirst]`.
+ */
+export function reapplyAutoHighlight(
+  autoHighlightFirst: boolean | string,
+): boolean {
+  return typeof autoHighlightFirst === 'string'
 }
 
 // ============================================================================
