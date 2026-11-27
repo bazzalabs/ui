@@ -1,14 +1,9 @@
 'use client'
 
-import * as React from 'react'
 import type { FocusZoneRegistry } from '../store/FocusZoneRegistry.js'
+import { useMaybeMenuTreeTier } from './menu-tree-context.js'
 
-const FocusZoneRegistryContext = React.createContext<FocusZoneRegistry | null>(
-  null,
-)
-
+/** The menu tree's focus zones (its tree tier's), or null outside one. */
 export function useMaybeFocusZoneRegistry(): FocusZoneRegistry | null {
-  return React.useContext(FocusZoneRegistryContext)
+  return useMaybeMenuTreeTier()?.focusZones ?? null
 }
-
-export { FocusZoneRegistryContext }

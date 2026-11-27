@@ -1,6 +1,6 @@
 'use client'
 
-import * as React from 'react'
+import { useMaybeMenuTreeTier } from './menu-tree-context.js'
 
 /**
  * Component name used for generating bazzaui-* slot attributes.
@@ -14,30 +14,26 @@ export type ComponentName =
   | 'command-menu'
   | 'suggestion-menu'
 
-export const ComponentNameContext = React.createContext<ComponentName | null>(
-  null,
-)
-
 /**
- * Returns the component name from context.
- * Throws if used outside of a component that provides the context.
+ * Returns the component name of the menu tree around the caller (set by
+ * `PopupMenuProviders` on its tree tier).
+ * Throws if used outside of a menu tree.
  */
 export function useComponentName(): ComponentName {
-  const context = React.useContext(ComponentNameContext)
-  if (context === null) {
-    throw new Error(
-      'useComponentName must be used within a ComponentNameContext.Provider',
-    )
+  const componentName = useMaybeComponentName()
+  if (componentName === null) {
+    throw new Error('useComponentName must be used within a menu tree')
   }
-  return context
+  return componentName
 }
 
 /**
- * Returns the component name from context, or null if not available.
- * Useful for internal components that may be used outside the popup-menu context.
+ * Returns the component name of the menu tree around the caller, or null
+ * outside one. Useful for internal components that may be used outside the
+ * popup-menu context.
  */
 export function useMaybeComponentName(): ComponentName | null {
-  return React.useContext(ComponentNameContext)
+  return useMaybeMenuTreeTier()?.componentName ?? null
 }
 
 /**

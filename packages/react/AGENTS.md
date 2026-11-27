@@ -170,6 +170,19 @@ const element = useRender({ render, ref, props, defaultTagName: 'div' })
 return <MyContext.Provider value={contextValue}>{element}</MyContext.Provider>
 ```
 
+## Tier contexts
+
+The menu engine's parts read two contexts, one per tier. Every field of a tier is set when the tier is made and never changes; what changes is read through a store selector. Never write a tier field, or a store's state, while rendering.
+
+- **The tree tier**, `MenuTreeContext`: a `MenuTreeTier` (`internal/popup-menu/contexts/menu-tree-context.ts`) that `PopupMenuProviders` makes with the root's first props. It holds the root's `MenuTreeStore` (`useMenuTree()`), its component name (`useMaybeComponentName()`), its settings, a store whose debug flags are synced from later props with `useSyncedValue` (`usePopupMenuDebug()`), its aim guard (`useAimGuard()`, `useAimGuardState()`) and its focus zones (`useMaybeFocusZoneRegistry()`).
+- **The surface tier**, `SurfaceTierContext`: a `MenuSurfaceTier` (`internal/popup-menu/contexts/surface-tier-context.ts`), one per surface store, made where the store is (`PopupMenuProviders`, `SubmenuRoot`, `Subpage`). It holds the submenu (`useSubmenuContext()`; its open state and `closeRootOnEsc` are store state, and every caller in a render gets the same value) and the surface's checkbox selection (`useCheckboxSelection()`), made with the tier. A Surface claims the selection when it mounts (`selection.claim(owner)` from a layout effect): a new Surface starts it fresh, and the same Surface shown again by `<Activity>` or after Fast Refresh keeps it. Find the tier a row belongs to by its Surface's store, `findSurfaceTier(tier, store)`: a submenu trigger sits under its submenu's tier.
+
+A tier is provided above its popup, positioner and trigger, so it reaches parts a Surface or List doesn't. What only a Surface's or List's children may read keeps a provider of its own: a data-first Surface's loader scope (`LoaderScopeContext`, read by `useAsyncMenuCoordinator()`), which the popup's subpage outlet and parts beside the Surface don't see, and a data-first List's rows (`CollectionRowsContext`). The loader scope lives while the Surface shows its content (`useLoaderScope(tree, store, isDataMode && isSurfaceActive)`): a subpage that hides the Surface drops it from the tree, and the Surface gets a new one when it shows again.
+
+Read a store a part may not have (outside a tree, a submenu or a data-first Surface) with `useMaybeStore(store, selector, fallback, arg)` (`internal/popup-menu/hooks/use-maybe-store.ts`), not a module-level idle store of your own.
+
+Don't add a context for new engine state that a whole tier shares: put it on the tier, and read what changes through a store selector. The published context objects (`PopupMenuContext`, `ListboxContextProvider`, `PopupSurfaceIdContext`, `SubpageStackContext`, `DataPopupContext`, `SurfaceContext`, `GroupContext`, `RowWidthContext`, `DataSurfaceContext`, `DataListContext`, `ItemContext`) are still provided where they were, with the same values; `SubpageContext` stays a context until the subpage stack lives in a store. `provider-nest.test.tsx` pins the providers above a row.
+
 ## Conditional Rendering
 
 `useRender` is a hook, so call it on every render and pass `enabled` to skip rendering the element. Return `null` after the call, never before it (`react-hooks/rules-of-hooks` reports an early return before a hook):

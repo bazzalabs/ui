@@ -1,6 +1,7 @@
 'use client'
 
 import { Popover, type PopoverRootProps } from '@base-ui/react/popover'
+import { useStableCallback } from '@base-ui/utils/useStableCallback'
 import * as React from 'react'
 import {
   ListboxContextProvider,
@@ -15,7 +16,12 @@ import {
   PopupMenuContext,
   useMaybePopupMenuContext,
 } from '../../contexts/popup-menu-context.js'
-import { SubmenuContext } from '../../contexts/submenu-context.js'
+import { SubmenuHandle } from '../../contexts/submenu-context.js'
+import {
+  MenuSurfaceTier,
+  SurfaceTierContext,
+  useMaybeMenuSurfaceTier,
+} from '../../contexts/surface-tier-context.js'
 import type {
   HighlightChangeEventDetails,
   PopupMenuHighlightChangeHandler,
@@ -155,13 +161,6 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
   // Generate unique surface ID for this submenu
   const childSurfaceId = React.useId()
 
-  // Ref for trigger element
-  const triggerRef = React.useRef<HTMLElement | null>(null)
-  // Ref for submenu content element (used for aim guard rect calculations)
-  const contentRef = React.useRef<HTMLElement | null>(null)
-  // Latch for suppressing auto-open after an explicit close (see SubmenuContextValue)
-  const suppressAutoOpenRef = React.useRef(false)
-
   // Create the store instance for this submenu
   const store = ListboxStore.useStore(undefined, { open: defaultOpen })
 
@@ -175,15 +174,14 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
     setImperativeDisabled(nextDisabled)
   }, [])
 
-  const setOpen = React.useCallback(
-    (newOpen: boolean) => {
-      if (newOpen && disabled) {
-        return
-      }
-      store.setOpen(newOpen)
-    },
-    [store, disabled],
-  )
+  // Stable, so the submenu's tier never changes; it reads the latest
+  // `disabled`.
+  const setOpen = useStableCallback((newOpen: boolean) => {
+    if (newOpen && disabled) {
+      return
+    }
+    store.setOpen(newOpen)
+  })
 
   // Sync controlled open prop to store
   store.useControlledProp('openProp', openProp)
@@ -292,19 +290,25 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
     [setDisabled],
   )
 
-  // Submenu context value
-  const submenuContextValue = React.useMemo(
-    () => ({
-      open,
-      setOpen,
-      suppressAutoOpenRef,
-      triggerRef,
-      contentRef,
-      parentSurfaceId,
-      childSurfaceId,
-      closeRootOnEsc,
-    }),
-    [open, setOpen, parentSurfaceId, childSurfaceId, closeRootOnEsc],
+  // The submenu surface's tier, which its trigger, positioner, popup and
+  // surface read the submenu from (`useSubmenuContext`).
+  const parentTier = useMaybeMenuSurfaceTier()
+  // biome-ignore lint/correctness/useExhaustiveDependencies(closeRootOnEsc): it seeds the handle; later values are synced into the handle's state below
+  const submenu = React.useMemo(
+    () =>
+      new SubmenuHandle(
+        store,
+        setOpen,
+        parentSurfaceId,
+        childSurfaceId,
+        closeRootOnEsc,
+      ),
+    [store, setOpen, parentSurfaceId, childSurfaceId],
+  )
+  submenu.useSyncedValue('closeRootOnEsc', closeRootOnEsc)
+  const surfaceTier = React.useMemo(
+    () => new MenuSurfaceTier(store, parentTier, submenu),
+    [store, parentTier, submenu],
   )
 
   // Fallback registerSurface for edge cases (submenu without parent root)
@@ -388,7 +392,7 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
   )
 
   return (
-    <SubmenuContext.Provider value={submenuContextValue}>
+    <SurfaceTierContext.Provider value={surfaceTier}>
       <PopupMenuContext.Provider value={popupMenuContextValue}>
         <ListboxContextProvider.Provider value={listboxContextValue}>
           <Popover.Root
@@ -402,7 +406,7 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
           </Popover.Root>
         </ListboxContextProvider.Provider>
       </PopupMenuContext.Provider>
-    </SubmenuContext.Provider>
+    </SurfaceTierContext.Provider>
   )
 }
 

@@ -1,6 +1,7 @@
 'use client'
 
-import * as React from 'react'
+import { useMaybeStore } from '../hooks/use-maybe-store.js'
+import { useMaybeMenuTreeTier } from './menu-tree-context.js'
 
 function clampNumber(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
@@ -168,16 +169,19 @@ export interface PopupMenuDebugContextValue {
   logAimGuardEvents: boolean
 }
 
-const defaultPopupMenuDebugContextValue: PopupMenuDebugContextValue = {
+export const defaultPopupMenuDebugContextValue: PopupMenuDebugContextValue = {
   showSafeTriangleArea: defaultPopupMenuSafeTriangleAreaDebugSettings,
   logAimGuardEvents: false,
 }
 
-export const PopupMenuDebugContext =
-  React.createContext<PopupMenuDebugContextValue>(
+/** The root's debug flags, from its tree tier's settings. */
+export function usePopupMenuDebug(): PopupMenuDebugContextValue {
+  return useMaybeStore(
+    useMaybeMenuTreeTier()?.settings,
+    selectDebug,
     defaultPopupMenuDebugContextValue,
   )
-
-export function usePopupMenuDebug(): PopupMenuDebugContextValue {
-  return React.useContext(PopupMenuDebugContext)
 }
+
+const selectDebug = (state: { debug: PopupMenuDebugContextValue }) =>
+  state.debug

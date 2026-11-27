@@ -1,11 +1,14 @@
 'use client'
 
 import * as React from 'react'
-import { useMenuTree } from '../contexts/menu-tree-context.js'
+import type { ListboxStore } from '../../listbox/store/ListboxStore.js'
+import { useMaybeStore } from '../hooks/use-maybe-store.js'
 import {
+  EMPTY_LOADER_SCOPE,
   type LoaderScope,
   type MenuTreeStore,
   patch,
+  selectLoaders,
 } from '../store/MenuTreeStore.js'
 import type {
   AsyncLoaderConfig,
@@ -128,37 +131,46 @@ export interface RootRevealState {
 }
 
 // ============================================================================
-// Context
+// Hooks
 // ============================================================================
 
-export const AsyncMenuCoordinatorContext =
-  React.createContext<AsyncMenuCoordinatorValue | null>(null)
+/**
+ * The loader scope of the data-first Surface around the caller: provided
+ * around the Surface's children only, so the popup's subpage outlet and
+ * anything else beside the Surface have none. Its value changes only while
+ * its readers are unmounted (a subpage hides the Surface).
+ */
+export const LoaderScopeContext = React.createContext<LoaderScopeHandle | null>(
+  null,
+)
+
+const selectSearch = (state: { normalizedSearch: string }) =>
+  state.normalizedSearch
+
+/**
+ * The coordinator of the nearest data-first Surface around the caller: its
+ * loader scope's results in the menu tree, with its search. Every caller in
+ * a render gets the same value.
+ */
+export function useMaybeAsyncMenuCoordinator(): AsyncMenuCoordinatorValue | null {
+  const handle = React.useContext(LoaderScopeContext)
+  const scope = useMaybeStore(
+    handle?.tree,
+    selectLoaders,
+    EMPTY_LOADER_SCOPE,
+    handle?.id ?? '',
+  )
+  const searchQuery = useMaybeStore(handle?.store, selectSearch, '')
+  return handle ? handle.coordinator(scope, searchQuery) : null
+}
 
 export function useAsyncMenuCoordinator(): AsyncMenuCoordinatorValue | null {
-  return React.useContext(AsyncMenuCoordinatorContext)
-}
-
-export function useMaybeAsyncMenuCoordinator(): AsyncMenuCoordinatorValue | null {
-  return React.useContext(AsyncMenuCoordinatorContext)
+  return useMaybeAsyncMenuCoordinator()
 }
 
 // ============================================================================
-// Provider Props
+// Loader Scope
 // ============================================================================
-
-export interface AsyncMenuCoordinatorProviderProps {
-  /** Children to render */
-  children: React.ReactNode
-  /** Current search query from the store */
-  searchQuery: string
-}
-
-// ============================================================================
-// Provider Component
-// ============================================================================
-
-/** The id of the data surface's loader scope in its menu tree. */
-export const LoaderScopeContext = React.createContext<string | null>(null)
 
 type LoaderActions = Pick<
   AsyncMenuCoordinatorValue,
@@ -317,31 +329,63 @@ function coordinatorValue(
 /**
  * One data surface's loader scope. Its loaders' results live in the menu
  * tree (`MenuTreeStore.updateLoaders`); the coordinator value is derived from
- * them.
+ * them, once per change, for every reader.
  */
-export function AsyncMenuCoordinatorProvider(
-  props: AsyncMenuCoordinatorProviderProps,
-) {
-  const { children, searchQuery } = props
-  const tree = useMenuTree()
+export class LoaderScopeHandle {
+  readonly actions: LoaderActions
+  #last: {
+    scope: LoaderScope
+    searchQuery: string
+    value: AsyncMenuCoordinatorValue
+  } | null = null
+
+  constructor(
+    readonly tree: MenuTreeStore,
+    /** The scope's id in the tree. */
+    readonly id: string,
+    /** The data surface's store, whose search the coordinator reports. */
+    readonly store: ListboxStore,
+  ) {
+    this.actions = loaderActions(tree, id)
+  }
+
+  coordinator(
+    scope: LoaderScope,
+    searchQuery: string,
+  ): AsyncMenuCoordinatorValue {
+    const last = this.#last
+    if (last && last.scope === scope && last.searchQuery === searchQuery) {
+      return last.value
+    }
+    const value = coordinatorValue(scope, searchQuery, this.actions)
+    this.#last = { scope, searchQuery, value }
+    return value
+  }
+}
+
+let scopeSessions = 0
+
+/**
+ * A data-first Surface's loader scope, for `LoaderScopeContext`, while
+ * `enabled`: the Surface shows its data-first content. Each stretch it's
+ * enabled gets a scope of its own, and the scope is dropped from the tree
+ * when it ends (a subpage hides the Surface, or the Surface unmounts), as
+ * when the provider unmounted with the Surface's content.
+ */
+export function useLoaderScope(
+  tree: MenuTreeStore,
+  store: ListboxStore,
+  enabled: boolean,
+): LoaderScopeHandle {
   const scopeId = React.useId()
-  const scope = tree.useState('loaders', scopeId)
-  React.useLayoutEffect(() => () => tree.dropLoaders(scopeId), [tree, scopeId])
-
-  const actions = React.useMemo(
-    () => loaderActions(tree, scopeId),
-    [tree, scopeId],
+  // biome-ignore lint/correctness/useExhaustiveDependencies(enabled): a new scope for each stretch the Surface is enabled
+  const handle = React.useMemo(
+    () => new LoaderScopeHandle(tree, `${scopeId}${++scopeSessions}`, store),
+    [tree, scopeId, store, enabled],
   )
-  const contextValue = React.useMemo(
-    () => coordinatorValue(scope, searchQuery, actions),
-    [scope, searchQuery, actions],
-  )
-
-  return (
-    <LoaderScopeContext.Provider value={scopeId}>
-      <AsyncMenuCoordinatorContext.Provider value={contextValue}>
-        {children}
-      </AsyncMenuCoordinatorContext.Provider>
-    </LoaderScopeContext.Provider>
-  )
+  React.useLayoutEffect(() => {
+    if (!enabled) return undefined
+    return () => tree.dropLoaders(handle.id)
+  }, [enabled, tree, handle])
+  return handle
 }
