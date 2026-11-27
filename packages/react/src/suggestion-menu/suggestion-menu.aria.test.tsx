@@ -1,7 +1,8 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type * as React from 'react'
+import * as React from 'react'
 import { describe, expect, it } from 'vitest'
+import { useSurfaceContext } from '../internal/listbox/index.js'
 import type {
   ItemDef,
   NodeDef,
@@ -13,6 +14,22 @@ import { countShownRows } from './surface/results-reporter.js'
 
 function Rows() {
   const { nodes, renderNode } = SuggestionMenu.useDataList()
+  return <>{nodes.map(renderNode)}</>
+}
+
+/** The rows, virtualized: the store knows them by their ids as items. */
+function VirtualRows() {
+  const { nodes, renderNode } = SuggestionMenu.useDataList()
+  const { store } = useSurfaceContext()
+  const ids = nodes.flatMap((node) =>
+    node.kind === 'row' ? [node.node.id] : [],
+  )
+  const key = ids.join('|')
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `key` stands in for `ids`
+  React.useEffect(() => {
+    store.setVirtualized(true)
+    store.setVirtualItems(ids.map((value) => ({ value })))
+  }, [store, key])
   return <>{nodes.map(renderNode)}</>
 }
 
@@ -36,6 +53,7 @@ function setup(
     asyncContent?: QueryLoaderConfig
     getAriaResultsText?: SuggestionMenu.Root.Props['getAriaResultsText']
     surfaceProps?: Partial<SuggestionMenu.Surface.Props>
+    rows?: React.ReactNode
   } = {},
 ) {
   const menu = SuggestionMenu.createHandle()
@@ -84,7 +102,7 @@ function setup(
                 {...options.surfaceProps}
               >
                 <SuggestionMenu.List>
-                  <Rows />
+                  {options.rows ?? <Rows />}
                 </SuggestionMenu.List>
               </SuggestionMenu.Surface>
             </SuggestionMenu.Popup>
@@ -431,6 +449,25 @@ describe('SuggestionMenu result summary', () => {
     await settle()
     expect(screen.getByTestId('Bob')).toHaveAttribute('data-highlighted')
     expect(region?.textContent).toBe(before)
+  })
+
+  it("doesn't name a row with no text by its internal id", async () => {
+    const { menu } = setup({
+      content: [item('Alice', ''), item('Bob'), item('Carol')],
+    })
+    await open(menu)
+
+    await waitFor(() => expect(status()).toBe('3 results'))
+  })
+
+  it("doesn't name a virtualized row with no text by its internal id", async () => {
+    const { menu } = setup({
+      content: [item('Alice', ''), item('Bob'), item('Carol')],
+      rows: <VirtualRows />,
+    })
+    await open(menu)
+
+    await waitFor(() => expect(status()).toBe('3 results'))
   })
 
   it('counts disabled rows, which are still results', async () => {

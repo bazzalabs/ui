@@ -7,7 +7,7 @@ import type { ItemContextValue } from '../contexts/item-context.js'
 import { useListboxContext } from '../contexts/listbox-context.js'
 import { useMaybeRowWidthContext } from '../contexts/row-width-context.js'
 import { useSurfaceContext } from '../contexts/surface-context.js'
-import { bindRow, refreshBoundRows } from '../store/ListboxStore.js'
+import { bindDataRow, refreshDataRows } from '../store/ListboxStore.js'
 import { normalizeValue } from '../utils/normalize.js'
 
 /**
@@ -282,11 +282,10 @@ export function useListboxItem(
   const generatedDomId = React.useId()
   const domId = idProp ?? `item-${generatedDomId}`
 
-  // A row a data-first list renders from its Collection: the store reads it
-  // from the Collection, so it binds its element (and what its part was
-  // given) under its Resolved ID, and neither registers nor is rescored
-  // (temporary external-collection mode, removed by UI-679). Any other row,
-  // a JSX row next to the data rows included, registers.
+  // A row a data-first list renders from its rows: the store's Data adapter
+  // already has it, so it binds its element (and what its part was given)
+  // under its Resolved ID, and neither registers nor is rescored. Any other
+  // row, a JSX row next to the data rows included, registers.
   const isCollectionRow =
     collectionRows !== null &&
     collectionRows.store === store &&
@@ -398,7 +397,7 @@ export function useListboxItem(
   React.useLayoutEffect(() => {
     if (!isCollectionRow || !isVisible) return undefined
     boundWithoutElementRef.current = ref.current === null
-    return bindRow(store, registrationId, {
+    return bindDataRow(store, registrationId, {
       elementRef: ref,
       groupId: groupContext?.groupId,
       disabled,
@@ -423,7 +422,7 @@ export function useListboxItem(
   React.useLayoutEffect(() => {
     if (!rowElement || !boundWithoutElementRef.current) return
     boundWithoutElementRef.current = false
-    refreshBoundRows(store)
+    refreshDataRows(store)
   }, [rowElement, store])
 
   // Note: Scroll behavior is now handled by the store's setHighlightedId method.

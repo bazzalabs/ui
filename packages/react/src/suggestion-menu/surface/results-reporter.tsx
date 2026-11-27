@@ -5,7 +5,10 @@ import {
   type ListboxStore,
   useListboxContext,
 } from '../../internal/listbox/index.js'
-import { useMaybeAsyncMenuCoordinator } from '../../internal/popup-menu/index.js'
+import {
+  useMaybeAsyncMenuCoordinator,
+  useMaybeDataSurfaceContext,
+} from '../../internal/popup-menu/index.js'
 import { useSuggestionMenuRootContext } from '../root/root-context.js'
 
 /**
@@ -19,15 +22,29 @@ export function countShownRows(store: Pick<ListboxStore, 'state'>): number {
   return virtualized ? virtualItemsCount : filteredCount
 }
 
-/** A row's accessible text, found inside this menu's list. */
-function rowLabel(store: ListboxStore, id: string): string | null {
+/**
+ * A row's accessible text, found inside this menu's list. `dataFirst` when a
+ * data-first list fills the store: its virtual items are keyed by Resolved ID.
+ */
+function rowLabel(
+  store: ListboxStore,
+  id: string,
+  dataFirst: boolean,
+): string | null {
   const list = store.context.refs.listRef.current
   const element =
     store.context.refs.itemRefs.get(id)?.current ??
     [...(list?.querySelectorAll('[id]') ?? [])].find((el) => el.id === id)
   const text =
     element?.getAttribute('aria-label') ?? element?.textContent?.trim()
-  return text || store.context.items.get(id)?.value || null
+  // A registered row's value, or a virtualized list's item's (its value is
+  // its id); never a data-first row's Resolved ID.
+  const fallback =
+    store.context.items.get(id)?.value ??
+    (dataFirst
+      ? undefined
+      : store.context.virtualItems.find((item) => item.value === id)?.value)
+  return text || fallback || null
 }
 
 /**
@@ -37,6 +54,7 @@ function rowLabel(store: ListboxStore, id: string): string | null {
 export function SuggestionMenuResultsReporter() {
   const { store } = useListboxContext()
   const coordinator = useMaybeAsyncMenuCoordinator()
+  const dataFirst = useMaybeDataSurfaceContext() !== null
   const { query, reportResults } = useSuggestionMenuRootContext()
   const open = store.useState('open')
   const highlightedId = store.useState('highlightedId')
@@ -66,13 +84,13 @@ export function SuggestionMenuResultsReporter() {
       const chosen = current !== null && ids.includes(current) ? current : null
       reportResults(
         countShownRows(store),
-        chosen ? rowLabel(store, chosen) : null,
+        chosen ? rowLabel(store, chosen, dataFirst) : null,
       )
     })
     return () => {
       cancelled = true
     }
-  }, [open, settled, query, menuHighlightedId, store, reportResults])
+  }, [open, settled, query, menuHighlightedId, store, reportResults, dataFirst])
 
   return null
 }

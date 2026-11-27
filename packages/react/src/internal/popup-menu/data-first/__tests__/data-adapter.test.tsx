@@ -3,13 +3,13 @@ import userEvent from '@testing-library/user-event'
 import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { DropdownMenu } from '../../../../dropdown-menu/index.js'
-import { useSurfaceContext } from '../../../listbox/index.js'
+import { useGroupContext, useSurfaceContext } from '../../../listbox/index.js'
 import type { DisplayNode, NodeDef } from '../types.js'
 
-// A data-first list hands the store its row Collection, and its rows bind
-// instead of registering. These pin what rows used to get from registering:
-// groups, virtualized lists, JSX rows next to data rows, and the part's own
-// props.
+// A data-first list's rows are its surface's Collection (the store's Data
+// adapter), and they bind their element instead of registering. These pin
+// what rows used to get from registering: groups, virtualized lists, JSX rows
+// next to data rows, and the part's own props.
 
 function item(value: string, extra: Partial<NodeDef> = {}): NodeDef {
   return {
@@ -89,11 +89,17 @@ function DataMenu({
   rows = <DataRows />,
   input = true,
   onOpenChange,
+  listChildren,
 }: {
   content: NodeDef[]
   rows?: React.ReactNode
   input?: boolean
   onOpenChange?: (open: boolean) => void
+  /** Renders the rows with the list's `filteredCount`. */
+  listChildren?: (
+    rows: React.ReactNode,
+    filteredCount: number,
+  ) => React.ReactNode
 }) {
   return (
     <DropdownMenu.Root defaultOpen onOpenChange={onOpenChange}>
@@ -103,7 +109,11 @@ function DataMenu({
           <DropdownMenu.Popup data-testid="popup">
             <DropdownMenu.Surface content={content}>
               {input && <DropdownMenu.Input data-testid="input" />}
-              <DropdownMenu.List data-testid="list">{rows}</DropdownMenu.List>
+              <DropdownMenu.List data-testid="list">
+                {listChildren
+                  ? ({ filteredCount }) => listChildren(rows, filteredCount)
+                  : rows}
+              </DropdownMenu.List>
             </DropdownMenu.Surface>
           </DropdownMenu.Popup>
         </DropdownMenu.Positioner>
@@ -389,6 +399,150 @@ describe('JSX rows in a data-first list', () => {
     expect(highlighted()).toBe('row:create')
     expect(screen.getByTestId('row:create')).toHaveAttribute('data-last')
     expect(screen.getByTestId('row:Banana')).not.toHaveAttribute('data-last')
+  })
+})
+
+describe('a surface with data-first and JSX rows', () => {
+  // Each row is in the surface's Collection once: data rows through the
+  // list, the JSX row by registering.
+  it('navigates and counts each row once', async () => {
+    const user = userEvent.setup()
+    const counts: number[] = []
+    render(
+      <DataMenu
+        input={false}
+        content={[item('Apple'), item('Banana')]}
+        rows={
+          <DataRows>
+            <DropdownMenu.Item value="create" data-testid="row:create">
+              Create
+            </DropdownMenu.Item>
+          </DataRows>
+        }
+        listChildren={(rows, filteredCount) => {
+          counts.push(filteredCount)
+          return rows
+        }}
+      />,
+    )
+    await ready(false)
+    await waitFor(() => expect(highlighted()).toBe('row:Apple'))
+
+    const visited: (string | null | undefined)[] = []
+    for (let i = 0; i < 4; i++) {
+      await user.keyboard('{ArrowDown}')
+      visited.push(highlighted())
+    }
+    // Three rows, then back to the first: none twice, none skipped.
+    expect(visited).toEqual([
+      'row:Banana',
+      'row:create',
+      'row:Apple',
+      'row:Banana',
+    ])
+    expect(counts.at(-1)).toBe(3)
+  })
+})
+
+describe("a data-first list's published store state", () => {
+  // What `@bazza-ui/react/internal/listbox` consumers read through the
+  // store's own selectors: while a data-first list fills the surface, every
+  // row and group reads as visible, searching or not, as the list mounts
+  // only the ones it shows.
+
+  /** Renders, and records, what the selector reads for an item. */
+  function ItemProbe({ id, reads }: { id: string; reads: boolean[] }) {
+    const { store } = useSurfaceContext()
+    const visible = store.useState('isItemVisible', id)
+    reads.push(visible)
+    return <output data-testid={`probe:${id}`}>{String(visible)}</output>
+  }
+
+  it('reads every row as visible, the ones a search hides included', async () => {
+    const user = userEvent.setup()
+    render(
+      <DataMenu
+        content={[
+          item('Apple', { id: 'apple' }),
+          item('Banana', { id: 'banana' }),
+        ]}
+        rows={
+          <DataRows>
+            <ItemProbe id="banana" reads={[]} />
+            <ItemProbe id="apple" reads={[]} />
+          </DataRows>
+        }
+      />,
+    )
+    await ready()
+
+    await user.type(screen.getByTestId('input'), 'ban')
+    expect(screen.queryByTestId('row:Apple')).toBeNull()
+    expect(screen.getByTestId('probe:banana')).toHaveTextContent('true')
+    expect(screen.getByTestId('probe:apple')).toHaveTextContent('true')
+  })
+
+  it('reads a JSX row next to the data rows as visible throughout a search', async () => {
+    const user = userEvent.setup()
+    const reads: boolean[] = []
+    render(
+      <DataMenu
+        content={[item('Apple'), item('Avocado')]}
+        rows={
+          <DataRows>
+            <DropdownMenu.Item value="create" disabled data-testid="row:create">
+              Create
+            </DropdownMenu.Item>
+            <ItemProbe id="create" reads={reads} />
+          </DataRows>
+        }
+      />,
+    )
+    await ready()
+
+    await user.type(screen.getByTestId('input'), 'a')
+    expect(screen.getByTestId('row:create')).toBeInTheDocument()
+    // Every read, the ones between a key and the list's publish included:
+    // the probe re-renders only when what it reads changes.
+    expect(reads).not.toContain(false)
+  })
+
+  it('reads a group that mounts again during a search as visible', async () => {
+    const user = userEvent.setup()
+    function GroupProbe() {
+      const { store } = useSurfaceContext()
+      const group = useGroupContext()
+      const visible = store.useState('isGroupVisible', group?.groupId ?? '')
+      return <output data-testid="probe:group">{String(visible)}</output>
+    }
+    render(
+      <DataMenu
+        content={[
+          item('Zebra'),
+          {
+            kind: 'group',
+            id: 'fruits',
+            label: 'Fruits',
+            nodes: [item('Apple'), item('Avocado')],
+            render: ({ children }) => (
+              <DropdownMenu.Group data-testid="group">
+                <GroupProbe />
+                {children}
+              </DropdownMenu.Group>
+            ),
+          },
+        ]}
+      />,
+    )
+    await ready()
+
+    // "aq" matches nothing, so the group unmounts; "a" mounts it again.
+    await user.type(screen.getByTestId('input'), 'aq')
+    expect(screen.queryByTestId('group')).toBeNull()
+    await user.keyboard('{Backspace}')
+    await waitFor(() =>
+      expect(screen.getByTestId('probe:group')).toHaveTextContent('true'),
+    )
   })
 })
 

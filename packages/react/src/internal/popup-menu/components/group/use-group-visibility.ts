@@ -54,8 +54,7 @@ export function useGroupVisibility(
 
   const isGroupVisible = store.useState('isGroupVisible', groupId)
   // Under a data-first list, which mounts only the groups it shows, a group
-  // is visible from its first commit, before the list publishes its
-  // Collection (temporary, removed by UI-679).
+  // is visible from its first commit, before the list publishes its rows.
   const inCollection = useMaybeCollectionRows()?.store === store
   const isVisible =
     !isParentHidden && (forceMount || inCollection || isGroupVisible)
