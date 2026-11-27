@@ -937,10 +937,12 @@ export function syncSurfaceSettings(
 /**
  * Whether the Surface applies `autoHighlightFirst` again (`applyAutoHighlight`)
  * once a commit's items register: when it's a value. The Surface asks from a
- * passive effect keyed on its settings, so any setting's change re-applies
- * it, a new `virtualization` or `onSearchChange` included (Ship-usage audit
- * bug 1). Re-applying only for a new `autoHighlightFirst` is one line: that
- * effect's dependencies, `[store, settings.context.autoHighlightFirst]`.
+ * passive effect keyed on `autoHighlightFirst` alone, so it applies when the
+ * Surface mounts and when the value changes; the store also applies it when
+ * the menu opens, and when its row first arrives while the highlight is
+ * still the automatic one. Another setting's change (a new `virtualization`
+ * from a new `onHighlightChange` or `items`, a new `onSearchChange`) leaves
+ * the highlight where it is.
  */
 export function reapplyAutoHighlight(
   autoHighlightFirst: boolean | string,
@@ -1046,17 +1048,23 @@ export class ListboxStore extends ReactStore<
         // Reset pointer position tracking on open to prevent phantom highlights
         this.resetPointerPosition()
 
-        // Auto-highlight is now handled by applyAutoHighlight() called from Surface
-        // after it has set the context. This ensures the correct value is used.
-        // We only handle the simple boolean true case here for backwards compatibility
-        // with components that don't use Surface (if any).
+        // A string `autoHighlightFirst`: a Surface that stayed mounted (a
+        // kept-mounted popup, a reopen during the exit animation) still has
+        // its rows, and its synced value is this session's, so it applies
+        // now. Otherwise the value may be the last session's, until the new
+        // Surface syncs its own: the row waits, pending, and is dropped once
+        // the Surface syncs another value.
         const autoHighlight = this.context.autoHighlightFirst
         if (autoHighlight === true) {
           // Default: highlight first item
           this.highlightFirstItem()
+        } else if (typeof autoHighlight === 'string') {
+          if (this.context.items.size > 0 || this.#boundRows.size > 0) {
+            this.applyAutoHighlight()
+          } else this.#pendingAutoHighlight = autoHighlight
         }
-        // String values are handled by applyAutoHighlight() from Surface
       } else {
+        this.#pendingAutoHighlight = null
         // Clear search and highlight on close
         // When 'after-exit', search is cleared by Root after animation completes
         if (this.context.clearSearchOnClose === true) {
@@ -1087,6 +1095,8 @@ export class ListboxStore extends ReactStore<
         // Reset pointer position when search changes - content is about to shift
         // and we don't want stationary pointers to trigger phantom highlights
         this.resetPointerPosition()
+        // A search moves the highlight to its first result instead.
+        this.#pendingAutoHighlight = null
         this.#publishCollection(prevSearch)
 
         if (this.context.resetScrollOnSearch && !this.state.virtualized) {
@@ -1202,6 +1212,10 @@ export class ListboxStore extends ReactStore<
   }
 
   setHighlightedId(id: string | null, cause: HighlightSource = 'pointer') {
+    // The user moved the highlight: `autoHighlightFirst` waits no longer.
+    if (cause === 'keyboard' || cause === 'pointer') {
+      this.#pendingAutoHighlight = null
+    }
     const prevId = this.state.highlightedId
     if (prevId === id) return
 
@@ -1388,6 +1402,18 @@ export class ListboxStore extends ReactStore<
   }
 
   setVirtualItems(items: VirtualItem[]) {
+    // A pending `autoHighlightFirst` row among the new items is applied once
+    // they're validated: the validation would move the highlight off it.
+    this.#holdingAutoHighlight = true
+    try {
+      this.#setVirtualItems(items)
+    } finally {
+      this.#holdingAutoHighlight = false
+    }
+    this.#applyPendingAutoHighlight()
+  }
+
+  #setVirtualItems(items: VirtualItem[]) {
     const prevItems = this.context.virtualItems
     this.context.virtualItems = items
 
@@ -1798,19 +1824,20 @@ export class ListboxStore extends ReactStore<
     if (rows) this.#registeredRows = rows
     if (this.#dataRows) {
       this.#flushDataRows(rows !== null)
-      return
-    }
-    if (rows) this.set('orderedRows', rows)
+    } else {
+      if (rows) this.set('orderedRows', rows)
 
-    if (this.pendingRescore || this.pendingRegisteredItems.size > 0) {
-      const registered = this.pendingRegisteredItems
-      this.pendingRegisteredItems = new Set()
-      // A search change may already have recomputed with these items.
-      if (this.pendingRescore) {
-        this.#publishCollection()
+      if (this.pendingRescore || this.pendingRegisteredItems.size > 0) {
+        const registered = this.pendingRegisteredItems
+        this.pendingRegisteredItems = new Set()
+        // A search change may already have recomputed with these items.
+        if (this.pendingRescore) {
+          this.#publishCollection()
+        }
+        this.maybeAutoHighlightOnRegister(registered)
       }
-      this.maybeAutoHighlightOnRegister(registered)
     }
+    this.#applyPendingAutoHighlight()
   }
 
   /**
@@ -2555,12 +2582,52 @@ export class ListboxStore extends ReactStore<
     if (!this.select('open')) return
 
     const autoHighlight = this.context.autoHighlightFirst
+    this.#pendingAutoHighlight = null
     if (autoHighlight === true) {
       this.highlightFirstItem()
     } else if (typeof autoHighlight === 'string') {
       this.highlightItemByValue(autoHighlight)
+      // Its row isn't there yet: highlight it once it arrives.
+      if (this.state.highlightedId !== autoHighlight) {
+        this.#pendingAutoHighlight = autoHighlight
+      }
     }
     // If false, don't highlight anything
+  }
+
+  /**
+   * A string `autoHighlightFirst` whose row wasn't there when it was
+   * applied, while the highlight is still the automatic one: the user hasn't
+   * moved it or searched since the menu opened. Cleared once applied, and on
+   * close.
+   */
+  #pendingAutoHighlight: string | null = null
+  /** Set while the pending row waits to be applied, or is being applied. */
+  #holdingAutoHighlight = false
+
+  /**
+   * Highlights the pending `autoHighlightFirst` row once navigation reaches
+   * it, after the store moved the highlight automatically: rows arriving
+   * after the menu opened (a registration, new virtual items, a data list's
+   * rows) put it on the first row until then.
+   */
+  #applyPendingAutoHighlight() {
+    const target = this.#pendingAutoHighlight
+    if (target === null || this.#holdingAutoHighlight) return
+    if (!this.select('open') || this.context.autoHighlightFirst !== target) {
+      this.#pendingAutoHighlight = null
+      return
+    }
+    this.#holdingAutoHighlight = true
+    try {
+      // Whether navigation reaches it, in any order: no sort to read that.
+      if (this.#current().navOrder.includes(target)) {
+        this.#pendingAutoHighlight = null
+        this.highlightItemByValue(target)
+      }
+    } finally {
+      this.#holdingAutoHighlight = false
+    }
   }
 
   /**

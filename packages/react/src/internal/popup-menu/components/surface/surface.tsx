@@ -332,13 +332,12 @@ export const PopupMenuSurface = React.forwardRef<
 
   // What needs the commit's items registered, which they do in passive
   // effects, runs in the Surface's own, after theirs. A string
-  // `autoHighlightFirst` is applied again whenever a setting changes (see
-  // `reapplyAutoHighlight` for the one-line fix).
+  // `autoHighlightFirst` is applied when the menu opens, or when its rows
+  // first arrive (the store keeps it pending until then), and when it
+  // changes; never for another setting's change.
   React.useEffect(() => {
-    if (reapplyAutoHighlight(settings.context.autoHighlightFirst)) {
-      store.applyAutoHighlight()
-    }
-  }, [store, settings])
+    if (reapplyAutoHighlight(autoHighlightFirst)) store.applyAutoHighlight()
+  }, [store, autoHighlightFirst])
 
   const popupMenuContext = usePopupMenuContext()
   const deepSearchConfig: DeepSearchConfig = React.useMemo(() => {
