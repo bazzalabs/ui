@@ -3,6 +3,7 @@
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import { usePopupMenuContext } from '../../internal/popup-menu/index.js'
+import { useMenuElement } from '../../internal/popup-menu/members.js'
 import {
   resolveClassName,
   resolveStyle,
@@ -71,9 +72,12 @@ export const ComboboxInputWrapper = React.forwardRef<
     [forwardedRef, comboboxContext],
   )
 
+  // The wrapper anchors the popup: a press on it isn't an outside press
+  const triggerRef = useMenuElement('trigger')
+
   const element = useRender({
     render,
-    ref: mergedRef,
+    ref: [mergedRef, triggerRef],
     state,
     stateAttributesMapping,
     props: {

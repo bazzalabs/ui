@@ -1,12 +1,14 @@
 'use client'
 
 import { Popover, type PopoverBackdropProps } from '@base-ui/react/popover'
+import { useMergedRefs } from '@base-ui/utils/useMergedRefs'
 import * as React from 'react'
 import { composeStyle } from '../../../../utils/resolve-state-props.js'
 import {
   getSlotAttribute,
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
+import { useMenuElement } from '../../hooks/use-menu-element.js'
 import {
   useFocusOwner,
   useMaybeSubmenuContext,
@@ -85,6 +87,10 @@ export const PopupMenuBackdrop = React.forwardRef<
   const componentName = useMaybeComponentName()
   const slotAttr = getSlotAttribute(componentName, 'backdrop')
 
+  // A press on a backdrop the consumer made interactive is Base UI's
+  // dismissal to handle, not an outside press.
+  const backdropRef = useMergedRefs(forwardedRef, useMenuElement('backdrop'))
+
   if (!shouldShow) {
     return null
   }
@@ -98,7 +104,7 @@ export const PopupMenuBackdrop = React.forwardRef<
 
   return (
     <Popover.Backdrop
-      ref={forwardedRef}
+      ref={backdropRef}
       {...(slotAttr ? { [slotAttr]: '' } : {})}
       {...rest}
       style={style}

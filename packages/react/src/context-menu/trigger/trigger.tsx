@@ -2,6 +2,7 @@
 
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import { useMenuElement } from '../../internal/popup-menu/members.js'
 import {
   resolveClassName,
   resolveStyle,
@@ -214,9 +215,11 @@ export const ContextMenuTrigger = React.forwardRef<
     [open, pressed, disabled],
   )
 
+  const triggerRef = useMenuElement('trigger')
+
   return useRender({
     render,
-    ref: forwardedRef,
+    ref: [forwardedRef, triggerRef],
     state,
     stateAttributesMapping,
     props: {

@@ -1,6 +1,7 @@
 'use client'
 
 import { Dialog } from '@base-ui/react/dialog'
+import { useMergedRefs } from '@base-ui/utils/useMergedRefs'
 import * as React from 'react'
 import {
   DataPopupContext,
@@ -13,6 +14,8 @@ import {
 import {
   DataSubpagesContent,
   type ResolvedNodesSlot,
+  useMenuElement,
+  usePressClaim,
 } from '../../internal/popup-menu/members.js'
 import type { ComponentRenderFn } from '../../utils/types.js'
 
@@ -65,6 +68,11 @@ export const CommandMenuPopup = React.forwardRef<
 
   const surfaceId = React.useId()
   const popupMenuContext = usePopupMenuContext()
+  const popupRef = useMergedRefs(
+    forwardedRef,
+    useMenuElement('popup', surfaceId),
+  )
+  const claimPress = usePressClaim(rest.onPointerDownCapture)
 
   const {
     subpageStackContextValue,
@@ -125,13 +133,14 @@ export const CommandMenuPopup = React.forwardRef<
       <SubpageStackContext.Provider value={subpageStackContextValue}>
         <DataPopupContext.Provider value={dataPopupContextValue}>
           <Dialog.Popup
-            ref={forwardedRef}
+            ref={popupRef}
             className={className}
             render={render}
             data-command-menu-popup=""
             data-navigating={isSubpageNavigating ? '' : undefined}
             data-has-open-subpage={hasOpenSubpage ? '' : undefined}
             {...rest}
+            onPointerDownCapture={claimPress}
           >
             {children}
             <DataSubpagesContent />

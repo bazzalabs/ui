@@ -21,6 +21,11 @@ import {
 } from '../../data-first/context.js'
 import { DataSubpagesContent } from '../../data-first/data-subpages.js'
 import { useAimGuard } from '../../hooks/use-aim-guard.js'
+import {
+  getElementRegistry,
+  useMenuElement,
+  usePressClaim,
+} from '../../hooks/use-menu-element.js'
 import { useSubpageStackState } from '../../hooks/use-subpage-stack-state.js'
 import { PopupMenuPopupDataAttributes } from './popup.data-attrs.js'
 
@@ -150,11 +155,15 @@ export const PopupMenuPopup = React.forwardRef<
   // Local ref for the popup element
   const popupRef = React.useRef<HTMLDivElement>(null)
 
+  const registerPopup = useMenuElement('popup', surfaceId)
+  const claimPress = usePressClaim(rest.onPointerDownCapture)
+
   // Combine refs
   const combinedRef = React.useCallback(
     (node: HTMLDivElement | null) => {
       // Update local ref
       popupRef.current = node
+      registerPopup(node)
 
       // Update forwarded ref
       if (typeof forwardedRef === 'function') {
@@ -170,7 +179,7 @@ export const PopupMenuPopup = React.forwardRef<
         ).current = node
       }
     },
-    [forwardedRef, submenuContext],
+    [forwardedRef, submenuContext, registerPopup],
   )
 
   // Register the root popup element with the store so popup-layer features
@@ -258,17 +267,10 @@ export const PopupMenuPopup = React.forwardRef<
         return
       }
 
-      // Check if the target is inside a nested submenu popup
-      // If so, don't claim ownership - let the nested popup handle it
-      const targetElement =
-        target instanceof Element ? target : target.parentElement
-      if (targetElement) {
-        // Find the closest popup ancestor of the target
-        const closestPopup = targetElement.closest('[data-base-ui-focusable]')
-        // If the closest popup is not this popup, don't claim ownership
-        if (closestPopup && closestPopup !== popupRef.current) {
-          return
-        }
+      // A popup of this tree nested inside this one's DOM claims ownership
+      // for itself
+      if (getElementRegistry(openChainStore).surfaceFor(target) !== surfaceId) {
+        return
       }
 
       // Only claim ownership if we're not already the owner
@@ -276,7 +278,7 @@ export const PopupMenuPopup = React.forwardRef<
         focusOwnerStore.setOwnerId(submenuContext.childSurfaceId)
       }
     },
-    [submenuContext, focusOwnerStore],
+    [submenuContext, focusOwnerStore, openChainStore, surfaceId],
   )
 
   // Disable Base UI's auto-focus behavior for:
@@ -375,6 +377,7 @@ export const PopupMenuPopup = React.forwardRef<
               rest.onPointerMove?.(event)
             }}
             {...rest}
+            onPointerDownCapture={claimPress}
           >
             {children}
             <DataSubpagesContent />

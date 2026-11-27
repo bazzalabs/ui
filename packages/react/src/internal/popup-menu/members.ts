@@ -9,3 +9,4 @@
 export type { ResolvedNodesSlot } from './data-first/context.js'
 export { DataSubpagesContent } from './data-first/data-subpages.js'
 export type { PopupMenuOpenChangeReason } from './events.js'
+export { useMenuElement, usePressClaim } from './hooks/use-menu-element.js'

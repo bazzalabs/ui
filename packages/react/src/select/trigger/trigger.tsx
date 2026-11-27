@@ -4,6 +4,7 @@ import { Popover } from '@base-ui/react/popover'
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import { usePopupMenuContext } from '../../internal/popup-menu/index.js'
+import { useMenuElement } from '../../internal/popup-menu/members.js'
 import { REASONS } from '../../utils/events/index.js'
 import { mergeElementProps } from '../../utils/merge-element-props.js'
 import {
@@ -164,18 +165,20 @@ export const SelectTrigger = React.forwardRef<
   // We need to intercept pointerdown before it reaches Popover.Trigger.
   // This ref tracks the element so we can add a one-time click blocker.
   const triggerRef = React.useRef<HTMLButtonElement | null>(null)
+  const registerTrigger = useMenuElement('trigger')
 
   // Combine refs
   const setRef = React.useCallback(
     (element: HTMLButtonElement | null) => {
       triggerRef.current = element
+      registerTrigger(element)
       if (typeof forwardedRef === 'function') {
         forwardedRef(element)
       } else if (forwardedRef) {
         forwardedRef.current = element
       }
     },
-    [forwardedRef],
+    [forwardedRef, registerTrigger],
   )
 
   // Handle pointerdown to close on press when open

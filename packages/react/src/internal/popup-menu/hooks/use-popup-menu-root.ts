@@ -8,6 +8,7 @@ import {
 } from '../../../utils/events/index.js'
 import { ensureInputModalityTracking } from '../../../utils/input-modality.js'
 import { ListboxStore, type VirtualItem } from '../../listbox/index.js'
+import { useMaybeOpenChain } from '../contexts/open-chain-context.js'
 import type { VirtualizationConfig } from '../contexts/popup-menu-context.js'
 import type {
   HighlightChangeEventDetails,
@@ -19,6 +20,7 @@ import { createMenuTreeResolver } from '../menu-tree/resolver.js'
 import type { GetResolvedIdFn, PopupMenuIdScope } from '../menu-tree/types.js'
 import { FocusOwnerStore } from '../store/FocusOwnerStore.js'
 import { OpenChainStore } from '../store/OpenChainStore.js'
+import { getElementRegistry } from './use-menu-element.js'
 
 // ============================================================================
 // Types
@@ -206,14 +208,6 @@ export function usePopupMenuRoot(
     ensureInputModalityTracking()
   }, [])
 
-  const getExemptElementsRef = React.useRef(getDismissExemptElements)
-  getExemptElementsRef.current = getDismissExemptElements
-  const isExemptNode = React.useCallback((node: unknown): boolean => {
-    if (!(node instanceof Node)) return false
-    const elements = getExemptElementsRef.current?.() ?? []
-    return elements.some((element) => element?.contains(node) ?? false)
-  }, [])
-
   // Track outside pointer events to distinguish outside-press from focus-out
   // When a pointerdown happens outside the menu, we store it so that if a
   // focus-out close happens immediately after, we can treat it as outside-press
@@ -282,6 +276,27 @@ export function usePopupMenuRoot(
   }
   const openChainStore = openChainStoreRef.current
 
+  // The elements this tree's parts render (triggers, positioners, popups,
+  // surfaces), so membership never depends on attributes on the page.
+  const elements = getElementRegistry(openChainStore)
+  // Read when the event happens, so the root sets it on each render.
+  elements.getExempt = getDismissExemptElements
+  // A tree rendered inside another one (a select in a dropdown menu's popup)
+  // reads the outer tree's open chain here, before providing its own, and
+  // nests its registry in the outer one's while it's open.
+  const outerOpenChainStore = useMaybeOpenChain()
+  React.useEffect(
+    () =>
+      outerOpenChainStore && isOpen
+        ? getElementRegistry(outerOpenChainStore).nest(elements)
+        : undefined,
+    [outerOpenChainStore, isOpen, elements],
+  )
+  const isExemptNode = React.useCallback(
+    (node: unknown): boolean => node instanceof Node && elements.isExempt(node),
+    [elements],
+  )
+
   // Registry for tracking open submenus (for closeAll)
   type SurfaceEntry = { depth: number; setOpen: (open: boolean) => void }
   const surfaceRegistryRef = React.useRef<Map<string, SurfaceEntry>>(new Map())
@@ -336,24 +351,50 @@ export function usePopupMenuRoot(
       return
     }
 
+    // The outside press waiting for its decision (see below).
+    let cancelPending = () => {}
+
     const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target as Element | null
-      if (!target) return
+      cancelPending()
+      const target = event.target
+      if (!(target instanceof Node)) return
       // Presses on an exempt element (e.g. a host input) count as inside.
-      if (isExemptNode(target)) return
+      if (elements.isExempt(target)) return
 
-      // Check if the pointerdown is inside any part of the menu tree or its triggers
-      // base-ui sets data-open on popups and data-popup-open on triggers
-      const isInsidePopup = target.closest('[data-open]') !== null
-      const isInsideTrigger = target.closest('[data-popup-open]') !== null
-      const isInside = isInsidePopup || isInsideTrigger
+      // Store the event for focus-out-to-outside-press conversion
+      outsidePointerEventRef.current = event
 
-      if (closeOnOutsidePress === 'pointerdown' && !isInside) {
-        // Close entire menu tree immediately on pointerdown outside
-        closeAllRef.current(REASONS.outsidePress, event)
-      } else {
-        // Store the event for focus-out-to-outside-press conversion
-        outsidePointerEventRef.current = event
+      // Inside an element this tree (or a tree nested in it) registered, or
+      // nothing to close on pointerdown: nothing more to decide.
+      if (closeOnOutsidePress !== 'pointerdown' || elements.owns(target)) {
+        return
+      }
+
+      // Outside the registered elements, the press may still be on content a
+      // popup of the tree renders through a portal (a consumer's popover
+      // opened from a menu item): the popup claims it as the framework
+      // dispatches the event through it. Decide once the event reaches its
+      // target, or after it when an ancestor stops it on the way.
+      const decide = (current?: Event) => {
+        if (current && current !== event) return
+        cancelPending()
+        // Another handler closed the tree (a focus-out converted to this
+        // outside press, or Base UI's own dismissal) or a later press
+        // replaced this one.
+        if (outsidePointerEventRef.current !== event || !store.select('open')) {
+          return
+        }
+        // Another open popup on the page is outside.
+        if (!elements.claimed(event)) {
+          closeAllRef.current(REASONS.outsidePress, event)
+        }
+      }
+      const timeout = setTimeout(decide)
+      target.addEventListener('pointerdown', decide, true)
+      cancelPending = () => {
+        clearTimeout(timeout)
+        target.removeEventListener('pointerdown', decide, true)
+        cancelPending = () => {}
       }
     }
 
@@ -361,9 +402,10 @@ export function usePopupMenuRoot(
     document.addEventListener('pointerdown', handlePointerDown, true)
     return () => {
       document.removeEventListener('pointerdown', handlePointerDown, true)
+      cancelPending()
       outsidePointerEventRef.current = null
     }
-  }, [isOpen, closeOnOutsidePress, disabled, isExemptNode])
+  }, [isOpen, closeOnOutsidePress, disabled, elements, store])
 
   // Handle open state change
   const handleOpenChange = React.useCallback(

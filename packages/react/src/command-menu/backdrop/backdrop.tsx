@@ -1,8 +1,10 @@
 'use client'
 
 import { Dialog } from '@base-ui/react/dialog'
+import { useMergedRefs } from '@base-ui/utils/useMergedRefs'
 import * as React from 'react'
 import { useMaybePopupMenuContext } from '../../internal/popup-menu/index.js'
+import { useMenuElement } from '../../internal/popup-menu/members.js'
 import { REASONS } from '../../utils/events/index.js'
 
 export interface CommandMenuBackdropProps extends Dialog.Backdrop.Props {}
@@ -22,6 +24,9 @@ export const CommandMenuBackdrop = React.forwardRef<
 >(function CommandMenuBackdrop(props, forwardedRef) {
   const { onPointerDown, ...rest } = props
   const popupMenuContext = useMaybePopupMenuContext()
+  // A press here is the backdrop's to handle (it closes on pointerdown unless
+  // the consumer prevents it), not an outside press.
+  const backdropRef = useMergedRefs(forwardedRef, useMenuElement('backdrop'))
 
   const handlePointerDown = React.useCallback<
     NonNullable<Dialog.Backdrop.Props['onPointerDown']>
@@ -42,7 +47,7 @@ export const CommandMenuBackdrop = React.forwardRef<
 
   return (
     <Dialog.Backdrop
-      ref={forwardedRef}
+      ref={backdropRef}
       {...rest}
       onPointerDown={handlePointerDown}
       data-command-menu-backdrop=""

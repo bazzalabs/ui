@@ -1,6 +1,7 @@
 'use client'
 
 import { Popover, type PopoverPositionerProps } from '@base-ui/react/popover'
+import { useMergedRefs } from '@base-ui/utils/useMergedRefs'
 import * as React from 'react'
 import { flushSync } from 'react-dom'
 import {
@@ -9,6 +10,7 @@ import {
 } from '../../contexts/component-name-context.js'
 import { usePopupMenuContext } from '../../contexts/popup-menu-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
+import { useMenuElement } from '../../hooks/use-menu-element.js'
 
 // ============================================================================
 // Types
@@ -380,9 +382,11 @@ export const PopupMenuPositioner = React.forwardRef<
   const componentName = useMaybeComponentName()
   const slotAttr = getSlotAttribute(componentName, 'positioner')
 
+  const positionerRef = useMergedRefs(ref, useMenuElement('positioner'))
+
   return (
     <Popover.Positioner
-      ref={ref}
+      ref={positionerRef}
       side={side}
       align={baseUIAlign}
       alignOffset={effectiveAlignOffset}

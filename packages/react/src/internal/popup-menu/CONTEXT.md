@@ -7,6 +7,7 @@ Where it lives:
 - `packages/menu-core/src/tree/` — node def kinds, the Menu Node model and the resolver (identity, reconcile, graft), with no React
 - `packages/menu-core/src/data/` — the pipeline over defs: browse, flatten, filtering/deep search, scoring, sorting, display, async helpers, with no React
 - `packages/menu-core/src/collection/` — the Collection snapshot, its positions, and the Data adapter, with no React
+- `packages/menu-core/src/elements/` — the Element Registry, with no React
 - `packages/react/src/internal/popup-menu/menu-tree/` and `data-first/` — the React layer over those: React-typed defs and nodes, the list and subpages, async loaders; their pure modules re-export from `@bazza-ui/menu-core`
 - `packages/react/src/internal/popup-menu/components/`, `contexts/`, `hooks/` — the JSX parts and their plumbing
 
@@ -86,6 +87,11 @@ _Avoid_: source, provider, registry
 **Resolution**:
 The phase that turns node defs into Menu Nodes in the Menu Tree: static content synchronously when the content is supplied; loader results by grafting after they arrive. The only phase permitted to mutate the Menu Tree.
 _Avoid_: resolving (as a noun), reconciliation (reconcile is one operation inside resolution)
+
+**Element Registry** (`ElementRegistry`):
+The elements one menu tree renders, each registered by the part that renders it (trigger, positioner, popup, surface, backdrop) for as long as it's mounted, plus the root's exempt elements. One per root, shared by its submenus. Whether a node belongs to the tree is read from it: `owns` for outside presses, `isExempt` for presses and focus moves that don't dismiss, `surfaceFor` / `popupFor` for the innermost popup holding a node (pointer ownership, the row-width target). A portaled submenu belongs because its elements registered; an element elsewhere on the page doesn't belong because of attributes it carries (`data-open`, `data-popup-open`, `data-base-ui-focusable`).
+Two things opened from inside the tree belong too, as they did when membership was read from attributes. A **Nested Tree** (a select rendered inside a dropdown menu) links its registry into the outer tree's while it's open (`nest`), so the outer tree owns what it owns, at any depth. **Portaled content** a popup renders (a consumer's popover or tooltip opened from a menu item) sits outside every registered element in the DOM, but its presses pass through the popup in React's tree, and the popup **claims** them (`claim`, `claimed`); a press on a registered element is inside at once, and the root decides any other press once the event reaches its target, after those claims, or after the event when an ancestor stopped it on the way. The root sets the exempt elements on the registry on each render (`getExempt`).
+_Avoid_: membership by attribute selector, inside-check
 
 **Listbox**:
 The state layer beneath the engine: rows register into a `ListboxStore`, which owns highlight state and keyboard navigation. Implements the WAI-ARIA listbox pattern; shared by every menu family.
