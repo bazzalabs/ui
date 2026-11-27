@@ -7,8 +7,8 @@ import {
   REASONS,
 } from '../../../utils/events/index.js'
 import { ensureInputModalityTracking } from '../../../utils/input-modality.js'
-import { ListboxStore, type VirtualItem } from '../../listbox/index.js'
-import { useMaybeOpenChain } from '../contexts/open-chain-context.js'
+import type { ListboxStore, VirtualItem } from '../../listbox/index.js'
+import { useMaybeMenuTree } from '../contexts/menu-tree-context.js'
 import type { VirtualizationConfig } from '../contexts/popup-menu-context.js'
 import type {
   HighlightChangeEventDetails,
@@ -18,9 +18,9 @@ import type {
 import type { MenuTreeResolver } from '../menu-tree/resolver.js'
 import { createMenuTreeResolver } from '../menu-tree/resolver.js'
 import type { GetResolvedIdFn, PopupMenuIdScope } from '../menu-tree/types.js'
-import { FocusOwnerStore } from '../store/FocusOwnerStore.js'
-import { OpenChainStore } from '../store/OpenChainStore.js'
-import { getElementRegistry } from './use-menu-element.js'
+import type { FocusOwnerStore } from '../store/FocusOwnerStore.js'
+import { getElementRegistry, MenuTreeStore } from '../store/MenuTreeStore.js'
+import type { OpenChainStore } from '../store/OpenChainStore.js'
 
 // ============================================================================
 // Types
@@ -250,47 +250,40 @@ export function usePopupMenuRoot(
     [onOpenChange],
   )
 
-  // Create the store instance
-  const store = ListboxStore.useStore(
-    undefined,
-    { open: defaultOpen },
-    {
+  // The menu tree's store (one per root, shared by its submenus) keeps the
+  // root's open cell, its open chain and its focus owner; the root surface's
+  // Listbox store state mirrors the open cell.
+  const storesRef = React.useRef<{
+    tree: MenuTreeStore
+    store: ListboxStore
+  } | null>(null)
+  if (!storesRef.current) {
+    const tree = new MenuTreeStore({
+      open: defaultOpen,
       onOpenChange: stableOnOpenChange,
-    },
-  )
+    })
+    storesRef.current = { tree, store: tree.createRootStore() }
+  }
+  const { tree, store } = storesRef.current
 
   // Get current open state for the pointer event listener
   const isOpen = store.useState('open')
 
-  // Create focus owner store (single instance for entire menu tree)
-  const focusOwnerStoreRef = React.useRef<FocusOwnerStore | null>(null)
-  if (!focusOwnerStoreRef.current) {
-    focusOwnerStoreRef.current = new FocusOwnerStore()
-  }
-  const focusOwnerStore = focusOwnerStoreRef.current
-
-  // Create open chain store (single instance for entire menu tree)
-  const openChainStoreRef = React.useRef<OpenChainStore | null>(null)
-  if (!openChainStoreRef.current) {
-    openChainStoreRef.current = new OpenChainStore()
-  }
-  const openChainStore = openChainStoreRef.current
-
   // The elements this tree's parts render (triggers, positioners, popups,
   // surfaces), so membership never depends on attributes on the page.
-  const elements = getElementRegistry(openChainStore)
+  const elements = getElementRegistry(tree)
   // Read when the event happens, so the root sets it on each render.
   elements.getExempt = getDismissExemptElements
   // A tree rendered inside another one (a select in a dropdown menu's popup)
-  // reads the outer tree's open chain here, before providing its own, and
-  // nests its registry in the outer one's while it's open.
-  const outerOpenChainStore = useMaybeOpenChain()
+  // reads the outer tree here, before providing its own, and nests its
+  // registry in the outer one's while it's open.
+  const outerTree = useMaybeMenuTree()
   React.useEffect(
     () =>
-      outerOpenChainStore && isOpen
-        ? getElementRegistry(outerOpenChainStore).nest(elements)
+      outerTree && isOpen
+        ? getElementRegistry(outerTree).nest(elements)
         : undefined,
-    [outerOpenChainStore, isOpen, elements],
+    [outerTree, isOpen, elements],
   )
   const isExemptNode = React.useCallback(
     (node: unknown): boolean => node instanceof Node && elements.isExempt(node),
@@ -327,13 +320,12 @@ export function usePopupMenuRoot(
       }
 
       // Finally close the root
-      store.setOpen(false, reason, event)
+      tree.setOpen(false, reason, event)
 
       // Clear focus ownership and open chain
-      focusOwnerStore.clearOwner()
-      openChainStore.clear()
+      tree.clear()
     },
-    [store, focusOwnerStore, openChainStore],
+    [tree],
   )
 
   // Ref to hold closeAll for use in the pointerdown effect
@@ -434,14 +426,11 @@ export function usePopupMenuRoot(
         return
       }
 
-      store.setOpen(newOpen, reason, event)
+      tree.setOpen(newOpen, reason, event)
       // Clear focus ownership and open chain when menu closes
-      if (!newOpen) {
-        focusOwnerStore.clearOwner()
-        openChainStore.clear()
-      }
+      if (!newOpen) tree.clear()
     },
-    [store, focusOwnerStore, openChainStore, disabled, isExemptNode],
+    [tree, disabled, isExemptNode],
   )
 
   // Memoize listbox wiring config
@@ -460,8 +449,8 @@ export function usePopupMenuRoot(
   return {
     menuTreeResolver,
     store,
-    focusOwnerStore,
-    openChainStore,
+    focusOwnerStore: tree.focusOwner,
+    openChainStore: tree.openChain,
     registerSurface,
     closeAll,
     virtualization,

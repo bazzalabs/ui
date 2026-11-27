@@ -18,14 +18,14 @@ import {
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
-import { useOpenChain } from '../../contexts/open-chain-context.js'
+import { useMenuTree } from '../../contexts/menu-tree-context.js'
 import { usePopupMenuContext } from '../../contexts/popup-menu-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
 import { useMaybeSubpageContext } from '../../contexts/subpage-context.js'
 import { useMaybeDataSurfaceContext } from '../../data-first/context.js'
 import { DataListInner } from '../../data-first/data-list.js'
-import { getElementRegistry } from '../../hooks/use-menu-element.js'
 import { usePopupMenuKeyboard } from '../../hooks/use-popup-menu-keyboard.js'
+import { getElementRegistry } from '../../store/MenuTreeStore.js'
 import { PopupMenuListCssVars } from './list.css-vars.js'
 import { PopupMenuListDataAttributes } from './list.data-attrs.js'
 
@@ -126,20 +126,20 @@ export const PopupMenuListPrimitive = React.forwardRef<
   const { disabled: popupMenuDisabled, inputEmbedded: isInputEmbedded } =
     usePopupMenuContext()
   const focusOwnerStore = useFocusOwner()
-  const openChainStore = useOpenChain()
+  const tree = useMenuTree()
   const internalRef = React.useRef<HTMLDivElement>(null)
 
   // The registered popup holding the list carries the --row-width CSS var.
   // Read on each use: the popup registers in its ref, after the list's
   // layout effects run, so the first read falls back to the list.
   const popupRef = React.useMemo(() => {
-    const elements = getElementRegistry(openChainStore)
+    const elements = getElementRegistry(tree)
     return {
       get current() {
         return elements.popupFor(internalRef.current) as HTMLElement | null
       },
     }
-  }, [openChainStore])
+  }, [tree])
 
   // Register list ref with store for scroll behavior
   React.useEffect(() => {

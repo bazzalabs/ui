@@ -1,26 +1,19 @@
 'use client'
 
-import * as React from 'react'
 import type { OpenChainStore } from '../store/OpenChainStore.js'
+import { useMaybeMenuTree } from './menu-tree-context.js'
 
 // ============================================================================
-// Open Chain Context
+// Open Chain
 // ============================================================================
 
-const OpenChainContext = React.createContext<OpenChainStore | null>(null)
-
+// The menu tree's open submenu chain (`MenuTreeStore.openChain`).
 export function useOpenChain(): OpenChainStore {
-  const context = React.useContext(OpenChainContext)
-  if (!context) {
+  const tree = useMaybeMenuTree()
+  if (!tree) {
     throw new Error(
       'OpenChain components must be used within an OpenChainProvider',
     )
   }
-  return context
+  return tree.openChain
 }
-
-export function useMaybeOpenChain(): OpenChainStore | null {
-  return React.useContext(OpenChainContext)
-}
-
-export { OpenChainContext }

@@ -4,14 +4,14 @@ import * as React from 'react'
 import type { ListboxContextValue } from '../../listbox/contexts/listbox-context.js'
 import { ListboxContext as ListboxContextProvider } from '../../listbox/contexts/listbox-context.js'
 import type { ListboxStore } from '../../listbox/index.js'
+import { getOpenOwner } from '../../listbox/store/ListboxStore.js'
 import {
   type ComponentName,
   ComponentNameContext,
 } from '../contexts/component-name-context.js'
-import { FocusOwnerContext } from '../contexts/focus-owner-context.js'
 import { FocusZoneRegistryContext } from '../contexts/focus-zone-context.js'
+import { MenuTreeContext } from '../contexts/menu-tree-context.js'
 import { MenuTreeResolverContext } from '../contexts/menu-tree-resolver-context.js'
-import { OpenChainContext } from '../contexts/open-chain-context.js'
 import {
   PopupMenuContext,
   type PopupMenuContextValue,
@@ -28,6 +28,7 @@ import { AimGuardProvider } from '../hooks/use-aim-guard.js'
 import type { MenuTreeResolver } from '../menu-tree/resolver.js'
 import type { FocusOwnerStore } from '../store/FocusOwnerStore.js'
 import { FocusZoneRegistry } from '../store/FocusZoneRegistry.js'
+import { getElementRegistry, MenuTreeStore } from '../store/MenuTreeStore.js'
 import type { OpenChainStore } from '../store/OpenChainStore.js'
 
 // ============================================================================
@@ -131,8 +132,8 @@ export interface PopupMenuProvidersProps {
  * - PopupMenuContext (menu-specific state)
  * - ListboxContextProvider (for compatibility with listbox components)
  * - AimGuardProvider (for submenu aim detection)
- * - FocusOwnerContext (for focus tracking across submenus)
- * - OpenChainContext (for tracking open submenu chain)
+ * - MenuTreeContext (focus tracking across submenus and the open submenu
+ *   chain, through the tree's FocusOwner and OpenChain stores)
  */
 export function PopupMenuProviders(props: PopupMenuProvidersProps) {
   const {
@@ -159,6 +160,25 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
     children,
     menuTreeResolver,
   } = props
+
+  // The menu tree around the stores this root passes: the one
+  // `usePopupMenuRoot` made when they're its own, else one around the stores
+  // given, sharing that root's elements, so the engine uses those instances.
+  const tree = React.useMemo(() => {
+    const owner = getOpenOwner(store)
+    const rootTree = owner instanceof MenuTreeStore ? owner : undefined
+    if (
+      rootTree?.openChain === openChainStore &&
+      rootTree.focusOwner === focusOwnerStore
+    ) {
+      return rootTree
+    }
+    return new MenuTreeStore({
+      openChain: openChainStore,
+      focusOwner: focusOwnerStore,
+      elements: rootTree && getElementRegistry(rootTree),
+    })
+  }, [store, openChainStore, focusOwnerStore])
 
   const focusZoneRegistryRef = React.useRef<FocusZoneRegistry | null>(null)
   if (!focusZoneRegistryRef.current) {
@@ -239,15 +259,13 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
           <PopupMenuContext.Provider value={popupMenuContextValue}>
             <ListboxContextProvider.Provider value={listboxContextValue}>
               <AimGuardProvider>
-                <FocusOwnerContext.Provider value={focusOwnerStore}>
-                  <OpenChainContext.Provider value={openChainStore}>
-                    <FocusZoneRegistryContext.Provider
-                      value={focusZoneRegistryRef.current}
-                    >
-                      {children}
-                    </FocusZoneRegistryContext.Provider>
-                  </OpenChainContext.Provider>
-                </FocusOwnerContext.Provider>
+                <MenuTreeContext.Provider value={tree}>
+                  <FocusZoneRegistryContext.Provider
+                    value={focusZoneRegistryRef.current}
+                  >
+                    {children}
+                  </FocusZoneRegistryContext.Provider>
+                </MenuTreeContext.Provider>
               </AimGuardProvider>
             </ListboxContextProvider.Provider>
           </PopupMenuContext.Provider>
