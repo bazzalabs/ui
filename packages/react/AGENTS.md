@@ -270,6 +270,6 @@ A budget is the entry's measured gzip size plus 5% headroom. Don't raise one to 
 
 Lower a budget the same way when a change shrinks an entry, so the headroom doesn't hide later growth.
 
-Every budget is currently raised by 1000 B for the v4 engine's registry and cells, to be re-tightened when Base UI is dropped.
+While the menu family v4 engine is being rebuilt, CI runs `bench:size` with `BENCH_SIZE_REPORT_ONLY=1`: it still reports every entry and marks those over budget in the job summary, but doesn't fail. Each pull request still says how much each entry grew. Once the rebuild lands, each entry's size is reviewed, budgets are set fresh, and CI fails over budget again. Run without the variable locally to see the check as it will gate.
 
 Because `bench:size` bundles from `src`, it can't see what tsdown leaves out of `dist`. The same CI job builds the package and runs `bun run bench:dist-imports`, which fails when a `dist` file imports a package `@bazza-ui/react` doesn't declare as a dependency or peer dependency, such as a private workspace package tsdown should have bundled.

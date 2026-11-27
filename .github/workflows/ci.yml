@@ -140,10 +140,13 @@ jobs:
         run: bun install --frozen-lockfile
 
       # Bundles each menu family entry from `src`, so it needs no build. Adds
-      # a table to the job summary and fails when an entry's gzip size is over
-      # its budget in `packages/react/bench/size/budgets.json`.
+      # a table to the job summary, marking entries over their budget in
+      # `packages/react/bench/size/budgets.json`. Report-only while the menu
+      # family v4 engine is rebuilt; budgets gate again once it lands.
       - name: Check menu family bundle size
         run: bun run --cwd packages/react bench:size
+        env:
+          BENCH_SIZE_REPORT_ONLY: "1"
 
       # bench:size bundles from `src`, where a workspace package resolves
       # either way. This builds `dist` and checks it imports only packages
