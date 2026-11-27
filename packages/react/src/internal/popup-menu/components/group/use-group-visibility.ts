@@ -1,5 +1,6 @@
 'use client'
 
+import { useStore } from '@base-ui/utils/store'
 import * as React from 'react'
 import { useMaybeCollectionRows } from '../../../listbox/contexts/collection-row-context.js'
 import {
@@ -7,6 +8,7 @@ import {
   type ListboxStore,
   useGroupContext,
 } from '../../../listbox/index.js'
+import { containerVisible } from '../../../listbox/store/ListboxStore.js'
 import { useGroupDescription } from './group-description.js'
 
 interface UseGroupVisibilityParams {
@@ -52,7 +54,7 @@ export function useGroupVisibility(
     [groupId, ref, parentGroupId, store],
   )
 
-  const isGroupVisible = store.useState('isGroupVisible', groupId)
+  const isGroupVisible = useStore(store, containerVisible, groupId)
   // Under a data-first list, which mounts only the groups it shows, a group
   // is visible from its first commit, before the list publishes its rows.
   const inCollection = useMaybeCollectionRows()?.store === store

@@ -1,5 +1,6 @@
 'use client'
 
+import { useStore } from '@base-ui/utils/store'
 import * as React from 'react'
 import { useMaybeCollectionRows } from '../contexts/collection-row-context.js'
 import { useGroupContext } from '../contexts/group-context.js'
@@ -7,8 +8,13 @@ import type { ItemContextValue } from '../contexts/item-context.js'
 import { useListboxContext } from '../contexts/listbox-context.js'
 import { useMaybeRowWidthContext } from '../contexts/row-width-context.js'
 import { useSurfaceContext } from '../contexts/surface-context.js'
-import { bindDataRow, refreshDataRows } from '../store/ListboxStore.js'
+import {
+  bindDataRow,
+  isVisible as isVisibleSelector,
+  refreshDataRows,
+} from '../store/ListboxStore.js'
 import { normalizeValue } from '../utils/normalize.js'
+import { useRowPosition } from './use-row-position.js'
 
 /**
  * Aim guard refs for submenu navigation.
@@ -293,14 +299,6 @@ export function useListboxItem(
     collectionRows.has(registrationId)
   const positionId = isCollectionRow ? registrationId : rowId
 
-  React.useLayoutEffect(() => {
-    if (!rowElement || isCollectionRow) return undefined
-    return store.registerRow(rowId, rowElement, {
-      kind: 'item',
-      groupId: groupContext?.groupId,
-    })
-  }, [rowElement, rowId, isCollectionRow, groupContext?.groupId, store])
-
   // Stabilize keywords to prevent infinite loops when passed as inline arrays
   // We use JSON.stringify to compare by value rather than reference
   // Keywords are also normalized (trimmed) to match cmdk's behavior
@@ -370,12 +368,10 @@ export function useListboxItem(
 
   // Use selectors to get derived state (using registrationId as identifier)
   const isHighlighted = store.useState('isHighlighted', registrationId)
-  const isFirstRow = store.useState('isFirstRow', positionId)
-  const isLastRow = store.useState('isLastRow', positionId)
-  const isFirstInGroup = store.useState('isFirstInGroup', positionId)
-  const isLastInGroup = store.useState('isLastInGroup', positionId)
-  // Boolean selector so a keystroke only re-renders rows whose visibility flips
-  const passesFilter = store.useState('isItemVisible', registrationId)
+  // One bitmask for the row's edges, and a boolean for its visibility, so a
+  // keystroke only re-renders the rows whose answer changes.
+  const storePosition = useRowPosition(store, positionId)
+  const passesFilter = useStore(store, isVisibleSelector, registrationId)
 
   // Check if filtering is disabled (consumer handles filtering externally)
   const filterDisabled = store.isFilterDisabled()
@@ -385,6 +381,24 @@ export function useListboxItem(
   const isVisible =
     !groupContext?.hidden &&
     (forceMount || isCollectionRow || filterDisabled || passesFilter)
+
+  // The row counts for positions while it shows: it leaves the registry in
+  // the commit that hides it, so its neighbours take its edges in that commit
+  // too, not one later when its element goes.
+  React.useLayoutEffect(() => {
+    if (!rowElement || isCollectionRow || !isVisible) return undefined
+    return store.registerRow(rowId, rowElement, {
+      kind: 'item',
+      groupId: groupContext?.groupId,
+    })
+  }, [
+    rowElement,
+    rowId,
+    isCollectionRow,
+    isVisible,
+    groupContext?.groupId,
+    store,
+  ])
 
   // A Collection row binds in the commit that renders it, element or not:
   // the element is usually attached through `ref` before layout effects run,
@@ -514,12 +528,13 @@ export function useListboxItem(
   const contextPositional = groupContext?.positional
   const positional = React.useMemo(
     () => ({
-      first: contextPositional?.first ?? isFirstRow,
-      last: contextPositional?.last ?? isLastRow,
-      firstInGroup: contextPositional?.firstInGroup ?? isFirstInGroup,
-      lastInGroup: contextPositional?.lastInGroup ?? isLastInGroup,
+      first: contextPositional?.first ?? storePosition.first,
+      last: contextPositional?.last ?? storePosition.last,
+      firstInGroup:
+        contextPositional?.firstInGroup ?? storePosition.firstInGroup,
+      lastInGroup: contextPositional?.lastInGroup ?? storePosition.lastInGroup,
     }),
-    [contextPositional, isFirstRow, isLastRow, isFirstInGroup, isLastInGroup],
+    [contextPositional, storePosition],
   )
 
   const groupDescriptionId = groupContext?.descriptionId

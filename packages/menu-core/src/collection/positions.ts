@@ -6,9 +6,11 @@ import { isItemRow, Pos, type RowId, type RowMeta } from './types.js'
  * navigation skips them). Every row in `visibleOrder` gets an entry, 0 when
  * it's at no edge. One pass over the rows, then one write per edge.
  *
- * The rules are `getRowPositions` in `ListboxStore`: a Container's row,
- * separators, empty and loading rows never count as inside a Container,
- * whatever `containerId` they carry, because they register without a group.
+ * The positional data attributes follow these rules: `ListboxStore`'s
+ * `rowPositionBits` calls this over its `orderedRows`, which its key selector
+ * `positionBits` reads. A Container's row, separators, empty and loading rows
+ * never count as inside a Container, whatever `containerId` they carry,
+ * because they register without a group.
  */
 export function computePositions(
   visibleOrder: readonly RowId[],

@@ -7,6 +7,7 @@ import {
   type ControlledCell,
   cellValue,
   changeCell,
+  computePositions,
   createCell,
   emptyCollection,
   type FilterFn,
@@ -14,6 +15,8 @@ import {
   type ItemRowMeta,
   isItemRow,
   mergeByPosition,
+  Pos,
+  type RowMeta,
   type SearchNormalizer,
 } from '@bazza-ui/menu-core'
 import {
@@ -306,66 +309,55 @@ interface ValidateHighlightOptions {
 // Row Positions
 // ============================================================================
 
-/** First/last row ids among the mounted rows, derived from `orderedRows`. */
-interface RowPositions {
-  /** First row outside any group. */
-  firstRowId: string | undefined
-  /** Last row outside any group. */
-  lastRowId: string | undefined
-  firstGroupId: string | undefined
-  lastGroupId: string | undefined
-  /** Rows that are first among their group's rows. */
-  firstInGroupIds: ReadonlySet<string>
-  /** Rows that are last among their group's rows. */
-  lastInGroupIds: ReadonlySet<string>
-}
-
 // `orderedRows` is replaced wholesale on every registry change, so its identity
 // keys one derivation per order change. Positional selectors run per row on
 // every store notification and stay O(1).
-const rowPositionsCache = new WeakMap<
+const positionBitsCache = new WeakMap<
   readonly ListboxOrderedRow[],
-  RowPositions
+  ReadonlyMap<string, number>
 >()
 
-function getRowPositions(rows: readonly ListboxOrderedRow[]): RowPositions {
-  const cached = rowPositionsCache.get(rows)
+/**
+ * Each mounted row's `Pos` bitmask, from `orderedRows`, by the Collection's
+ * rules (`computePositions`): a group's own row, separators, empty and
+ * loading rows are rows outside any group; an item's `groupId` is its
+ * Container.
+ */
+function rowPositionBits(
+  rows: readonly ListboxOrderedRow[],
+): ReadonlyMap<string, number> {
+  const cached = positionBitsCache.get(rows)
   if (cached) return cached
 
-  let firstRowId: string | undefined
-  let lastRowId: string | undefined
-  let firstGroupId: string | undefined
-  let lastGroupId: string | undefined
-  const firstInGroup = new Map<string, string>()
-  const lastInGroup = new Map<string, string>()
-
+  const ids: string[] = []
+  const metas = new Map<string, RowMeta>()
   for (const row of rows) {
-    if (row.groupId === undefined) {
-      firstRowId ??= row.id
-      lastRowId = row.id
-    }
-    if (row.kind === 'group') {
-      firstGroupId ??= row.id
-      lastGroupId = row.id
-    }
-    if (row.groupId) {
-      if (!firstInGroup.has(row.groupId)) {
-        firstInGroup.set(row.groupId, row.id)
-      }
-      lastInGroup.set(row.groupId, row.id)
-    }
+    ids.push(row.id)
+    metas.set(row.id, orderedRowMeta(row))
   }
+  const bits = computePositions(ids, metas)
+  positionBitsCache.set(rows, bits)
+  return bits
+}
 
-  const positions: RowPositions = {
-    firstRowId,
-    lastRowId,
-    firstGroupId,
-    lastGroupId,
-    firstInGroupIds: new Set(firstInGroup.values()),
-    lastInGroupIds: new Set(lastInGroup.values()),
+/** The part of a row's `RowMeta` that `computePositions` reads. */
+function orderedRowMeta({ id, kind, groupId }: ListboxOrderedRow): RowMeta {
+  switch (kind) {
+    case 'group':
+      return { id, kind: 'container', selection: 'none' }
+    case 'item':
+      return {
+        id,
+        kind,
+        textValue: '',
+        containerId: groupId,
+        disabled: false,
+        activatable: true,
+        closeOnClick: true,
+      }
+    default:
+      return { id, kind }
   }
-  rowPositionsCache.set(rows, positions)
-  return positions
 }
 
 // ============================================================================
@@ -431,35 +423,35 @@ const selectors = {
       state.visibleGroups.has(groupId),
   ),
 
-  isFirstRow: createSelector((state: ListboxState, rowId: string) => {
-    if (state.virtualized) return false
-    return getRowPositions(state.orderedRows).firstRowId === rowId
-  }),
+  isFirstRow: createSelector(
+    (state: ListboxState, rowId: string) =>
+      (positionBits(state, rowId) & Pos.First) !== 0,
+  ),
 
-  isLastRow: createSelector((state: ListboxState, rowId: string) => {
-    if (state.virtualized) return false
-    return getRowPositions(state.orderedRows).lastRowId === rowId
-  }),
+  isLastRow: createSelector(
+    (state: ListboxState, rowId: string) =>
+      (positionBits(state, rowId) & Pos.Last) !== 0,
+  ),
 
-  isFirstGroup: createSelector((state: ListboxState, rowId: string) => {
-    if (state.virtualized) return false
-    return getRowPositions(state.orderedRows).firstGroupId === rowId
-  }),
+  isFirstGroup: createSelector(
+    (state: ListboxState, rowId: string) =>
+      (positionBits(state, rowId) & Pos.FirstContainer) !== 0,
+  ),
 
-  isLastGroup: createSelector((state: ListboxState, rowId: string) => {
-    if (state.virtualized) return false
-    return getRowPositions(state.orderedRows).lastGroupId === rowId
-  }),
+  isLastGroup: createSelector(
+    (state: ListboxState, rowId: string) =>
+      (positionBits(state, rowId) & Pos.LastContainer) !== 0,
+  ),
 
-  isFirstInGroup: createSelector((state: ListboxState, rowId: string) => {
-    if (state.virtualized) return false
-    return getRowPositions(state.orderedRows).firstInGroupIds.has(rowId)
-  }),
+  isFirstInGroup: createSelector(
+    (state: ListboxState, rowId: string) =>
+      (positionBits(state, rowId) & Pos.FirstInContainer) !== 0,
+  ),
 
-  isLastInGroup: createSelector((state: ListboxState, rowId: string) => {
-    if (state.virtualized) return false
-    return getRowPositions(state.orderedRows).lastInGroupIds.has(rowId)
-  }),
+  isLastInGroup: createSelector(
+    (state: ListboxState, rowId: string) =>
+      (positionBits(state, rowId) & Pos.LastInContainer) !== 0,
+  ),
 
   getItemScore: createSelector((state: ListboxState, itemId: string) => {
     if (state.normalizedSearch.length === 0) {
@@ -492,6 +484,35 @@ const selectors = {
     // Non-virtualized mode: check filteredCount from registered items
     return state.filteredCount === 0
   }),
+}
+
+// ============================================================================
+// Key selectors
+//
+// What a row reads by its id, each a primitive, so a store update re-renders
+// only the rows whose answer changed. Exported from this module only, off the
+// published `ListboxStore` type: parts read them with
+// `useStore(store, selector, id)` from `@base-ui/utils/store`.
+// ============================================================================
+
+/**
+ * A mounted row's `Pos` bitmask (`Pos.First` … `Pos.LastContainer`), 0 at no
+ * edge and in a virtualized list, whose rows can't tell their edges.
+ */
+export function positionBits(state: ListboxState, rowId: string): number {
+  if (state.virtualized) return 0
+  return rowPositionBits(state.orderedRows).get(rowId) ?? 0
+}
+
+/** Whether an item shows: `isItemVisible`. */
+export const isVisible = selectors.isItemVisible
+
+/** Whether a group shows: `isGroupVisible`. */
+export const containerVisible = selectors.isGroupVisible
+
+/** Whether the surface has rows to show: no search, or one that matched. */
+export function hasResults(state: ListboxState): boolean {
+  return !selectors.hasSearchWithNoResults(state)
 }
 
 interface DomOrderEntry {

@@ -7,6 +7,7 @@ import {
   resolveStyle,
 } from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
+import { useRowPosition } from '../../../listbox/hooks/use-row-position.js'
 import { useGroupContext, useSurfaceContext } from '../../../listbox/index.js'
 import {
   getSlotAttribute,
@@ -69,12 +70,12 @@ export const PopupMenuGroupLabel = React.forwardRef<
   const groupContext = useGroupContext()
   const groupId = groupContext?.groupId ?? ''
 
-  const storeFirstGroup = store.useState('isFirstGroup', groupId)
-  const storeLastGroup = store.useState('isLastGroup', groupId)
-  const storeFirstRow = store.useState('isFirstRow', groupId)
-  const isFirstGroup = groupContext?.positional?.firstGroup ?? storeFirstGroup
-  const isLastGroup = groupContext?.positional?.lastGroup ?? storeLastGroup
-  const isFirstRow = groupContext?.positional?.first ?? storeFirstRow
+  const storePosition = useRowPosition(store, groupId)
+  const isFirstGroup =
+    groupContext?.positional?.firstGroup ?? storePosition.firstGroup
+  const isLastGroup =
+    groupContext?.positional?.lastGroup ?? storePosition.lastGroup
+  const isFirstRow = groupContext?.positional?.first ?? storePosition.first
   // No store fallback: the store can only say whether the *group* is the last
   // row, and a label is followed by its own items — so it is the last row only
   // when a consumer flattens the list and declares it (e.g. virtualized rows).
