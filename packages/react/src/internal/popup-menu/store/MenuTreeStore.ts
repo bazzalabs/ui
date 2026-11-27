@@ -19,7 +19,7 @@ import type {
   DataSurfaceContextValue,
   ResolvedNodesSlot,
 } from '../data-first/context.js'
-import type { NodeDef } from '../data-first/types.js'
+import type { AsyncLoaderConfig, NodeDef } from '../data-first/types.js'
 import type {
   PopupMenuOpenChangeEventDetails,
   PopupMenuOpenChangeReason,
@@ -69,6 +69,10 @@ export interface PopupData {
   surface?: DataSurfaceContextValue | null
   /** The content the popup's root list last resolved. */
   content?: NodeDef[]
+  /** The root loader's rows the root list last resolved with it. */
+  loaded?: readonly NodeDef[]
+  /** The `asyncContent` config those rows came from. */
+  loadedBy?: AsyncLoaderConfig
   /** A slot a consumer set with `setResolvedNodes`, in place of the tree's. */
   slot?: ResolvedNodesSlot | null
 }

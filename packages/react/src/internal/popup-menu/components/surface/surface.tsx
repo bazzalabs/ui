@@ -34,6 +34,8 @@ import {
 } from '../../contexts/component-name-context.js'
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
 import { useMaybeFocusZoneRegistry } from '../../contexts/focus-zone-context.js'
+import { useGraftPoint } from '../../contexts/graft-point-context.js'
+import { useMenuTree } from '../../contexts/menu-tree-context.js'
 import { usePopupMenuContext } from '../../contexts/popup-menu-context.js'
 import { usePopupSurfaceId } from '../../contexts/popup-surface-id-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
@@ -50,6 +52,7 @@ import type {
   DeepSearchConfig,
 } from '../../data-first/types.js'
 import { useMenuElement } from '../../hooks/use-menu-element.js'
+import { useInactiveRootResolution } from '../../hooks/use-resolution.js'
 import { isPopupMenuNode } from '../../menu-tree/resolve.js'
 import { CheckboxSelectionStore } from '../../store/CheckboxSelectionStore.js'
 import { getTabbables } from '../../utils/tabbables.js'
@@ -405,6 +408,19 @@ export const PopupMenuSurface = React.forwardRef<
   // the isSurfaceActive resolution above.
   const isSubpageSurfaceInThisPopup = Boolean(
     subpageContext && subpageStack?.getSurfaceId(subpageContext.pageId),
+  )
+
+  // The root list unmounts while a subpage is open: new content resolves here
+  // meanwhile, so the open page stays while its id is still there.
+  const tree = useMenuTree()
+  const graftPoint = useGraftPoint()
+  useInactiveRootResolution(
+    tree,
+    popupSurfaceId,
+    dataSurfaceContextValue,
+    graftPoint,
+    depth,
+    isDataMode && !isSurfaceActive && !isSubpageSurfaceInThisPopup,
   )
 
   React.useLayoutEffect(() => {
