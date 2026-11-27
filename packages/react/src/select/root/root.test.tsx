@@ -1305,6 +1305,75 @@ describe('<Select.Root />', () => {
       }
     })
 
+    it('closes an aligned select on viewport resize while disabled', async () => {
+      const rectSpy = vi
+        .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+        .mockImplementation(function (this: HTMLElement) {
+          switch (this.getAttribute('data-testid')) {
+            case 'trigger':
+              return createRect(100, 100, 220, 32)
+            case 'value':
+              return createRect(116, 106, 120, 20)
+            case 'positioner':
+              return createRect(100, 132, 220, 160)
+            case 'item-label':
+              return createRect(116, 150, 80, 20)
+            default:
+              return createRect(100, 132, 220, 160)
+          }
+        })
+      const clientHeightSpy = vi
+        .spyOn(document.documentElement, 'clientHeight', 'get')
+        .mockReturnValue(768)
+      const clientWidthSpy = vi
+        .spyOn(document.documentElement, 'clientWidth', 'get')
+        .mockReturnValue(1024)
+      const ui = (disabled: boolean) => (
+        <Select.Root defaultOpen disabled={disabled}>
+          <Select.Trigger data-testid="trigger">
+            <Select.Value data-testid="value" placeholder="Select..." />
+          </Select.Trigger>
+          <Select.Portal>
+            <Select.Positioner data-testid="positioner" alignItemWithTrigger>
+              <Select.Popup>
+                <Select.Surface data-testid="surface">
+                  <Select.List>
+                    <Select.Item value="apple">
+                      <Select.ItemLabel data-testid="item-label">
+                        Apple
+                      </Select.ItemLabel>
+                    </Select.Item>
+                  </Select.List>
+                </Select.Surface>
+              </Select.Popup>
+            </Select.Positioner>
+          </Select.Portal>
+        </Select.Root>
+      )
+
+      try {
+        const { rerender } = render(ui(false))
+        const positioner = await screen.findByTestId('positioner')
+        await waitFor(() => {
+          expect(positioner).toHaveAttribute('data-side', 'none')
+        })
+        // Disabled while open: the resize close is the engine's own
+        rerender(ui(true))
+
+        act(() => {
+          window.dispatchEvent(new Event('resize'))
+        })
+
+        await waitFor(() => {
+          expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
+        })
+      } finally {
+        rectSpy.mockRestore()
+        clientHeightSpy.mockRestore()
+        clientWidthSpy.mockRestore()
+      }
+    })
+
     it('bails to anchored positioning when a hideUntilActive search activates', async () => {
       const rectSpy = vi
         .spyOn(HTMLElement.prototype, 'getBoundingClientRect')

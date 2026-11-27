@@ -1,8 +1,11 @@
 'use client'
 
 import { Popover, type PopoverRootProps } from '@base-ui/react/popover'
+import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect'
 import { useStableCallback } from '@base-ui/utils/useStableCallback'
+import { decideOpenChange } from '@bazza-ui/menu-core'
 import * as React from 'react'
+import { REASONS } from '../../../../utils/events/index.js'
 import {
   ListboxContextProvider,
   ListboxStore,
@@ -10,13 +13,21 @@ import {
   useSurfaceContext,
   type VirtualItem,
 } from '../../../listbox/index.js'
+import {
+  getCloseCause,
+  requestStoreOpen,
+} from '../../../listbox/store/ListboxStore.js'
+import { useFocusOwner } from '../../contexts/focus-owner-context.js'
 import { useMenuTree } from '../../contexts/menu-tree-context.js'
 import { useOpenChain } from '../../contexts/open-chain-context.js'
 import {
   PopupMenuContext,
   useMaybePopupMenuContext,
 } from '../../contexts/popup-menu-context.js'
-import { SubmenuHandle } from '../../contexts/submenu-context.js'
+import {
+  type SubmenuContextValue,
+  SubmenuHandle,
+} from '../../contexts/submenu-context.js'
 import {
   MenuSurfaceTier,
   SurfaceTierContext,
@@ -25,8 +36,11 @@ import {
 import type {
   HighlightChangeEventDetails,
   PopupMenuHighlightChangeHandler,
+  PopupMenuOpenChangeEventDetails,
+  PopupMenuOpenChangeReason,
 } from '../../events.js'
 import type { PopupMenuRootActions } from '../../hooks/use-popup-menu-root.js'
+import { getElementRegistry } from '../../store/MenuTreeStore.js'
 
 export interface PopupMenuSubmenuRootProps
   extends Omit<
@@ -40,12 +54,16 @@ export interface PopupMenuSubmenuRootProps
   open?: boolean
 
   /**
-   * Callback when the open state changes.
-   * The second parameter contains event details including the reason for the change.
+   * Callback when the open state changes, for every change: a hover or an aim
+   * toward the popup (`trigger-hover`), a key (`list-navigation`,
+   * `escape-key`), another row's highlight (`sibling-open`), the whole menu
+   * closing, or a press on the trigger. The second parameter contains event
+   * details including the reason; `eventDetails.cancel()` keeps the submenu
+   * as it is. With `open` controlled, apply the change to open it.
    */
   onOpenChange?: (
     open: boolean,
-    eventDetails: Popover.Root.ChangeEventDetails,
+    eventDetails: PopupMenuOpenChangeEventDetails,
   ) => void
 
   /**
@@ -137,7 +155,8 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
   const parentDepth = parentListboxContext?.depth ?? 0
   const parentCloseAll = parentListboxContext?.closeAll
   const parentRegisterSurface = parentListboxContext?.registerSurface
-  const menuTreeResolver = useMenuTree().resolver
+  const menuTree = useMenuTree()
+  const menuTreeResolver = menuTree.resolver
 
   const handleHighlightChange = React.useCallback(
     (
@@ -161,8 +180,21 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
   // Generate unique surface ID for this submenu
   const childSurfaceId = React.useId()
 
+  // The consumer hears every change the store is asked for, as a root's
+  // does (`changeOpen`): a canceled change, or one to a controlled `open`,
+  // leaves the store as it is.
+  const notifyOpenChange = useStableCallback(
+    (nextOpen: boolean, eventDetails: PopupMenuOpenChangeEventDetails) => {
+      onOpenChange?.(nextOpen, eventDetails)
+    },
+  )
+
   // Create the store instance for this submenu
-  const store = ListboxStore.useStore(undefined, { open: defaultOpen })
+  const store = ListboxStore.useStore(
+    undefined,
+    { open: defaultOpen },
+    { onOpenChange: notifyOpenChange },
+  )
 
   const [imperativeDisabled, setImperativeDisabled] = React.useState(false)
   const disabled =
@@ -174,14 +206,54 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
     setImperativeDisabled(nextDisabled)
   }, [])
 
-  // Stable, so the submenu's tier never changes; it reads the latest
-  // `disabled`.
-  const setOpen = useStableCallback((newOpen: boolean) => {
-    if (newOpen && disabled) {
-      return
-    }
-    store.setOpen(newOpen)
-  })
+  // Every open change of the submenu: the close policy decides, then the
+  // store takes it (and tells the consumer). Returns the details the
+  // consumer saw, or null when nothing was asked of it. Stable, so the
+  // submenu's tier never changes; it reads the latest `disabled`.
+  const requestOpen = useStableCallback(
+    (
+      newOpen: boolean,
+      reason: PopupMenuOpenChangeReason,
+      event: Event | undefined,
+      facts?: {
+        outsideTree: boolean
+        outsidePress: object | undefined
+        exempt: boolean
+      },
+    ): PopupMenuOpenChangeEventDetails | null => {
+      // Nothing to change, nothing to report
+      if (store.select('open') === newOpen) return null
+      const decision = decideOpenChange({
+        open: newOpen,
+        reason,
+        event,
+        level: 'submenu',
+        disabled,
+        // Escape is routed where the key is handled (the listbox): one that
+        // reaches the submenu closes only it, whatever `closeRootOnEsc` says
+        closeRootOnEsc: false,
+        outsideTree: facts?.outsideTree,
+        outsidePress: facts?.outsidePress,
+        exempt: facts?.exempt,
+      })
+      if (decision.type !== 'allow') return null
+      return requestStoreOpen(
+        store,
+        newOpen,
+        decision.reason,
+        decision.event as Event | undefined,
+      )
+    },
+  )
+  const setOpen = useStableCallback(
+    (
+      newOpen: boolean,
+      reason: PopupMenuOpenChangeReason = REASONS.none,
+      event?: Event,
+    ) => {
+      requestOpen(newOpen, reason, event)
+    },
+  )
 
   // Sync controlled open prop to store
   store.useControlledProp('openProp', openProp)
@@ -201,20 +273,37 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
     }
   }, [open, childSurfaceId, openChainStore])
 
-  // Handle Popover's onOpenChange to update the store and call user's callback
+  // Base UI's own changes (a press on the trigger, its dismissal) go the same
+  // way; a consumer's `cancel()` cancels Base UI's details too. Its
+  // dismissal from outside the tree's popups is the root's to decide when
+  // the root hears it too (an outside press, or the focus-out one causes):
+  // when the root closes, so does the submenu.
+  const elements = getElementRegistry(menuTree)
   const handlePopoverOpenChange = React.useCallback(
     (newOpen: boolean, eventDetails: Popover.Root.ChangeEventDetails) => {
-      // Call user's onOpenChange first so they can cancel
-      onOpenChange?.(newOpen, eventDetails)
-
-      // If the user cancelled, don't update the store
-      if (eventDetails.isCanceled) {
-        return
-      }
-
-      setOpen(newOpen)
+      const { reason, event } = eventDetails
+      const target =
+        reason === REASONS.focusOut
+          ? (event as FocusEvent | undefined)?.relatedTarget
+          : reason === REASONS.outsidePress
+            ? event?.target
+            : undefined
+      const outsideTree =
+        (reason === REASONS.focusOut || reason === REASONS.outsidePress) &&
+        !(
+          target instanceof Node &&
+          elements.owns(target) &&
+          !elements.inBackdrop(target)
+        )
+      const details = requestOpen(newOpen, reason, event, {
+        outsideTree,
+        outsidePress: elements.outsidePressThisTask ?? undefined,
+        // A press on, or focus moving to, an element the menu exempts
+        exempt: target instanceof Node && elements.isExempt(target),
+      })
+      if (details?.isCanceled) eventDetails.cancel()
     },
-    [setOpen, onOpenChange],
+    [requestOpen, elements],
   )
 
   // Handle animation complete - clear search and hide input if clearSearchOnClose is 'after-exit'
@@ -237,41 +326,28 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
     [store, onOpenChangeCompleteProp],
   )
 
-  // Close submenu when parent menu closes
-  // We track parent open state to close the submenu when parent closes
-  const [parentOpen, setParentOpen] = React.useState(true)
+  // This submenu's own submenus (and subpages), closed when it closes;
+  // they register here, as the root's register with the root
+  type SurfaceEntry = { setOpen: SubmenuContextValue['setOpen'] }
+  const childSurfacesRef = React.useRef<Set<SurfaceEntry>>(new Set())
+  const registerSurface = React.useCallback(
+    (_depth: number, childSetOpen: SurfaceEntry['setOpen']) => {
+      const entry: SurfaceEntry = { setOpen: childSetOpen }
+      childSurfacesRef.current.add(entry)
+      return () => {
+        childSurfacesRef.current.delete(entry)
+      }
+    },
+    [],
+  )
 
-  React.useEffect(() => {
-    if (!parentListboxContext) return
-
-    const parentStore = parentListboxContext.store
-    // Poll the parent store's open state
-    const checkParentOpen = () => {
-      const isOpen = parentStore.select('open')
-      setParentOpen(isOpen)
-    }
-
-    // Check immediately
-    checkParentOpen()
-
-    // Subscribe to state changes by observing the store
-    // We use observe method which is called when state changes
-    const unsubscribe = parentStore.observe('open', checkParentOpen)
-
-    return unsubscribe
-  }, [parentListboxContext])
-
-  React.useEffect(() => {
-    if (!parentOpen) {
-      setOpen(false)
-    }
-  }, [parentOpen, setOpen])
-
-  // Register this submenu with the root for closeAll tracking
+  // Register this submenu with the root, or the submenu it's in, which
+  // close it when they close, passing their cause. From a layout effect, so
+  // a close a layout effect makes reaches it.
   const depth = parentDepth + 1
-  React.useEffect(() => {
+  useIsoLayoutEffect(() => {
     if (!parentRegisterSurface) return
-    return parentRegisterSurface(depth, (newOpen) => setOpen(newOpen))
+    return parentRegisterSurface(depth, setOpen)
   }, [parentRegisterSurface, depth, setOpen])
 
   const popoverActionsRef = React.useRef<Popover.Root.Actions | null>(null)
@@ -306,13 +382,60 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
     [store, setOpen, parentSurfaceId, childSurfaceId],
   )
   submenu.useSyncedValue('closeRootOnEsc', closeRootOnEsc)
+
+  // When this submenu's `open` goes false, whatever closed it (and whenever:
+  // a controlled `open` may follow later), its own open submenus close with
+  // the cause of the close (`getCloseCause`), as the root's do with the
+  // root's; a close its consumer canceled leaves them. Then, if it owned
+  // focus: a key that closed only this submenu (ArrowLeft, Ctrl+H, Escape)
+  // hands focus back to the parent's list, which is still open, and the
+  // trigger it stays on doesn't reopen it, unless focus already moved to an
+  // element outside the tree. Any other close only drops its ownership.
+  // Subscribed in a layout effect, before a close a layout effect makes.
+  const focusOwnerStore = useFocusOwner()
+  const parentStore = parentListboxContext?.store
+  useIsoLayoutEffect(
+    () =>
+      store.observe('open', (isOpen, wasOpen) => {
+        if (isOpen || !wasOpen) return
+        const cause = getCloseCause(store)
+        for (const child of [...childSurfacesRef.current]) {
+          child.setOpen(false, cause?.reason ?? REASONS.none, cause?.event)
+        }
+        const active = document.activeElement
+        const ownsFocus =
+          focusOwnerStore.state.ownerId === childSurfaceId ||
+          (active !== null && elements.surfaceFor(active) === childSurfaceId)
+        if (!ownsFocus) return
+        const keyboardClose =
+          cause?.reason === REASONS.listNavigation ||
+          cause?.reason === REASONS.escapeKey
+        const focusStillInMenu =
+          active === null ||
+          active === active.ownerDocument.body ||
+          elements.owns(active)
+        if (keyboardClose && parentStore?.select('open') && focusStillInMenu) {
+          submenu.suppressAutoOpenRef.current = true
+          focusOwnerStore.setOwnerId(parentSurfaceId)
+        } else if (focusOwnerStore.state.ownerId === childSurfaceId) {
+          focusOwnerStore.clearOwner()
+        }
+      }),
+    [
+      store,
+      focusOwnerStore,
+      childSurfaceId,
+      parentSurfaceId,
+      parentStore,
+      elements,
+      submenu,
+    ],
+  )
+
   const surfaceTier = React.useMemo(
     () => new MenuSurfaceTier(store, parentTier, submenu),
     [store, parentTier, submenu],
   )
-
-  // Fallback registerSurface for edge cases (submenu without parent root)
-  const fallbackRegisterSurface = React.useCallback(() => () => {}, [])
 
   // Memoize listbox wiring config for this submenu
   const virtualization = React.useMemo(() => {
@@ -328,23 +451,17 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
   }, [virtualized, itemsProp, handleHighlightChange, onHighlightChange])
 
   // Listbox context value with incremented depth
-  // Pass parent's closeAll and registerSurface through unchanged
+  // Pass parent's closeAll through unchanged; this submenu's own submenus
+  // register with it
   const listboxContextValue = React.useMemo(
     () => ({
       store,
       depth,
-      closeAll: parentCloseAll ?? (() => store.setOpen(false)),
-      registerSurface: parentRegisterSurface ?? fallbackRegisterSurface,
+      closeAll: parentCloseAll ?? (() => setOpen(false)),
+      registerSurface,
       virtualization,
     }),
-    [
-      store,
-      depth,
-      parentCloseAll,
-      parentRegisterSurface,
-      fallbackRegisterSurface,
-      virtualization,
-    ],
+    [store, depth, parentCloseAll, setOpen, registerSurface, virtualization],
   )
 
   // PopupMenu context value with incremented depth
@@ -359,7 +476,7 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
       tabWithoutZones: parentPopupMenuContext?.tabWithoutZones ?? 'close',
       externalFocus: parentPopupMenuContext?.externalFocus ?? false,
       inputEmbedded: parentPopupMenuContext?.inputEmbedded ?? false,
-      registerSurface: parentRegisterSurface ?? fallbackRegisterSurface,
+      registerSurface,
       virtualization,
       virtualAnchor: parentPopupMenuContext?.virtualAnchor,
       menuType: parentPopupMenuContext?.menuType ?? ('dropdown' as const),
@@ -378,9 +495,8 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
       parentPopupMenuContext?.tabWithoutZones,
       parentPopupMenuContext?.externalFocus,
       parentPopupMenuContext?.inputEmbedded,
-      parentRegisterSurface,
+      registerSurface,
       setOpen,
-      fallbackRegisterSurface,
       virtualization,
       parentPopupMenuContext?.virtualAnchor,
       parentPopupMenuContext?.menuType,
@@ -412,6 +528,6 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
 
 export namespace PopupMenuSubmenuRoot {
   export interface Props extends PopupMenuSubmenuRootProps {}
-  export type ChangeEventDetails = Popover.Root.ChangeEventDetails
+  export type ChangeEventDetails = PopupMenuOpenChangeEventDetails
   export type Actions = PopupMenuRootActions
 }

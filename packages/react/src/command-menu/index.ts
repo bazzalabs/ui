@@ -161,6 +161,10 @@ export type {
   CommandMenuBackdropProps,
   CommandMenuBackdropState,
 } from './backdrop/backdrop.js'
+export type {
+  CommandMenuOpenChangeEventDetails,
+  CommandMenuOpenChangeReason,
+} from './events.js'
 export * as CommandMenu from './index.parts.js'
 export type {
   CommandMenuInputProps,

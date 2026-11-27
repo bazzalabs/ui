@@ -1,0 +1,11 @@
+---
+'@bazza-ui/react': patch
+---
+
+Menus (`DropdownMenu`, `ContextMenu`, `CommandMenu`, `SuggestionMenu`, `Select`, `Combobox`) decide every open and close in one place:
+
+- A close the root's `onOpenChange` cancels, or a controlled `open` the consumer hasn't set to `false` yet, no longer closes the open submenus or drops keyboard focus from them; a press outside the whole menu, or on its backdrop, is the root's to decide, also for its submenus, and a press on, or focus moving to, an element the menu exempts (`getDismissExemptElements`) doesn't close its submenus either. Submenus close when the menu does, whatever closed it (a press, Escape, a controlled `open`, `actionsRef.close()`), and report the menu's reason instead of `'none'`. For a controlled `open`, that's the reason of the last close the consumer was told of, whenever it sets `open` to `false` (in its handler, with `flushSync`, or in a later task); if the consumer sets it with no close asked for since the menu last opened or synced the prop, the submenus report `'none'`. A submenu inside a submenu reports the reason its submenu closed with (`'sibling-open'`, `'list-navigation'`, `'escape-key'`, …), once.
+- A press inside the menu, or on content it portals out, no longer makes a later focus-out (Tab out of the menu) report `'outside-press'`.
+- A root's `onOpenChange` that changes between renders is now called: the menu kept calling the one from its first render.
+- The engine's `closeAll` (on `ListboxContextValue`, and in the `PopupMenuProviders`, `usePopupMenuKeyboard` and `useListboxKeyboard` props), `registerSurface`'s `setOpen` there and on the contexts, the submenu context's and `SubmenuInterface`'s `setOpen` take an optional `reason` and `event`: calling code is unaffected, and a `closeAll` you supply must accept the optional reason.
+- `useListboxKeyboard` (and `usePopupMenuKeyboard`) no longer move focus back to the parent, or suppress reopening, when ArrowLeft, Ctrl+H or Escape asks a submenu to close: the submenu's consumer can cancel the close, or apply it later, and the hook can't see when it happens. The engine's submenus do it themselves once they close; a direct caller of `useListboxKeyboard` with its own `SubmenuInterface` must return focus from its submenu when it closes. ArrowLeft and Ctrl+H close a submenu without a `focusOwner` too, as Escape does.

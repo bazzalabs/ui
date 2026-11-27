@@ -99,7 +99,9 @@ export interface SubmenuControllerOptions {
   readonly suppressAutoOpen: { current: boolean }
   /**
    * The submenu should open or close. Returns whether it is open afterwards:
-   * a disabled or controlled submenu, or a canceled change, can refuse.
+   * a disabled submenu, a canceled change, or a controlled `open` the
+   * consumer applies on its next render read as refused until `open.change`
+   * reports the prop (interim: UI-739 makes the store the only authority).
    */
   readonly onOpenChange: (
     open: boolean,
@@ -160,6 +162,12 @@ export class SubmenuController {
   #state: SubmenuState = 'idle'
   #snapshot: SubmenuSnapshot = { state: 'idle' }
   #depth = 0
+  /**
+   * A hover asked to open the submenu and was refused: the rest of the
+   * gesture doesn't ask again. Cleared when the pointer leaves, the
+   * highlight is lost, the trigger hides, or the submenu opens.
+   */
+  #hoverRefused = false
   /** The open delay in `open-pending`, the close delay in `close-pending`. */
   #timer: ClockHandle | null = null
   #trackTimer: ClockHandle | null = null
@@ -245,6 +253,7 @@ export class SubmenuController {
       case 'open.change':
         return this.#openChange(event.open)
       case 'hide':
+        this.#hoverRefused = false
         if (this.#isOpen()) return this.#close(REASONS.none)
         return this.#toIdle()
     }
@@ -256,6 +265,7 @@ export class SubmenuController {
     aimGuard.show('hover')
     this.#options.onHighlight()
     if (!this.#settings.openOnHighlight || suppressAutoOpen.current) return
+    if (this.#hoverRefused) return
 
     this.#stopTracking()
     aimGuard.release()
@@ -272,7 +282,7 @@ export class SubmenuController {
     if (aimGuard.isBlocked()) return
     this.#options.onHighlight()
     if (!this.#settings.openOnHighlight || this.#isOpen()) return
-    if (suppressAutoOpen.current) return
+    if (suppressAutoOpen.current || this.#hoverRefused) return
 
     this.#stopTracking()
     const ms = this.#settings.delay.pointer
@@ -281,6 +291,8 @@ export class SubmenuController {
   }
 
   #pointerLeave(point: Point) {
+    // The hover gesture ends: the next one asks again
+    this.#hoverRefused = false
     this.#cancelPending()
     const { aimGuard } = this.#options
     if (aimGuard.isBlocked()) return
@@ -348,7 +360,10 @@ export class SubmenuController {
     this.#highlighted = highlighted
     this.#keyboardHighlight = keyboard
     const { suppressAutoOpen } = this.#options
-    if (!highlighted) suppressAutoOpen.current = false
+    if (!highlighted) {
+      suppressAutoOpen.current = false
+      this.#hoverRefused = false
+    }
     if (!this.#settings.openOnHighlight || !highlighted || !keyboard) {
       // Whatever started the open delay: a keyboard highlight's, or a
       // pointer's that a move restarts.
@@ -361,6 +376,7 @@ export class SubmenuController {
 
   #openChange(open: boolean) {
     if (open) {
+      this.#hoverRefused = false
       if (!this.#isOpen()) {
         this.#clearTimer()
         this.#set('open')
@@ -409,8 +425,9 @@ export class SubmenuController {
   }
 
   #scheduleOpen(ms: number, reason: SubmenuOpenChangeReason) {
+    const hover = reason === REASONS.triggerHover
     if (ms <= 0) {
-      this.#open(reason, 'open')
+      this.#askOpen(reason, hover)
       return
     }
     const keyboard = reason === REASONS.listNavigation
@@ -422,10 +439,15 @@ export class SubmenuController {
           this.#set('idle')
           return
         }
-        this.#open(reason, 'open')
+        this.#askOpen(reason, hover)
       })
     }, ms)
     this.#set('open-pending')
+  }
+
+  /** Opens the submenu; a hover that's refused doesn't ask again until it ends. */
+  #askOpen(reason: SubmenuOpenChangeReason, hover: boolean) {
+    if (!this.#open(reason, 'open') && hover) this.#hoverRefused = true
   }
 
   #cancelPending() {

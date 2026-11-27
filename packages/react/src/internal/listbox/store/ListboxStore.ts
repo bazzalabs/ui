@@ -822,6 +822,50 @@ export interface OpenOwner {
 let openOwnerAccess: {
   get(store: ListboxStore): OpenOwner | undefined
   attach(store: ListboxStore, owner: OpenOwner): void
+  getCloseCause(store: ListboxStore): CloseCause | null
+  setCloseCause(store: ListboxStore, cause: CloseCause | null): void
+  request(
+    store: ListboxStore,
+    open: boolean,
+    reason: PopupMenuOpenChangeReason,
+    event: Event | undefined,
+    cause: CloseCause | undefined,
+  ): PopupMenuOpenChangeEventDetails
+}
+
+/**
+ * What closed a store's popup, for the popups that close with it (a menu's
+ * submenus): the reason and event of the close request the consumer let
+ * through, or the cause the request named for them.
+ */
+export interface CloseCause {
+  readonly reason: PopupMenuOpenChangeReason
+  readonly event?: Event
+}
+
+/**
+ * Why `store`'s popup is closing, while its `open` goes false: the last close
+ * request the consumer let through, unless a later request or a prop sync
+ * superseded it (see `changeOpen`). Read it from an observer of `open`.
+ */
+export function getCloseCause(store: ListboxStore): CloseCause | null {
+  return openOwnerAccess.getCloseCause(store)
+}
+
+/**
+ * Requests `open` for a store that keeps its own open cell, as `setOpen`
+ * does, and returns the details its consumer saw (canceled or not). `cause`
+ * is what the popups that close with it are told; the request's reason and
+ * event when left out.
+ */
+export function requestStoreOpen(
+  store: ListboxStore,
+  open: boolean,
+  reason: PopupMenuOpenChangeReason = REASONS.none,
+  event?: Event,
+  cause?: CloseCause,
+): PopupMenuOpenChangeEventDetails {
+  return openOwnerAccess.request(store, open, reason, event, cause)
 }
 
 /**
@@ -837,20 +881,25 @@ export function getOpenOwner(store: ListboxStore): OpenOwner | undefined {
   return openOwnerAccess.get(store)
 }
 
-/** What changing an open cell needs of the store whose state mirrors it. */
-interface OpenCellStore {
-  set(key: 'open', value: boolean): void
-  set(key: 'openMethod', value: OpenMethod): void
-}
-
 /**
  * Requests `open` for an open cell (a `ListboxStore`'s, or a menu tree's,
  * for its root) and writes `store`, whose state mirrors it. The consumer's
  * `onOpenChange` runs first; a canceled change, or one to a controlled value,
- * leaves the cell as it is.
+ * leaves the cell as it is. Returns the details the consumer saw.
+ *
+ * A close of a popup that's open records its cause (`cause`, else the
+ * request's reason and event) before the consumer runs, so observers of
+ * `open` read it (`getCloseCause`), even when the consumer applies a
+ * controlled `open` from inside its callback (`flushSync`). A canceled
+ * change puts the previous cause back. An uncontrolled close drops it once
+ * it has written `open`; for a controlled `open` it lasts until it's
+ * superseded: by the next request (an open, or a close of a closed popup,
+ * records none), or by the next prop sync, once its observers have read it.
+ * No timer: a controlled `open` applied in a later task (a commit React
+ * schedules for a non-discrete update) still reads it.
  */
 export function changeOpen(
-  store: OpenCellStore,
+  store: ListboxStore,
   cells: { open: ControlledCell<boolean> },
   onOpenChange:
     | ((open: boolean, details: PopupMenuOpenChangeEventDetails) => void)
@@ -858,13 +907,22 @@ export function changeOpen(
   open: boolean,
   reason: PopupMenuOpenChangeReason = REASONS.none,
   event?: Event,
-): void {
+  cause?: CloseCause,
+): PopupMenuOpenChangeEventDetails {
   const eventDetails = createChangeEventDetails(reason, event)
   const prevCell = cells.open
+  const previousCause = openOwnerAccess.getCloseCause(store)
+  const closeCause =
+    !open && cellValue(prevCell) ? (cause ?? { reason, event }) : null
+  openOwnerAccess.setCloseCause(store, closeCause)
   const nextCell = changeCell(prevCell, open, eventDetails, onOpenChange)
 
   if (eventDetails.isCanceled) {
-    return
+    // Unless a prop sync inside the callback already dropped it
+    if (openOwnerAccess.getCloseCause(store) === closeCause) {
+      openOwnerAccess.setCloseCause(store, previousCause)
+    }
+    return eventDetails
   }
 
   // Record how the popup was opened so hover-only affordances (scroll arrows,
@@ -880,7 +938,26 @@ export function changeOpen(
     cells.open = nextCell
     // oxlint-disable-next-line bazza/no-raw-controlled-state -- the cell's mirror, written with it
     store.set('open', open)
+    // Uncontrolled, the close is done and its observers have read the cause
+    if (openOwnerAccess.getCloseCause(store) === closeCause) {
+      openOwnerAccess.setCloseCause(store, null)
+    }
   }
+  return eventDetails
+}
+
+/**
+ * Syncs a controlled `open` prop into an open cell, as `controlCell` does,
+ * then drops the close cause the last request recorded: observers of `open`
+ * read it while the prop applies the close.
+ */
+export function controlOpenCell(
+  store: ListboxStore,
+  cells: { open: ControlledCell<boolean> },
+  controlled: boolean | undefined,
+): void {
+  controlCell(store, cells, 'open', controlled)
+  openOwnerAccess.setCloseCause(store, null)
 }
 
 /**
@@ -1004,6 +1081,20 @@ export class ListboxStore extends ReactStore<
       attach: (store, owner) => {
         store.#openOwner = owner
       },
+      getCloseCause: (store) => store.#closeCause,
+      setCloseCause: (store, cause) => {
+        store.#closeCause = cause
+      },
+      request: (store, open, reason, event, cause) =>
+        changeOpen(
+          store,
+          store.#cells,
+          store.context.onOpenChange,
+          open,
+          reason,
+          event,
+          cause,
+        ),
     }
   }
 
@@ -1136,6 +1227,9 @@ export class ListboxStore extends ReactStore<
   // `open` cell above isn't read then, and the owner writes the mirrors.
   #openOwner: OpenOwner | undefined
 
+  // What closed the popup, while observers of `open` read it (`changeOpen`).
+  #closeCause: CloseCause | null = null
+
   /**
    * Syncs a controlled prop into the store. `openProp` and `searchProp` go
    * into their cell, and the mirrored fields with it.
@@ -1148,7 +1242,9 @@ export class ListboxStore extends ReactStore<
       if (key === 'openProp') {
         if (this.#openOwner) {
           this.#openOwner.control(controlled as boolean | undefined)
-        } else controlCell(this, this.#cells, 'open', controlled as boolean)
+        } else {
+          controlOpenCell(this, this.#cells, controlled as boolean | undefined)
+        }
       } else if (key === 'searchProp') {
         controlCell(this, this.#cells, 'search', controlled as string)
       }

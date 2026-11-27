@@ -491,7 +491,8 @@ export const PopupMenuSurface = React.forwardRef<
             // Suppress keyboard auto-reopen while the trigger stays
             // highlighted (same as ArrowLeft/Escape keyboard closes).
             submenuContext.suppressAutoOpenRef.current = true
-            submenuContext.setOpen(false)
+            // Tab moved focus out of the submenu
+            submenuContext.setOpen(false, REASONS.focusOut)
           }
         : () => {},
     })
@@ -514,7 +515,8 @@ export const PopupMenuSurface = React.forwardRef<
   }, [isSurfaceActive, open])
 
   React.useEffect(() => {
-    if (!isSurfaceActive || !isOwner || skipAutoFocus) {
+    // A closed surface (kept mounted, or exiting) never takes focus
+    if (!isSurfaceActive || !isOwner || skipAutoFocus || !open) {
       return
     }
 
@@ -522,7 +524,7 @@ export const PopupMenuSurface = React.forwardRef<
     // This allows FloatingFocusManager's cleanup to complete before we focus
     const timeoutId = setTimeout(() => {
       requestAnimationFrame(() => {
-        if (!surfaceRef.current) {
+        if (!surfaceRef.current || !store.select('open')) {
           return
         }
 
@@ -570,6 +572,8 @@ export const PopupMenuSurface = React.forwardRef<
     isSurfaceActive,
     isOwner,
     skipAutoFocus,
+    open,
+    store,
     popupMenuContext.explicitTabBehavior,
     focusZoneRegistry,
     surfaceId,

@@ -3,14 +3,23 @@
 import { ReactStore } from '@base-ui/utils/store'
 import type * as React from 'react'
 import type { ListboxStore } from '../../listbox/store/ListboxStore.js'
+import type { PopupMenuOpenChangeReason } from '../events.js'
 import { useMaybeStore } from '../hooks/use-maybe-store.js'
 import { useMaybeMenuSurfaceTier } from './surface-tier-context.js'
 
 export interface SubmenuContextValue {
   /** Whether the submenu is open */
   open: boolean
-  /** Set the submenu open state */
-  setOpen: (open: boolean) => void
+  /**
+   * Asks the submenu to open or close, for `reason` (`'none'` when left
+   * out): the close policy decides, and the consumer's `onOpenChange` hears
+   * it with its reason and event.
+   */
+  setOpen: (
+    open: boolean,
+    reason?: PopupMenuOpenChangeReason,
+    event?: Event,
+  ) => void
   /**
    * Latch set by explicit close actions (keyboard ArrowLeft/Ctrl+H/Escape-in-submenu,
    * or clicking the open trigger). While set and the trigger remains highlighted,
@@ -53,7 +62,7 @@ export class SubmenuHandle extends ReactStore<SubmenuHandleState> {
   constructor(
     /** The submenu's store. */
     readonly store: ListboxStore,
-    readonly setOpen: (open: boolean) => void,
+    readonly setOpen: SubmenuContextValue['setOpen'],
     readonly parentSurfaceId: string,
     readonly childSurfaceId: string,
     closeRootOnEsc: boolean,

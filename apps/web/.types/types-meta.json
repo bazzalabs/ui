@@ -8928,6 +8928,67 @@
         "kind": "typealias",
         "definition": "Dialog.Backdrop.State"
       },
+      "CommandMenuOpenChangeEventDetails": {
+        "name": "CommandMenuOpenChangeEventDetails",
+        "kind": "typealias",
+        "doc": "Event details passed to the `onOpenChange` callback.",
+        "definition": "ChangeEventDetails<CommandMenuOpenChangeReason>",
+        "props": [
+          {
+            "name": "reason",
+            "type": "CommandMenuOpenChangeReason",
+            "formattedType": "| 'close-press'\n  | 'escape-key'\n  | 'focus-out'\n  | 'imperative-action'\n  | 'item-press'\n  | 'none'\n  | 'outside-press'\n  | 'trigger-press'",
+            "required": true,
+            "description": "The reason why this state change occurred.\nUse this to conditionally handle different scenarios."
+          },
+          {
+            "name": "event",
+            "type": "Event | FocusEvent | KeyboardEvent | MouseEvent | PointerEvent | TouchEvent",
+            "formattedType": "| Event\n  | FocusEvent\n  | KeyboardEvent\n  | MouseEvent\n  | PointerEvent\n  | TouchEvent",
+            "required": true,
+            "description": "The native DOM event that triggered this change.\nMay be a synthetic event in some cases."
+          },
+          {
+            "name": "cancel",
+            "type": "() => void",
+            "required": true,
+            "description": "Cancels the state change.\nWhen called, the component's internal state will not update."
+          },
+          {
+            "name": "allowPropagation",
+            "type": "() => void",
+            "required": true,
+            "description": "Allows the native event to propagate.\nBy default, some events (like Escape key) stop propagation\nto prevent parent popups from closing simultaneously."
+          },
+          {
+            "name": "isCanceled",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Whether `cancel()` has been called."
+          },
+          {
+            "name": "isPropagationAllowed",
+            "type": "boolean",
+            "formattedType": "false | true",
+            "required": true,
+            "description": "Whether `allowPropagation()` has been called."
+          },
+          {
+            "name": "trigger",
+            "type": "Element | undefined",
+            "formattedType": "Element",
+            "required": true,
+            "description": "The element that triggered this event, if applicable."
+          }
+        ]
+      },
+      "CommandMenuOpenChangeReason": {
+        "name": "CommandMenuOpenChangeReason",
+        "kind": "typealias",
+        "doc": "Reasons why the command menu's open state changed.\n- `trigger-press`: `CommandMenu.Trigger` was pressed\n- `imperative-action`: the `hotkey` was pressed\n- `escape-key`: Escape was pressed\n- `outside-press`: a press outside the popup\n- `focus-out`: focus left the menu\n- `item-press`: a row was chosen (click or Enter)\n- `close-press`: a close button was pressed",
+        "definition": "| typeof REASONS.triggerPress\n| typeof REASONS.imperativeAction\n| typeof REASONS.escapeKey\n| typeof REASONS.outsidePress\n| typeof REASONS.focusOut\n| typeof REASONS.itemPress\n| typeof REASONS.closePress\n| typeof REASONS.none"
+      },
       "CommandMenuInputProps": {
         "name": "CommandMenuInputProps",
         "kind": "interface",
@@ -9104,10 +9165,10 @@
           },
           {
             "name": "onOpenChange",
-            "type": "((open: boolean) => void) | undefined",
-            "formattedType": "(open: boolean) => void",
+            "type": "((open: boolean, eventDetails: CommandMenuOpenChangeEventDetails) => void) | undefined",
+            "formattedType": "(\n  open: boolean,\n  eventDetails: CommandMenuOpenChangeEventDetails,\n) => void",
             "required": false,
-            "description": "Called when the command menu opens or closes."
+            "description": "Called when the command menu opens or closes. The second parameter\ncontains event details, including the reason for the change;\n`eventDetails.cancel()` keeps the menu as it is."
           },
           {
             "name": "onOpenChangeComplete",
@@ -9138,6 +9199,13 @@
             "required": false,
             "description": "Whether the menu ignores the user opening or closing it: the trigger is disabled and the `hotkey` does nothing.",
             "default": "false"
+          },
+          {
+            "name": "getDismissExemptElements",
+            "type": "(() => readonly (Element | null | undefined)[]) | undefined",
+            "formattedType": "() => readonly (\n  | Element\n  | null\n  | undefined\n)[]",
+            "required": false,
+            "description": "Elements outside the menu that don't dismiss it: pressing one, or moving focus from the menu to one, is no outside press or focus-out. Read when the event happens, so the elements may change over time.\nApplies to non-modal menus (`modal={false}`): a modal menu's backdrop takes presses outside it, so the elements under it are never pressed."
           },
           {
             "name": "getResolvedId",
@@ -11367,10 +11435,10 @@
           },
           {
             "name": "onOpenChange",
-            "type": "((open: boolean, eventDetails: PopoverRootChangeEventDetails) => void) | undefined",
-            "formattedType": "(\n  open: boolean,\n  eventDetails: PopoverRootChangeEventDetails,\n) => void",
+            "type": "((open: boolean, eventDetails: PopupMenuOpenChangeEventDetails) => void) | undefined",
+            "formattedType": "(\n  open: boolean,\n  eventDetails: PopupMenuOpenChangeEventDetails,\n) => void",
             "required": false,
-            "description": "Callback when the open state changes.\nThe second parameter contains event details including the reason for the change."
+            "description": "Callback when the open state changes, for every change: a hover or an aim\ntoward the popup (`trigger-hover`), a key (`list-navigation`,\n`escape-key`), another row's highlight (`sibling-open`), the whole menu\nclosing, or a press on the trigger. The second parameter contains event\ndetails including the reason; `eventDetails.cancel()` keeps the submenu\nas it is. With `open` controlled, apply the change to open it."
           },
           {
             "name": "defaultOpen",
@@ -13016,8 +13084,8 @@
           },
           {
             "name": "registerSurface",
-            "type": "(depth: number, setOpen: (open: boolean) => void) => () => void",
-            "formattedType": "(\n  depth: number,\n  setOpen: (open: boolean) => void,\n) => () => void",
+            "type": "(depth: number, setOpen: (open: boolean, reason?: PopupMenuOpenChangeReason | undefined, event?: Event | undefined) => void) => () => void",
+            "formattedType": "(\n  depth: number,\n  setOpen: (\n    open: boolean,\n    reason?: PopupMenuOpenChangeReason | undefined,\n    event?: Event | undefined,\n  ) => void,\n) => () => void",
             "required": true,
             "description": "Register a surface (submenu) for closeAll tracking. Returns unregister function."
           },
@@ -13078,9 +13146,10 @@
           },
           {
             "name": "setOpen",
-            "type": "(open: boolean) => void",
+            "type": "(open: boolean, reason?: PopupMenuOpenChangeReason | undefined, event?: Event | undefined) => void",
+            "formattedType": "(\n  open: boolean,\n  reason?: PopupMenuOpenChangeReason | undefined,\n  event?: Event | undefined,\n) => void",
             "required": true,
-            "description": "Set the submenu open state"
+            "description": "Asks the submenu to open or close, for `reason` (`'none'` when left\nout): the close policy decides, and the consumer's `onOpenChange` hears\nit with its reason and event."
           },
           {
             "name": "suppressAutoOpenRef",
@@ -16350,10 +16419,10 @@
           },
           {
             "name": "onOpenChange",
-            "type": "((open: boolean, eventDetails: PopoverRootChangeEventDetails) => void) | undefined",
-            "formattedType": "(\n  open: boolean,\n  eventDetails: PopoverRootChangeEventDetails,\n) => void",
+            "type": "((open: boolean, eventDetails: PopupMenuOpenChangeEventDetails) => void) | undefined",
+            "formattedType": "(\n  open: boolean,\n  eventDetails: PopupMenuOpenChangeEventDetails,\n) => void",
             "required": false,
-            "description": "Callback when the open state changes.\nThe second parameter contains event details including the reason for the change."
+            "description": "Callback when the open state changes, for every change: a hover or an aim\ntoward the popup (`trigger-hover`), a key (`list-navigation`,\n`escape-key`), another row's highlight (`sibling-open`), the whole menu\nclosing, or a press on the trigger. The second parameter contains event\ndetails including the reason; `eventDetails.cancel()` keeps the submenu\nas it is. With `open` controlled, apply the change to open it."
           },
           {
             "name": "defaultOpen",

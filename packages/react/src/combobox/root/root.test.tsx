@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
@@ -243,6 +243,48 @@ describe('<Combobox.Root />', () => {
       await waitFor(() => {
         expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
       })
+    })
+
+    it('still closes itself from its input while disabled', async () => {
+      const onOpenChange = vi.fn()
+      const actionsRef = React.createRef<Combobox.Root.Actions>()
+      render(
+        <Combobox.Root
+          defaultOpen
+          actionsRef={actionsRef}
+          onOpenChange={onOpenChange}
+        >
+          <Combobox.Input data-testid="input" />
+          <Combobox.Portal>
+            <Combobox.Positioner>
+              <Combobox.Popup>
+                <Combobox.Surface data-testid="surface">
+                  <Combobox.List>
+                    <Combobox.Item value="apple">Apple</Combobox.Item>
+                  </Combobox.List>
+                </Combobox.Surface>
+              </Combobox.Popup>
+            </Combobox.Positioner>
+          </Combobox.Portal>
+        </Combobox.Root>,
+      )
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+      screen.getByTestId('input').focus()
+      act(() => actionsRef.current?.setDisabled(true))
+
+      // Its own close (Escape in its input), not the user's dismissal
+      fireEvent.keyDown(screen.getByTestId('input'), { key: 'Escape' })
+      await waitFor(() => {
+        expect(screen.queryByTestId('surface')).not.toBeInTheDocument()
+      })
+      expect(
+        onOpenChange.mock.calls.map(([open, details]) => [
+          open,
+          details.reason,
+        ]),
+      ).toEqual([[false, 'escape-key']])
     })
 
     it('highlights rows and does not request reopening while controlled open', async () => {

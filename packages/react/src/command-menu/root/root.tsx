@@ -6,12 +6,14 @@ import {
   type GetResolvedIdFn,
   type PopupMenuIdScope,
   PopupMenuProviders,
-  type UsePopupMenuRootParams,
   usePopupMenuRoot,
 } from '../../internal/popup-menu/index.js'
-import type { PopupMenuOpenChangeReason } from '../../internal/popup-menu/members.js'
 import { REASONS } from '../../utils/events/index.js'
 import { useHotkey } from '../../utils/keybinding/use-hotkey.js'
+import type {
+  CommandMenuOpenChangeEventDetails,
+  CommandMenuOpenChangeReason,
+} from '../events.js'
 
 export interface CommandMenuRootProps {
   children: React.ReactNode
@@ -22,8 +24,15 @@ export interface CommandMenuRootProps {
    * @default false
    */
   defaultOpen?: boolean
-  /** Called when the command menu opens or closes. */
-  onOpenChange?: (open: boolean) => void
+  /**
+   * Called when the command menu opens or closes. The second parameter
+   * contains event details, including the reason for the change;
+   * `eventDetails.cancel()` keeps the menu as it is.
+   */
+  onOpenChange?: (
+    open: boolean,
+    eventDetails: CommandMenuOpenChangeEventDetails,
+  ) => void
   /** Called after the open or close animation finishes. */
   onOpenChangeComplete?: (open: boolean) => void
   /**
@@ -41,6 +50,11 @@ export interface CommandMenuRootProps {
    * @default false
    */
   disabled?: boolean
+  /**
+   * Elements outside the menu that don't dismiss it: pressing one, or moving focus from the menu to one, is no outside press or focus-out. Read when the event happens, so the elements may change over time.
+   * Applies to non-modal menus (`modal={false}`): a modal menu's backdrop takes presses outside it, so the elements under it are never pressed.
+   */
+  getDismissExemptElements?: () => ReadonlyArray<Element | null | undefined>
   /**
    * Computes canonical Resolved IDs for data-first content from the Unresolved Menu Node (definitional facts only).
    * @default encoded surface Definition Path joined with `/`; `idScope="menu"` uses the Definition Key
@@ -93,6 +107,7 @@ export function CommandMenuRoot(props: CommandMenuRoot.Props) {
     hotkey,
     modal = true,
     disabled,
+    getDismissExemptElements,
     getResolvedId,
     idScope = 'surface',
     rangeSelection = true,
@@ -110,11 +125,18 @@ export function CommandMenuRoot(props: CommandMenuRoot.Props) {
     disabled: menuDisabled,
     menuTreeResolver,
   } = usePopupMenuRoot({
-    onOpenChange:
-      onOpenChange as unknown as UsePopupMenuRootParams['onOpenChange'],
+    // The engine reports a command menu's changes with these reasons only
+    onOpenChange: onOpenChange
+      ? (nextOpen, eventDetails) =>
+          onOpenChange(
+            nextOpen,
+            eventDetails as CommandMenuOpenChangeEventDetails,
+          )
+      : undefined,
     defaultOpen,
     disabled,
     closeOnOutsidePress: 'pointerdown',
+    getDismissExemptElements,
     getResolvedId,
     idScope,
   })
@@ -136,7 +158,7 @@ export function CommandMenuRoot(props: CommandMenuRoot.Props) {
     (nextOpen: boolean, dialogDetails: Dialog.Root.ChangeEventDetails) => {
       handleOpenChange(
         nextOpen,
-        dialogDetails.reason as PopupMenuOpenChangeReason,
+        dialogDetails.reason as CommandMenuOpenChangeReason,
         dialogDetails.event,
       )
     },
@@ -194,4 +216,5 @@ export function CommandMenuRoot(props: CommandMenuRoot.Props) {
 
 export namespace CommandMenuRoot {
   export interface Props extends CommandMenuRootProps {}
+  export type ChangeEventDetails = CommandMenuOpenChangeEventDetails
 }

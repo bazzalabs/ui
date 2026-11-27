@@ -8,8 +8,11 @@ import {
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import * as React from 'react'
+import * as ReactDOM from 'react-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DropdownMenu } from '../../dropdown-menu/index.js'
+
+type Spy = ReturnType<typeof vi.fn>
 
 // ============================================================================
 // Test Fixtures
@@ -539,7 +542,11 @@ function PreFocusedHeaderMenu() {
   )
 }
 
-function FocusZoneSubmenuBubblingMenu() {
+function FocusZoneSubmenuBubblingMenu({
+  onSubmenuOpenChange,
+}: {
+  onSubmenuOpenChange?: Spy
+} = {}) {
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger data-testid="trigger">Open</DropdownMenu.Trigger>
@@ -550,7 +557,7 @@ function FocusZoneSubmenuBubblingMenu() {
               <DropdownMenu.Input data-testid="input-root" />
               <DropdownMenu.List>
                 <DropdownMenu.Item value="first">First</DropdownMenu.Item>
-                <DropdownMenu.Submenu>
+                <DropdownMenu.Submenu onOpenChange={onSubmenuOpenChange}>
                   <DropdownMenu.SubmenuTrigger data-testid="submenu-trigger">
                     Submenu
                   </DropdownMenu.SubmenuTrigger>
@@ -1037,7 +1044,12 @@ describe('PopupMenu', () => {
 
     it('bubbles Shift+Tab from a first-level zone-less submenu to the last zone tabbable', async () => {
       const user = userEvent.setup()
-      render(<FocusZoneSubmenuBubblingMenu />)
+      const onSubmenuOpenChange = vi.fn()
+      render(
+        <FocusZoneSubmenuBubblingMenu
+          onSubmenuOpenChange={onSubmenuOpenChange}
+        />,
+      )
 
       await user.click(screen.getByTestId('trigger'))
       await waitFor(() =>
@@ -1060,6 +1072,9 @@ describe('PopupMenu', () => {
       await user.tab({ shift: true })
 
       await waitFor(() => expect(screen.getByTestId('cancel')).toHaveFocus())
+      // Tab moved focus out of the submenu, which closed
+      expect(onSubmenuOpenChange.mock.lastCall?.[0]).toBe(false)
+      expect(onSubmenuOpenChange.mock.lastCall?.[1].reason).toBe('focus-out')
     })
 
     it('bubbles Tab from a second-level zone-less submenu through the submenu chain', async () => {
@@ -1964,6 +1979,1059 @@ describe('PopupMenu', () => {
       } finally {
         scenario.cleanup()
       }
+    })
+  })
+
+  describe('disabled root', () => {
+    it('ignores Escape and an outside press while open', async () => {
+      const user = userEvent.setup()
+      const onOpenChange = vi.fn()
+      render(
+        <>
+          <button type="button" data-testid="outside">
+            Outside
+          </button>
+          <DropdownMenu.Root defaultOpen disabled onOpenChange={onOpenChange}>
+            <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Positioner>
+                <DropdownMenu.Popup data-testid="popup-root">
+                  <DropdownMenu.Surface>
+                    <DropdownMenu.List data-testid="root-list">
+                      <DropdownMenu.Item value="first">First</DropdownMenu.Item>
+                    </DropdownMenu.List>
+                  </DropdownMenu.Surface>
+                </DropdownMenu.Popup>
+              </DropdownMenu.Positioner>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
+        </>,
+      )
+      await waitFor(() => {
+        expect(screen.getByTestId('root-list')).toHaveFocus()
+      })
+
+      await user.keyboard('{Escape}')
+      await user.click(screen.getByTestId('outside'))
+      await sleep(30)
+      expect(screen.getByTestId('popup-root')).toBeInTheDocument()
+      expect(onOpenChange).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('submenu onOpenChange reasons', () => {
+    function ReasonsMenu({
+      onSubmenuOpenChange,
+    }: {
+      onSubmenuOpenChange: Spy
+    }) {
+      return (
+        <DropdownMenu.Root defaultOpen>
+          <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner>
+              <DropdownMenu.Popup>
+                <DropdownMenu.Surface>
+                  <DropdownMenu.List data-testid="root-list">
+                    <DropdownMenu.Item data-testid="sibling" value="sibling">
+                      Sibling
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Submenu onOpenChange={onSubmenuOpenChange}>
+                      <DropdownMenu.SubmenuTrigger
+                        data-testid="submenu-trigger"
+                        value="more"
+                      >
+                        More
+                      </DropdownMenu.SubmenuTrigger>
+                      <DropdownMenu.Portal>
+                        <DropdownMenu.Positioner>
+                          <DropdownMenu.Popup data-testid="popup-submenu">
+                            <DropdownMenu.Surface>
+                              <DropdownMenu.List data-testid="submenu-list">
+                                <DropdownMenu.Item value="nested">
+                                  Nested
+                                </DropdownMenu.Item>
+                              </DropdownMenu.List>
+                            </DropdownMenu.Surface>
+                          </DropdownMenu.Popup>
+                        </DropdownMenu.Positioner>
+                      </DropdownMenu.Portal>
+                    </DropdownMenu.Submenu>
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      )
+    }
+
+    const reasons = (spy: Spy) =>
+      spy.mock.calls.map(([open, details]) => [open, details.reason])
+
+    it('reports a hover open and a sibling highlight closing it', async () => {
+      const user = userEvent.setup()
+      const onSubmenuOpenChange = vi.fn()
+      render(<ReasonsMenu onSubmenuOpenChange={onSubmenuOpenChange} />)
+
+      await user.hover(await screen.findByTestId('submenu-trigger'))
+      await screen.findByTestId('popup-submenu')
+      // A pointer that moved, so the sibling takes the highlight
+      fireEvent.pointerMove(screen.getByTestId('sibling'), {
+        clientX: 20,
+        clientY: 20,
+      })
+      await waitFor(() => {
+        expect(screen.queryByTestId('popup-submenu')).not.toBeInTheDocument()
+      })
+
+      expect(reasons(onSubmenuOpenChange)).toEqual([
+        [true, 'trigger-hover'],
+        [false, 'sibling-open'],
+      ])
+    })
+
+    it('reports a keyboard highlight opening it, and ArrowLeft closing it', async () => {
+      const user = userEvent.setup()
+      const onSubmenuOpenChange = vi.fn()
+      render(<ReasonsMenu onSubmenuOpenChange={onSubmenuOpenChange} />)
+      await waitFor(() => {
+        expect(screen.getByTestId('root-list')).toHaveFocus()
+      })
+
+      await user.keyboard('{ArrowDown}')
+      await screen.findByTestId('popup-submenu')
+      await user.keyboard('{ArrowRight}')
+      await waitFor(() => {
+        expect(screen.getByTestId('submenu-list')).toHaveFocus()
+      })
+      await user.keyboard('{ArrowLeft}')
+      await waitFor(() => {
+        expect(screen.queryByTestId('popup-submenu')).not.toBeInTheDocument()
+      })
+
+      expect(reasons(onSubmenuOpenChange)).toEqual([
+        [true, 'list-navigation'],
+        [false, 'list-navigation'],
+      ])
+    })
+
+    it('keeps it closed when the consumer cancels a hover open', async () => {
+      const user = userEvent.setup()
+      const onSubmenuOpenChange = vi.fn(
+        (open: boolean, details: { cancel: () => void }) => {
+          if (open) details.cancel()
+        },
+      )
+      render(<ReasonsMenu onSubmenuOpenChange={onSubmenuOpenChange} />)
+
+      const submenuTrigger = await screen.findByTestId('submenu-trigger')
+      await user.hover(submenuTrigger)
+      // One report per hover gesture: moves over the trigger don't ask again
+      fireEvent.pointerMove(submenuTrigger, { clientX: 140, clientY: 75 })
+      fireEvent.pointerMove(submenuTrigger, { clientX: 150, clientY: 76 })
+      await sleep(30)
+      expect(screen.queryByTestId('popup-submenu')).not.toBeInTheDocument()
+      expect(reasons(onSubmenuOpenChange)).toEqual([[true, 'trigger-hover']])
+    })
+  })
+
+  describe('controlled submenu', () => {
+    function ControlledSubmenuMenu({
+      onSubmenuOpenChange,
+      delay,
+      keepMounted,
+    }: {
+      onSubmenuOpenChange?: Spy
+      delay?: number
+      keepMounted?: boolean
+    }) {
+      const [open, setOpen] = React.useState(false)
+      return (
+        <DropdownMenu.Root defaultOpen>
+          <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner>
+              <DropdownMenu.Popup data-testid="popup-root">
+                <DropdownMenu.Surface>
+                  <DropdownMenu.List>
+                    <DropdownMenu.Item data-testid="root-item" value="first">
+                      First
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Submenu
+                      open={open}
+                      onOpenChange={(nextOpen, details) => {
+                        onSubmenuOpenChange?.(nextOpen, details)
+                        setOpen(nextOpen)
+                      }}
+                    >
+                      <DropdownMenu.SubmenuTrigger
+                        data-testid="submenu-trigger"
+                        value="more"
+                        delay={delay}
+                      >
+                        More
+                      </DropdownMenu.SubmenuTrigger>
+                      <DropdownMenu.Portal keepMounted={keepMounted}>
+                        <DropdownMenu.Positioner>
+                          <DropdownMenu.Popup data-testid="popup-submenu">
+                            <DropdownMenu.Surface>
+                              <DropdownMenu.List>
+                                <DropdownMenu.Item value="nested">
+                                  Nested
+                                </DropdownMenu.Item>
+                              </DropdownMenu.List>
+                            </DropdownMenu.Surface>
+                          </DropdownMenu.Popup>
+                        </DropdownMenu.Positioner>
+                      </DropdownMenu.Portal>
+                    </DropdownMenu.Submenu>
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      )
+    }
+
+    afterEach(() => {
+      vi.restoreAllMocks()
+    })
+
+    it('opens on hover, telling the consumer, which applies it', async () => {
+      const user = userEvent.setup()
+      const onSubmenuOpenChange = vi.fn()
+      render(
+        <ControlledSubmenuMenu onSubmenuOpenChange={onSubmenuOpenChange} />,
+      )
+
+      await user.hover(await screen.findByTestId('submenu-trigger'))
+      expect(await screen.findByTestId('popup-submenu')).toBeInTheDocument()
+      expect(
+        onSubmenuOpenChange.mock.calls.map(([open, details]) => [
+          open,
+          details.reason,
+        ]),
+      ).toEqual([[true, 'trigger-hover']])
+    })
+
+    it('opens once its prop follows an aim hit', async () => {
+      const onSubmenuOpenChange = vi.fn()
+      render(
+        <ControlledSubmenuMenu
+          onSubmenuOpenChange={onSubmenuOpenChange}
+          // The pointer resting on the trigger doesn't open it: the hit does
+          delay={5000}
+          keepMounted
+        />,
+      )
+      const submenuTrigger = await screen.findByTestId('submenu-trigger')
+      const submenuPopup = screen.getByTestId('popup-submenu')
+      vi.spyOn(submenuTrigger, 'getBoundingClientRect').mockImplementation(() =>
+        createRect({ top: 60, left: 80, width: 120, height: 30 }),
+      )
+      vi.spyOn(submenuPopup, 'getBoundingClientRect').mockImplementation(() =>
+        createRect({ top: 40, left: 240, width: 180, height: 160 }),
+      )
+
+      fireEvent.pointerEnter(submenuTrigger, { clientX: 100, clientY: 75 })
+      fireEvent.pointerMove(window, { clientX: 120, clientY: 90 })
+      fireEvent.pointerMove(window, { clientX: 150, clientY: 92 })
+      fireEvent.pointerMove(window, { clientX: 180, clientY: 94 })
+      fireEvent.pointerLeave(submenuTrigger, { clientX: 190, clientY: 94 })
+      await waitFor(() => {
+        expect(submenuTrigger).toHaveAttribute('aria-expanded', 'true')
+      })
+      // Interim (UI-739): the guard of a hit on a closed controlled submenu
+      // isn't held while the prop follows
+      expect(
+        onSubmenuOpenChange.mock.calls.map(([open, details]) => [
+          open,
+          details.reason,
+        ]),
+      ).toEqual([[true, 'trigger-hover']])
+    })
+
+    it('stays closed, and can open later, when the consumer ignores a hover-open', async () => {
+      const user = userEvent.setup()
+      const onOpenChange = vi.fn()
+      render(
+        <DropdownMenu.Root defaultOpen>
+          <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner>
+              <DropdownMenu.Popup>
+                <DropdownMenu.Surface>
+                  <DropdownMenu.List>
+                    <DropdownMenu.Submenu
+                      open={false}
+                      onOpenChange={onOpenChange}
+                    >
+                      <DropdownMenu.SubmenuTrigger data-testid="submenu-trigger">
+                        More
+                      </DropdownMenu.SubmenuTrigger>
+                      <DropdownMenu.Portal>
+                        <DropdownMenu.Positioner>
+                          <DropdownMenu.Popup data-testid="popup-submenu">
+                            <DropdownMenu.Surface>
+                              <DropdownMenu.List>
+                                <DropdownMenu.Item>Nested</DropdownMenu.Item>
+                              </DropdownMenu.List>
+                            </DropdownMenu.Surface>
+                          </DropdownMenu.Popup>
+                        </DropdownMenu.Positioner>
+                      </DropdownMenu.Portal>
+                    </DropdownMenu.Submenu>
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>,
+      )
+      const submenuTrigger = await screen.findByTestId('submenu-trigger')
+      await user.hover(submenuTrigger)
+      await sleep(30)
+      expect(screen.queryByTestId('popup-submenu')).not.toBeInTheDocument()
+
+      // One report per hover gesture: moves over the trigger don't ask again
+      fireEvent.pointerMove(submenuTrigger, { clientX: 140, clientY: 75 })
+      fireEvent.pointerMove(submenuTrigger, { clientX: 150, clientY: 76 })
+      expect(onOpenChange.mock.calls.map(([open]) => open)).toEqual([true])
+
+      // Leaving and coming back is a new gesture, which asks again
+      fireEvent.pointerLeave(submenuTrigger, { clientX: 150, clientY: 300 })
+      fireEvent.pointerEnter(submenuTrigger, { clientX: 140, clientY: 75 })
+      expect(
+        onOpenChange.mock.calls.map(([open, details]) => [
+          open,
+          details.reason,
+        ]),
+      ).toEqual([
+        [true, 'trigger-hover'],
+        [true, 'trigger-hover'],
+      ])
+    })
+  })
+
+  describe('close policy gate', () => {
+    function GateMenu({
+      open,
+      onRootOpenChange,
+      onSubmenuOpenChange,
+      actionsRef,
+    }: {
+      open?: boolean
+      onRootOpenChange?: (
+        open: boolean,
+        details: DropdownMenu.Root.ChangeEventDetails,
+      ) => void
+      onSubmenuOpenChange?: Spy
+      actionsRef?: React.RefObject<DropdownMenu.Root.Actions | null>
+    }) {
+      return (
+        <>
+          <div data-testid="outside">Outside</div>
+          <DropdownMenu.Root
+            defaultOpen
+            open={open}
+            onOpenChange={onRootOpenChange}
+            actionsRef={actionsRef}
+          >
+            <DropdownMenu.Trigger data-testid="trigger">
+              Open
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Positioner>
+                <DropdownMenu.Popup data-testid="popup-root">
+                  <DropdownMenu.Surface>
+                    <DropdownMenu.List data-testid="root-list">
+                      <DropdownMenu.Item value="first">First</DropdownMenu.Item>
+                      <DropdownMenu.Submenu onOpenChange={onSubmenuOpenChange}>
+                        <DropdownMenu.SubmenuTrigger
+                          data-testid="submenu-trigger"
+                          value="more"
+                        >
+                          More
+                        </DropdownMenu.SubmenuTrigger>
+                        <DropdownMenu.Portal>
+                          <DropdownMenu.Positioner>
+                            <DropdownMenu.Popup data-testid="popup-submenu">
+                              <DropdownMenu.Surface>
+                                <DropdownMenu.List data-testid="submenu-list">
+                                  <DropdownMenu.Item
+                                    data-testid="nested-1"
+                                    value="nested-1"
+                                  >
+                                    Nested 1
+                                  </DropdownMenu.Item>
+                                  <DropdownMenu.Item
+                                    data-testid="nested-2"
+                                    value="nested-2"
+                                  >
+                                    Nested 2
+                                  </DropdownMenu.Item>
+                                </DropdownMenu.List>
+                              </DropdownMenu.Surface>
+                            </DropdownMenu.Popup>
+                          </DropdownMenu.Positioner>
+                        </DropdownMenu.Portal>
+                      </DropdownMenu.Submenu>
+                    </DropdownMenu.List>
+                  </DropdownMenu.Surface>
+                </DropdownMenu.Popup>
+              </DropdownMenu.Positioner>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
+        </>
+      )
+    }
+
+    const reasons = (spy: Spy) =>
+      spy.mock.calls.map(([open, details]) => [open, details.reason])
+
+    // Opens the submenu by keyboard and moves focus into it
+    async function openSubmenu(user: ReturnType<typeof userEvent.setup>) {
+      await waitFor(() => {
+        expect(screen.getByTestId('root-list')).toHaveFocus()
+      })
+      await user.keyboard('{ArrowDown}')
+      await screen.findByTestId('popup-submenu')
+      await user.keyboard('{ArrowRight}')
+      await waitFor(() => {
+        expect(screen.getByTestId('submenu-list')).toHaveFocus()
+      })
+    }
+
+    it('keeps the open submenu and its focus when the root cancels an outside press', async () => {
+      const user = userEvent.setup()
+      const onSubmenuOpenChange = vi.fn()
+      const onRootOpenChange = vi.fn(
+        (open: boolean, details: DropdownMenu.Root.ChangeEventDetails) => {
+          if (!open) details.cancel()
+        },
+      )
+      render(
+        <GateMenu
+          onRootOpenChange={onRootOpenChange}
+          onSubmenuOpenChange={onSubmenuOpenChange}
+        />,
+      )
+      await openSubmenu(user)
+      onSubmenuOpenChange.mockClear()
+
+      // No focus moves: only the press is outside
+      fireEvent.pointerDown(screen.getByTestId('outside'))
+      await sleep(30)
+      expect(
+        onRootOpenChange.mock.calls.map(([open, details]) => [
+          open,
+          details.reason,
+        ]),
+      ).toContainEqual([false, 'outside-press'])
+      expect(screen.getByTestId('popup-submenu')).toBeInTheDocument()
+      expect(onSubmenuOpenChange).not.toHaveBeenCalled()
+
+      // The submenu still owns focus: its keys still move the highlight
+      await user.keyboard('{ArrowDown}')
+      expect(screen.getByTestId('nested-2')).toHaveAttribute(
+        'data-highlighted',
+        '',
+      )
+    })
+
+    it('closes the open submenu only once a controlled root applies the close, with its reason', async () => {
+      const user = userEvent.setup()
+      const onSubmenuOpenChange = vi.fn()
+      function Controlled() {
+        const [open, setOpen] = React.useState(true)
+        return (
+          <GateMenu
+            open={open}
+            onRootOpenChange={(next) => setOpen(next)}
+            onSubmenuOpenChange={onSubmenuOpenChange}
+          />
+        )
+      }
+      render(<Controlled />)
+      await openSubmenu(user)
+      onSubmenuOpenChange.mockClear()
+
+      fireEvent.pointerDown(screen.getByTestId('outside'))
+      await waitFor(() => {
+        expect(screen.queryByTestId('popup-root')).not.toBeInTheDocument()
+      })
+      expect(reasons(onSubmenuOpenChange)).toEqual([[false, 'outside-press']])
+    })
+
+    it('keeps the open submenu while a controlled root ignores a close, then closes it with the last close asked for', async () => {
+      const user = userEvent.setup()
+      const onSubmenuOpenChange = vi.fn()
+      let setRootOpen: (open: boolean) => void = () => {}
+      function Controlled() {
+        const [open, setOpen] = React.useState(true)
+        setRootOpen = setOpen
+        // Told of each close, it neither cancels nor applies it
+        return (
+          <GateMenu
+            open={open}
+            onRootOpenChange={() => {}}
+            onSubmenuOpenChange={onSubmenuOpenChange}
+          />
+        )
+      }
+      render(<Controlled />)
+      await openSubmenu(user)
+      onSubmenuOpenChange.mockClear()
+
+      fireEvent.pointerDown(screen.getByTestId('outside'))
+      await sleep(30)
+      expect(screen.getByTestId('popup-submenu')).toBeInTheDocument()
+      // A later request supersedes the first one's cause
+      await user.keyboard('{Escape}')
+      await sleep(30)
+      expect(screen.getByTestId('popup-submenu')).toBeInTheDocument()
+      expect(onSubmenuOpenChange).not.toHaveBeenCalled()
+
+      // Later the app applies a close, in a task of its own
+      act(() => setRootOpen(false))
+      await waitFor(() => {
+        expect(screen.queryByTestId('popup-root')).not.toBeInTheDocument()
+      })
+      expect(reasons(onSubmenuOpenChange)).toEqual([[false, 'escape-key']])
+    })
+
+    it('closes the open submenus with the reason when the consumer applies the close with flushSync', async () => {
+      const user = userEvent.setup()
+      const onSubmenuOpenChange = vi.fn()
+      function Controlled() {
+        const [open, setOpen] = React.useState(true)
+        return (
+          <GateMenu
+            open={open}
+            onRootOpenChange={(next) => {
+              ReactDOM.flushSync(() => setOpen(next))
+            }}
+            onSubmenuOpenChange={onSubmenuOpenChange}
+          />
+        )
+      }
+      render(<Controlled />)
+      await openSubmenu(user)
+      onSubmenuOpenChange.mockClear()
+
+      fireEvent.pointerDown(screen.getByTestId('outside'))
+      await waitFor(() => {
+        expect(screen.queryByTestId('popup-root')).not.toBeInTheDocument()
+      })
+      expect(reasons(onSubmenuOpenChange)).toEqual([[false, 'outside-press']])
+    })
+
+    function NestedGateMenu({
+      onA,
+      onB,
+      closeRootOnEsc,
+    }: {
+      onA?: Spy
+      onB?: Spy
+      closeRootOnEsc?: boolean
+    }) {
+      return (
+        <DropdownMenu.Root defaultOpen>
+          <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner>
+              <DropdownMenu.Popup data-testid="popup-root">
+                <DropdownMenu.Surface>
+                  <DropdownMenu.List data-testid="root-list">
+                    <DropdownMenu.Item data-testid="sibling" value="sibling">
+                      Sibling
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Submenu
+                      onOpenChange={onA}
+                      closeRootOnEsc={closeRootOnEsc}
+                    >
+                      <DropdownMenu.SubmenuTrigger
+                        data-testid="trigger-a"
+                        value="a"
+                      >
+                        A
+                      </DropdownMenu.SubmenuTrigger>
+                      <DropdownMenu.Portal>
+                        <DropdownMenu.Positioner>
+                          <DropdownMenu.Popup data-testid="popup-a">
+                            <DropdownMenu.Surface>
+                              <DropdownMenu.List data-testid="list-a">
+                                <DropdownMenu.Item value="a-first">
+                                  A first
+                                </DropdownMenu.Item>
+                                <DropdownMenu.Submenu onOpenChange={onB}>
+                                  <DropdownMenu.SubmenuTrigger
+                                    data-testid="trigger-b"
+                                    value="b"
+                                  >
+                                    B
+                                  </DropdownMenu.SubmenuTrigger>
+                                  <DropdownMenu.Portal>
+                                    <DropdownMenu.Positioner>
+                                      <DropdownMenu.Popup data-testid="popup-b">
+                                        <DropdownMenu.Surface>
+                                          <DropdownMenu.List>
+                                            <DropdownMenu.Item value="b-first">
+                                              B first
+                                            </DropdownMenu.Item>
+                                          </DropdownMenu.List>
+                                        </DropdownMenu.Surface>
+                                      </DropdownMenu.Popup>
+                                    </DropdownMenu.Positioner>
+                                  </DropdownMenu.Portal>
+                                </DropdownMenu.Submenu>
+                              </DropdownMenu.List>
+                            </DropdownMenu.Surface>
+                          </DropdownMenu.Popup>
+                        </DropdownMenu.Positioner>
+                      </DropdownMenu.Portal>
+                    </DropdownMenu.Submenu>
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      )
+    }
+
+    // Opens A and moves focus into it, then highlights B's trigger, which
+    // opens B; focus stays in A
+    async function openNested(user: ReturnType<typeof userEvent.setup>) {
+      await waitFor(() => {
+        expect(screen.getByTestId('root-list')).toHaveFocus()
+      })
+      await user.keyboard('{ArrowDown}')
+      await screen.findByTestId('popup-a')
+      await user.keyboard('{ArrowRight}')
+      await waitFor(() => {
+        expect(screen.getByTestId('list-a')).toHaveFocus()
+      })
+      await user.keyboard('{ArrowDown}')
+      await screen.findByTestId('popup-b')
+      expect(screen.getByTestId('list-a')).toHaveFocus()
+    }
+
+    it('keeps focus in a submenu whose consumer cancels a keyboard close', async () => {
+      for (const close of [
+        '{ArrowLeft}',
+        '{Control>}h{/Control}',
+        '{Escape}',
+      ]) {
+        const user = userEvent.setup()
+        const onA = vi.fn((open: boolean, details: { cancel: () => void }) => {
+          if (!open) details.cancel()
+        })
+        const { unmount } = render(
+          <NestedGateMenu onA={onA} closeRootOnEsc={false} />,
+        )
+        await waitFor(() => {
+          expect(screen.getByTestId('root-list')).toHaveFocus()
+        })
+        await user.keyboard('{ArrowDown}')
+        await screen.findByTestId('popup-a')
+        await user.keyboard('{ArrowRight}')
+        await waitFor(() => {
+          expect(screen.getByTestId('list-a')).toHaveFocus()
+        })
+        await sleep(50)
+
+        await user.keyboard(close)
+        await sleep(50)
+        expect(screen.getByTestId('popup-a')).toBeInTheDocument()
+        expect(screen.getByTestId('list-a')).toHaveFocus()
+
+        // Keys still drive the submenu, not the list behind it
+        await user.keyboard('{ArrowDown}')
+        expect(screen.getByTestId('trigger-b')).toHaveAttribute(
+          'data-highlighted',
+          '',
+        )
+        expect(screen.getByTestId('trigger-a')).toHaveAttribute(
+          'data-highlighted',
+          '',
+        )
+        unmount()
+      }
+    })
+
+    it('hands focus back to the parent row once a keyboard close happens, also when a controlled submenu applies it later', async () => {
+      for (const controlled of [false, true]) {
+        const user = userEvent.setup()
+        let applyClose = () => {}
+        function Menu() {
+          const [open, setOpen] = React.useState(false)
+          return (
+            <DropdownMenu.Root defaultOpen>
+              <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Positioner>
+                  <DropdownMenu.Popup>
+                    <DropdownMenu.Surface>
+                      <DropdownMenu.List data-testid="root-list">
+                        <DropdownMenu.Item value="first">
+                          First
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Submenu
+                          {...(controlled
+                            ? {
+                                open,
+                                onOpenChange: (next: boolean) => {
+                                  if (next) setOpen(true)
+                                  // The close is applied later
+                                  else applyClose = () => setOpen(false)
+                                },
+                              }
+                            : {})}
+                        >
+                          <DropdownMenu.SubmenuTrigger
+                            data-testid="trigger-a"
+                            value="a"
+                          >
+                            A
+                          </DropdownMenu.SubmenuTrigger>
+                          <DropdownMenu.Portal>
+                            <DropdownMenu.Positioner>
+                              <DropdownMenu.Popup data-testid="popup-a">
+                                <DropdownMenu.Surface>
+                                  <DropdownMenu.List data-testid="list-a">
+                                    <DropdownMenu.Item value="a-first">
+                                      A first
+                                    </DropdownMenu.Item>
+                                  </DropdownMenu.List>
+                                </DropdownMenu.Surface>
+                              </DropdownMenu.Popup>
+                            </DropdownMenu.Positioner>
+                          </DropdownMenu.Portal>
+                        </DropdownMenu.Submenu>
+                      </DropdownMenu.List>
+                    </DropdownMenu.Surface>
+                  </DropdownMenu.Popup>
+                </DropdownMenu.Positioner>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
+          )
+        }
+        const { unmount } = render(<Menu />)
+        await waitFor(() => {
+          expect(screen.getByTestId('root-list')).toHaveFocus()
+        })
+        await user.keyboard('{ArrowDown}')
+        await screen.findByTestId('popup-a')
+        await user.keyboard('{ArrowRight}')
+        await waitFor(() => {
+          expect(screen.getByTestId('list-a')).toHaveFocus()
+        })
+        await sleep(50)
+
+        await user.keyboard('{ArrowLeft}')
+        if (controlled) {
+          await sleep(50)
+          expect(screen.getByTestId('list-a')).toHaveFocus()
+          act(() => applyClose())
+        }
+        await waitFor(() => {
+          expect(screen.queryByTestId('popup-a')).not.toBeInTheDocument()
+        })
+        await waitFor(() => {
+          expect(screen.getByTestId('root-list')).toHaveFocus()
+        })
+        // The trigger stays highlighted, and doesn't reopen
+        expect(screen.getByTestId('trigger-a')).toHaveAttribute(
+          'data-highlighted',
+          '',
+        )
+        await sleep(200)
+        expect(screen.queryByTestId('popup-a')).not.toBeInTheDocument()
+        unmount()
+      }
+    })
+
+    it('reopens on hover after a hover closes a submenu that had focus', async () => {
+      const user = userEvent.setup()
+      const onSubmenuOpenChange = vi.fn()
+      render(<GateMenu onSubmenuOpenChange={onSubmenuOpenChange} />)
+      await openSubmenu(user)
+      await sleep(50)
+      onSubmenuOpenChange.mockClear()
+      const trigger = screen.getByTestId('submenu-trigger')
+
+      // The pointer moves onto the trigger, then off it, away from the popup
+      fireEvent.pointerEnter(trigger, { clientX: 20, clientY: 40 })
+      fireEvent.pointerMove(trigger, { clientX: 22, clientY: 40 })
+      fireEvent.pointerLeave(trigger, { clientX: 22, clientY: 300 })
+      await waitFor(() => {
+        expect(trigger).toHaveAttribute('aria-expanded', 'false')
+      })
+      expect(reasons(onSubmenuOpenChange)).toEqual([[false, 'trigger-hover']])
+
+      // A hover isn't an explicit close: hovering again reopens it
+      fireEvent.pointerEnter(trigger, { clientX: 20, clientY: 40 })
+      fireEvent.pointerMove(trigger, { clientX: 24, clientY: 41 })
+      await waitFor(() => {
+        expect(trigger).toHaveAttribute('aria-expanded', 'true')
+      })
+    })
+
+    it('closes a nested submenu with the reason its submenu closed with', async () => {
+      for (const [close, reason] of [
+        ['{ArrowLeft}', 'list-navigation'],
+        ['{Escape}', 'escape-key'],
+      ] as const) {
+        const user = userEvent.setup()
+        const onA = vi.fn()
+        const onB = vi.fn()
+        const { unmount } = render(
+          <NestedGateMenu onA={onA} onB={onB} closeRootOnEsc={false} />,
+        )
+        await openNested(user)
+        onA.mockClear()
+        onB.mockClear()
+
+        await user.keyboard(close)
+        await waitFor(() => {
+          expect(screen.queryByTestId('popup-a')).not.toBeInTheDocument()
+        })
+        expect(reasons(onA)).toEqual([[false, reason]])
+        expect(reasons(onB)).toEqual([[false, reason]])
+        unmount()
+      }
+    })
+
+    it('closes a nested submenu with sibling-open when a sibling of its submenu takes the highlight', async () => {
+      const user = userEvent.setup()
+      const onA = vi.fn()
+      const onB = vi.fn()
+      render(<NestedGateMenu onA={onA} onB={onB} />)
+      await openNested(user)
+      onA.mockClear()
+      onB.mockClear()
+
+      fireEvent.pointerMove(screen.getByTestId('sibling'), {
+        clientX: 20,
+        clientY: 20,
+      })
+      await waitFor(() => {
+        expect(screen.queryByTestId('popup-a')).not.toBeInTheDocument()
+      })
+      expect(reasons(onA)).toEqual([[false, 'sibling-open']])
+      expect(reasons(onB)).toEqual([[false, 'sibling-open']])
+    })
+
+    it('asks a nested submenu once when it cancels the close the tree asks of it', async () => {
+      const user = userEvent.setup()
+      const onB = vi.fn((open: boolean, details: { cancel: () => void }) => {
+        if (!open) details.cancel()
+      })
+      render(<NestedGateMenu onB={onB} />)
+      await openNested(user)
+      onB.mockClear()
+
+      // Escape closes the whole tree from A
+      await user.keyboard('{Escape}')
+      await waitFor(() => {
+        expect(screen.queryByTestId('popup-root')).not.toBeInTheDocument()
+      })
+      await sleep(30)
+      expect(reasons(onB)).toEqual([[false, 'escape-key']])
+    })
+
+    it('does not close the open submenu with the reason of a close the root canceled', async () => {
+      const user = userEvent.setup()
+      const onSubmenuOpenChange = vi.fn()
+      let setRootOpen: (open: boolean) => void = () => {}
+      function Controlled() {
+        const [open, setOpen] = React.useState(true)
+        setRootOpen = setOpen
+        return (
+          <GateMenu
+            open={open}
+            onRootOpenChange={(next, details) => {
+              if (!next) details.cancel()
+            }}
+            onSubmenuOpenChange={onSubmenuOpenChange}
+          />
+        )
+      }
+      render(<Controlled />)
+      await openSubmenu(user)
+      onSubmenuOpenChange.mockClear()
+
+      fireEvent.pointerDown(screen.getByTestId('outside'))
+      await sleep(30)
+      expect(screen.getByTestId('popup-submenu')).toBeInTheDocument()
+
+      // Closed later by the consumer, with no request behind it
+      act(() => setRootOpen(false))
+      await waitFor(() => {
+        expect(screen.queryByTestId('popup-root')).not.toBeInTheDocument()
+      })
+      expect(reasons(onSubmenuOpenChange)).toEqual([[false, 'none']])
+    })
+
+    it('closes the open submenu with the reason actionsRef.close() closes the root with', async () => {
+      const user = userEvent.setup()
+      const onSubmenuOpenChange = vi.fn()
+      const onRootOpenChange = vi.fn()
+      const actionsRef = React.createRef<DropdownMenu.Root.Actions>()
+      render(
+        <GateMenu
+          actionsRef={actionsRef}
+          onRootOpenChange={onRootOpenChange}
+          onSubmenuOpenChange={onSubmenuOpenChange}
+        />,
+      )
+      await openSubmenu(user)
+      onSubmenuOpenChange.mockClear()
+
+      act(() => actionsRef.current?.close())
+      await waitFor(() => {
+        expect(screen.queryByTestId('popup-root')).not.toBeInTheDocument()
+      })
+      const [[, rootDetails]] = onRootOpenChange.mock.calls
+      expect(reasons(onSubmenuOpenChange)).toEqual([
+        [false, rootDetails.reason],
+      ])
+      expect(rootDetails.reason).not.toBe('none')
+    })
+
+    it('reports a Tab after a press inside the menu as focus-out, not an outside press', async () => {
+      const user = userEvent.setup()
+      const onRootOpenChange = vi.fn()
+      render(<GateMenu onRootOpenChange={onRootOpenChange} />)
+      await waitFor(() => {
+        expect(screen.getByTestId('root-list')).toHaveFocus()
+      })
+
+      fireEvent.pointerDown(screen.getByTestId('popup-root'))
+      await user.keyboard('{Tab}')
+      await waitFor(() => {
+        expect(screen.queryByTestId('popup-root')).not.toBeInTheDocument()
+      })
+      expect(reasons(onRootOpenChange)).toEqual([[false, 'focus-out']])
+    })
+
+    it.each([
+      'pointerdown',
+      'click',
+    ] as const)('reports a Tab after a press on content the menu portals out as focus-out, not an outside press (closeOnOutsidePress=%s)', async (closeOnOutsidePress) => {
+      const user = userEvent.setup()
+      const onRootOpenChange = vi.fn()
+      render(
+        <DropdownMenu.Root
+          defaultOpen
+          closeOnOutsidePress={closeOnOutsidePress}
+          onOpenChange={onRootOpenChange}
+        >
+          <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner>
+              <DropdownMenu.Popup data-testid="popup-root">
+                <DropdownMenu.Surface>
+                  <DropdownMenu.List data-testid="root-list">
+                    <DropdownMenu.Item value="first">First</DropdownMenu.Item>
+                  </DropdownMenu.List>
+                </DropdownMenu.Surface>
+                {/* A consumer's popover, portaled out of the popup */}
+                {ReactDOM.createPortal(
+                  <div data-testid="portaled">Portaled</div>,
+                  document.body,
+                )}
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>,
+      )
+      await waitFor(() => {
+        expect(screen.getByTestId('root-list')).toHaveFocus()
+      })
+
+      // The popup claims the press: it's inside the menu
+      fireEvent.pointerDown(screen.getByTestId('portaled'))
+      await sleep(30)
+      expect(screen.getByTestId('popup-root')).toBeInTheDocument()
+
+      await user.keyboard('{Tab}')
+      await waitFor(() => {
+        expect(screen.queryByTestId('popup-root')).not.toBeInTheDocument()
+      })
+      expect(reasons(onRootOpenChange)).toEqual([[false, 'focus-out']])
+    })
+
+    it('reports Ctrl+H closing the submenu as list-navigation', async () => {
+      const user = userEvent.setup()
+      const onSubmenuOpenChange = vi.fn()
+      render(<GateMenu onSubmenuOpenChange={onSubmenuOpenChange} />)
+      await openSubmenu(user)
+      onSubmenuOpenChange.mockClear()
+
+      await user.keyboard('{Control>}h{/Control}')
+      await waitFor(() => {
+        expect(screen.queryByTestId('popup-submenu')).not.toBeInTheDocument()
+      })
+      expect(reasons(onSubmenuOpenChange)).toEqual([[false, 'list-navigation']])
+    })
+
+    it('reports Tab out of the submenu as focus-out', async () => {
+      const user = userEvent.setup()
+      const onSubmenuOpenChange = vi.fn()
+      render(<GateMenu onSubmenuOpenChange={onSubmenuOpenChange} />)
+      await openSubmenu(user)
+      onSubmenuOpenChange.mockClear()
+
+      await user.keyboard('{Tab}')
+      await waitFor(() => {
+        expect(screen.queryByTestId('popup-submenu')).not.toBeInTheDocument()
+      })
+      expect(reasons(onSubmenuOpenChange)[0]).toEqual([false, 'focus-out'])
+    })
+
+    it('reports an item press closing the whole tree as item-press', async () => {
+      const user = userEvent.setup()
+      const onSubmenuOpenChange = vi.fn()
+      const onRootOpenChange = vi.fn()
+      render(
+        <GateMenu
+          onRootOpenChange={onRootOpenChange}
+          onSubmenuOpenChange={onSubmenuOpenChange}
+        />,
+      )
+      await openSubmenu(user)
+      onSubmenuOpenChange.mockClear()
+
+      await user.keyboard('{Enter}')
+      await waitFor(() => {
+        expect(screen.queryByTestId('popup-root')).not.toBeInTheDocument()
+      })
+      expect(reasons(onRootOpenChange)).toEqual([[false, 'item-press']])
+      expect(reasons(onSubmenuOpenChange)).toEqual([[false, 'item-press']])
+    })
+
+    it("cancels Base UI's details when the submenu's consumer cancels a change Base UI started", async () => {
+      const user = userEvent.setup()
+      const onSubmenuOpenChange = vi.fn(
+        (open: boolean, details: { cancel: () => void }) => {
+          if (!open) details.cancel()
+        },
+      )
+      render(<GateMenu onSubmenuOpenChange={onSubmenuOpenChange} />)
+      await openSubmenu(user)
+
+      // A press on the open trigger: Base UI's own close
+      await user.click(screen.getByTestId('submenu-trigger'))
+      await sleep(30)
+      expect(reasons(onSubmenuOpenChange)).toContainEqual([
+        false,
+        'trigger-press',
+      ])
+      expect(screen.getByTestId('popup-submenu')).toBeInTheDocument()
     })
   })
 
