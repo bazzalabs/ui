@@ -7,6 +7,7 @@ import {
   resolveStyle,
 } from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
+import { useRowPosition } from '../../../listbox/hooks/use-row-position.js'
 import { GroupContext, useSurfaceContext } from '../../../listbox/index.js'
 import {
   getSlotAttribute,
@@ -96,10 +97,12 @@ export const PopupMenuGroup = React.forwardRef<
       rowElement,
       label,
     })
-  const isFirstGroup = store.useState('isFirstGroup', groupId)
-  const isLastGroup = store.useState('isLastGroup', groupId)
-  const isFirstRow = store.useState('isFirstRow', groupId)
-  const isLastRow = store.useState('isLastRow', groupId)
+  const {
+    firstGroup: isFirstGroup,
+    lastGroup: isLastGroup,
+    first: isFirstRow,
+    last: isLastRow,
+  } = useRowPosition(store, groupId)
 
   const state: PopupMenuGroup.State = React.useMemo(
     () => ({

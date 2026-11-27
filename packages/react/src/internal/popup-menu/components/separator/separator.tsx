@@ -7,6 +7,7 @@ import {
   resolveStyle,
 } from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
+import { useRowPosition } from '../../../listbox/hooks/use-row-position.js'
 import { useGroupContext, useSurfaceContext } from '../../../listbox/index.js'
 import {
   getSlotAttribute,
@@ -52,22 +53,20 @@ export const PopupMenuSeparator = React.forwardRef<
   const rowId = React.useId()
   const [rowElement, setRowElement] = React.useState<HTMLElement | null>(null)
 
-  React.useLayoutEffect(() => {
-    if (!rowElement) return undefined
-    return store.registerRow(rowId, rowElement, { kind: 'separator' })
-  }, [rowElement, rowId, store])
-
   // Hide separator when there's an active search (unless alwaysRender), or
   // when a search hides its group
   const hasSearch = store.useState('hasSearch')
   const isGroupHidden = useGroupContext()?.hidden ?? false
   const isHidden = (hasSearch && !alwaysRender) || isGroupHidden
-  const isFirstRow = store.useState('isFirstRow', rowId)
-  const isLastRow = store.useState('isLastRow', rowId)
-  const state = React.useMemo(
-    () => ({ first: isFirstRow, last: isLastRow }),
-    [isFirstRow, isLastRow],
-  )
+
+  // A row while it shows: it leaves the registry in the commit that hides it.
+  React.useLayoutEffect(() => {
+    if (!rowElement || isHidden) return undefined
+    return store.registerRow(rowId, rowElement, { kind: 'separator' })
+  }, [rowElement, rowId, isHidden, store])
+
+  const { first, last } = useRowPosition(store, rowId)
+  const state = React.useMemo(() => ({ first, last }), [first, last])
 
   // Get component name for slot attribute
   const componentName = useMaybeComponentName()

@@ -3,22 +3,23 @@ import { computePositions } from './positions.js'
 import { container, item, named } from './test-helpers.js'
 import type { RowId, RowMeta } from './types.js'
 
-// A characterization of today's positional data attributes: `getRowPositions`
-// and the `isFirstRow` … `isLastInGroup` selectors in
-// packages/react/src/internal/listbox/store/ListboxStore.ts (lines 320-358,
-// 400-428), over the rows the JSX parts register with `registerRow`:
+// The rules of the positional data attributes. The React store reads them
+// through `computePositions` too: `rowPositionBits` in
+// packages/react/src/internal/listbox/store/ListboxStore.ts maps its
+// `orderedRows` (the rows the JSX parts register with `registerRow`) to
+// `RowMeta`, and its key selector `positionBits` and the `isFirstRow` …
+// `isLastInGroup` selectors read the result:
 //
 // - items register `kind: 'item'` with the `groupId` of the group around them
-//   (listbox/hooks/use-listbox-item.ts:259-265), disabled or not;
+//   (`useListboxItem` in listbox/hooks/use-listbox-item.ts), disabled or not;
 // - a group, radio group or checkbox group registers its own row,
 //   `kind: 'group'`, with no `groupId`, even inside another group
-//   (popup-menu/components/group/use-group-visibility.ts:57-60);
+//   (`useGroupVisibility` in popup-menu/components/group/);
 // - separators, empty and loading rows register with no `groupId`
-//   (components/separator/separator.tsx:55-58, empty/empty.tsx:53,
-//   loading/loading.tsx:67);
+//   (the Separator, Empty and Loading parts in popup-menu/components/);
 // - group labels register no row: they read their group's positions
-//   (components/group-label/group-label.tsx:72-77);
-// - a row registers only while it renders, so hidden rows have no position.
+//   (`useRowPosition` with the group's id, in the GroupLabel part);
+// - a row registers only while it shows, so hidden rows have no position.
 //
 // Each case names the DOM test or ListboxStore test it mirrors where one
 // exists.

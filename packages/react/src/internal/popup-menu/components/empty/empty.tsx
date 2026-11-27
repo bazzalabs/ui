@@ -1,13 +1,16 @@
 'use client'
 
 import { useRender } from '@base-ui/react/use-render'
+import { useStore } from '@base-ui/utils/store'
 import * as React from 'react'
 import {
   resolveClassName,
   resolveStyle,
 } from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
+import { useRowPosition } from '../../../listbox/hooks/use-row-position.js'
 import { useSurfaceContext } from '../../../listbox/index.js'
+import { hasResults } from '../../../listbox/store/ListboxStore.js'
 import {
   getSlotAttribute,
   useMaybeComponentName,
@@ -48,11 +51,6 @@ export const PopupMenuEmpty = React.forwardRef<
   const rowId = React.useId()
   const [rowElement, setRowElement] = React.useState<HTMLElement | null>(null)
 
-  React.useLayoutEffect(() => {
-    if (!rowElement) return undefined
-    return store.registerRow(rowId, rowElement, { kind: 'empty' })
-  }, [rowElement, rowId, store])
-
   // Get component name for slot attribute
   const componentName = useMaybeComponentName()
   const slotAttr = getSlotAttribute(componentName, 'empty')
@@ -66,14 +64,17 @@ export const PopupMenuEmpty = React.forwardRef<
         asyncCoordinator.searchQuery.length > 0) ||
       !asyncCoordinator.rootReveal.settled
     : false
-  const hasNoResults = store.useState('hasSearchWithNoResults')
+  const hasNoResults = !useStore(store, hasResults)
   const shouldRender = !isLoading && hasNoResults
-  const isFirstRow = store.useState('isFirstRow', rowId)
-  const isLastRow = store.useState('isLastRow', rowId)
-  const state = React.useMemo(
-    () => ({ first: isFirstRow, last: isLastRow }),
-    [isFirstRow, isLastRow],
-  )
+
+  // A row while it shows: it leaves the registry in the commit that hides it.
+  React.useLayoutEffect(() => {
+    if (!rowElement || !shouldRender) return undefined
+    return store.registerRow(rowId, rowElement, { kind: 'empty' })
+  }, [rowElement, rowId, shouldRender, store])
+
+  const { first, last } = useRowPosition(store, rowId)
+  const state = React.useMemo(() => ({ first, last }), [first, last])
 
   const element = useRender({
     render,

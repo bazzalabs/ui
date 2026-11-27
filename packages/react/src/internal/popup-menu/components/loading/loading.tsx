@@ -7,6 +7,7 @@ import {
   resolveStyle,
 } from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
+import { useRowPosition } from '../../../listbox/hooks/use-row-position.js'
 import { useSurfaceContext } from '../../../listbox/index.js'
 import {
   getSlotAttribute,
@@ -62,11 +63,6 @@ export const PopupMenuLoading = React.forwardRef<
   const rowId = React.useId()
   const [rowElement, setRowElement] = React.useState<HTMLElement | null>(null)
 
-  React.useLayoutEffect(() => {
-    if (!rowElement) return undefined
-    return store.registerRow(rowId, rowElement, { kind: 'loading' })
-  }, [rowElement, rowId, store])
-
   // Get component name for slot attribute
   const componentName = useMaybeComponentName()
   const slotAttr = getSlotAttribute(componentName, 'loading')
@@ -85,12 +81,15 @@ export const PopupMenuLoading = React.forwardRef<
           asyncCoordinator.searchQuery.length > 0)
       : false
   const shouldRender = forceMount || isLoading
-  const isFirstRow = store.useState('isFirstRow', rowId)
-  const isLastRow = store.useState('isLastRow', rowId)
-  const state = React.useMemo(
-    () => ({ first: isFirstRow, last: isLastRow }),
-    [isFirstRow, isLastRow],
-  )
+
+  // A row while it shows: it leaves the registry in the commit that hides it.
+  React.useLayoutEffect(() => {
+    if (!rowElement || !shouldRender) return undefined
+    return store.registerRow(rowId, rowElement, { kind: 'loading' })
+  }, [rowElement, rowId, shouldRender, store])
+
+  const { first, last } = useRowPosition(store, rowId)
+  const state = React.useMemo(() => ({ first, last }), [first, last])
 
   const element = useRender({
     render,

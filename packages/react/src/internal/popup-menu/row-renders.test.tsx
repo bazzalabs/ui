@@ -10,12 +10,21 @@ import { DropdownMenu } from '../../dropdown-menu/index.js'
  */
 function createRenderCounter() {
   const counts = new Map<string, number>()
-  const onRender: React.ProfilerOnRenderCallback = (id) => {
+  const count = (id: string) => {
     counts.set(id, (counts.get(id) ?? 0) + 1)
   }
+  const onRender: React.ProfilerOnRenderCallback = (id) => count(id)
   const snapshot = () => new Map(counts)
   return {
     onRender,
+    /**
+     * A part's `render` that counts the part's own renders, apart from its
+     * children's (which a `<Profiler>` around it would count too).
+     */
+    renderAs: (id: string) => (props: React.ComponentProps<'div'>) => {
+      count(id)
+      return <div {...props} />
+    },
     get: (id: string) => counts.get(id) ?? 0,
     snapshot,
     /** Commits per row since `before`, for rows that committed at all. */
@@ -410,12 +419,15 @@ describe('popup menu row re-renders', () => {
   })
 
   // Commit costs of a narrowing key (a known cost, pinned by the exact counts
-  // in this test and the grouped one). Per row, each applies separately:
-  // - hidden by the key: 2 (it hides, then its row element ref clears);
-  // - gains or loses an edge (first, last, first or last in group): +1, in a
-  //   later commit once the hidden rows unregister;
-  // - gains or loses the highlight while staying visible: +1 (a row the key
-  //   hides loses it in the commit that hides it).
+  // in this test and the grouped one). A hidden row leaves the registry in the
+  // commit that hides it, so the key costs two commits: the first hides rows
+  // and moves the highlight, the second clears hidden rows' element refs and
+  // moves edges. Per row:
+  // - hidden by the key: 2 (it hides, then its row element ref clears; an
+  //   edge it loses goes in that second commit);
+  // - stays visible and gains or loses an edge (first, last, first or last in
+  //   group): +1, in the second commit;
+  // - stays visible and gains or loses the highlight: +1, in the first.
   // A row whose output doesn't change doesn't commit.
   it('re-renders only the rows a narrowing key hides or moves to an edge', async () => {
     const user = userEvent.setup()
@@ -435,7 +447,7 @@ describe('popup menu row re-renders', () => {
       commits: {
         ...Object.fromEntries(hiddenByOne.map((label) => [label, 2])),
         'Item 19': 1,
-        'Item 20': 3,
+        'Item 20': 2,
       },
     })
     expect(readRowOutput('Item 19')).toBe('false,false,true,false,false')
@@ -446,7 +458,7 @@ describe('popup menu row re-renders', () => {
     expect(await measureKey(menu, '9')).toEqual({
       changed: ['Item 01', ...hiddenByNine, 'Item 19'],
       commits: {
-        'Item 01': 3,
+        'Item 01': 2,
         ...Object.fromEntries(hiddenByNine.map((label) => [label, 2])),
         'Item 19': 2,
       },
@@ -468,7 +480,7 @@ describe('popup menu row re-renders', () => {
     // Counts follow "Commit costs of a narrowing key" above.
     expect(await measureKey(menu, 'a')).toEqual({
       changed: ['Banana', 'Cherry', 'Potato', 'Pepper'],
-      commits: { Banana: 1, Cherry: 3, Potato: 1, Pepper: 3 },
+      commits: { Banana: 1, Cherry: 2, Potato: 1, Pepper: 2 },
     })
     expect(readRowOutput('Banana')).toBe('false,false,false,false,true')
     expect(readRowOutput('Potato')).toBe('false,false,false,false,true')
@@ -476,7 +488,7 @@ describe('popup menu row re-renders', () => {
     // "p" hides Banana, Carrot and Potato, so Apple becomes last in group.
     expect(await measureKey(menu, 'p')).toEqual({
       changed: ['Apple', 'Banana', 'Carrot', 'Potato'],
-      commits: { Apple: 1, Banana: 3, Carrot: 3, Potato: 3 },
+      commits: { Apple: 1, Banana: 2, Carrot: 2, Potato: 2 },
     })
     expect(readRowOutput('Apple')).toBe('true,false,false,true,true')
 
@@ -563,6 +575,82 @@ describe('popup menu row re-renders', () => {
     } finally {
       logSpy.mockRestore()
     }
+  })
+
+  it('selectors re-render only the affected rows', async () => {
+    const user = userEvent.setup()
+    const counter = createRenderCounter()
+    const group = (label: string, items: readonly string[]) => (
+      <DropdownMenu.Group render={counter.renderAs(`${label} group`)}>
+        <DropdownMenu.GroupLabel render={counter.renderAs(`${label} label`)}>
+          {label}
+        </DropdownMenu.GroupLabel>
+        {items.map((item) => (
+          <React.Profiler key={item} id={item} onRender={counter.onRender}>
+            <DropdownMenu.Item data-testid={item} value={item}>
+              {item}
+            </DropdownMenu.Item>
+          </React.Profiler>
+        ))}
+      </DropdownMenu.Group>
+    )
+    render(
+      <DropdownMenu.Root defaultOpen>
+        <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner>
+            <DropdownMenu.Popup>
+              <DropdownMenu.Surface>
+                <DropdownMenu.Input data-testid="search-input" />
+                <DropdownMenu.List>
+                  {group('Fruits', GROUPS[0]!.items)}
+                  <DropdownMenu.Separator
+                    render={counter.renderAs('separator')}
+                  />
+                  {group('Vegetables', GROUPS[1]!.items)}
+                  <DropdownMenu.Empty render={counter.renderAs('empty')}>
+                    No results
+                  </DropdownMenu.Empty>
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>,
+    )
+    const input = screen.getByTestId('search-input')
+    await waitFor(() => {
+      expect(screen.getByTestId('Apple')).toHaveAttribute('data-highlighted')
+    })
+
+    // The highlight moves: its two rows, and no group, label, separator or
+    // empty part.
+    let before = counter.snapshot()
+    await user.keyboard('{ArrowDown}')
+    expect(screen.getByTestId('Banana')).toHaveAttribute('data-highlighted')
+    expect(counter.since(before)).toEqual({ Apple: 1, Banana: 1 })
+
+    // "c" keeps Cherry and Carrot. The separator hides; each group keeps
+    // showing at the same edges, and the menu has results, so no group, label
+    // or empty part commits. Counts follow "Commit costs of a narrowing key":
+    // Cherry takes the highlight and first in group, Carrot last in group.
+    before = counter.snapshot()
+    await user.type(input, 'c')
+    expect(counter.since(before)).toEqual({
+      separator: 2,
+      Apple: 2,
+      Banana: 2,
+      Cherry: 2,
+      Carrot: 1,
+      Potato: 2,
+      Pepper: 2,
+    })
+
+    // The highlight moves to the next group: its two rows only.
+    before = counter.snapshot()
+    await user.keyboard('{ArrowDown}')
+    expect(screen.getByTestId('Carrot')).toHaveAttribute('data-highlighted')
+    expect(counter.since(before)).toEqual({ Cherry: 1, Carrot: 1 })
   })
 
   // Data-first rows bind to the list's Collection instead of registering,
