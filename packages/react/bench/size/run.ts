@@ -7,8 +7,9 @@
  * the code on the branch without a `dist` build. The bundle is minified ESM
  * with React external and every other dependency (@base-ui/*, @floating-ui/*)
  * bundled in, as an app ships it, then gzipped. Exits non-zero when an entry's
- * gzip size is over its budget. Raising a budget: "Bundle size" in
- * packages/react/AGENTS.md.
+ * gzip size is over its budget, unless `BENCH_SIZE_REPORT_ONLY=1` is set: then
+ * it still prints the table and marks the entries over budget, but exits zero.
+ * Raising a budget: "Bundle size" in packages/react/AGENTS.md.
  */
 import { appendFile } from 'node:fs/promises'
 
@@ -128,5 +129,9 @@ if (over.length > 0) {
       .join('; ')}.\n` +
       'Shrink the entry, or raise its budget deliberately: see "Bundle size" in packages/react/AGENTS.md.',
   )
-  process.exit(1)
+  if (process.env.BENCH_SIZE_REPORT_ONLY === '1') {
+    console.error('BENCH_SIZE_REPORT_ONLY is set: reporting only, not failing.')
+  } else {
+    process.exit(1)
+  }
 }
