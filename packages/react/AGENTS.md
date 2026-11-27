@@ -183,17 +183,20 @@ return element
 
 ## Store state
 
-`ListboxStore` (the store behind every menu, select, and combobox) keeps a controlled value in two fields: the internal one (`open`, `search`) and the one synced from the prop with `store.useControlledProp(…)` (`openProp`, synced by each root; `searchProp`, synced by the surface). The effective value is `openProp ?? open`. While an app controls the prop, the internal field goes stale: an app that opens a menu through `open` leaves `state.open` at `false`.
-
-Read the effective value through the store's selectors, never the internal field:
+`ListboxStore` (the store behind every menu, select, and combobox) keeps each controlled value, `open` and `search`, in a `ControlledCell` from `@bazza-ui/menu-core`: the internal value and the prop's. The cells are private members of the store, so nothing outside it reads a stale internal value. State mirrors them: `open` and `search` are the effective values (the prop's while it controls them), `openProp` and `searchProp` the props'. Read them through the selectors:
 
 ```typescript
 if (!store.select('open')) return          // in handlers, effects, and store methods
 const open = store.useState('open')        // in render
-const search = state.searchProp ?? state.search  // spelled out by hand, when a selector doesn't fit
 ```
 
-Write with the store's actions (`setOpen`, `setSearch`), which call the consumer's callback and update the internal field. `bazza/no-raw-controlled-state` reports reads of `state.open` and `state.search`, including through a `const s = store.state` alias and `const { open } = store.state`.
+Only the store writes a cell and its mirrors, in one update, in three places:
+
+- `setOpen` calls `changeCell`: the consumer's `onOpenChange` runs first, and a canceled change, or one to a controlled value, leaves the cell as it is.
+- `setSearch` updates the cell, then calls `onSearchChange`, so the highlight change a new search causes is reported first.
+- `store.useControlledProp('openProp', openProp)`, which each root calls, and `useControlledProp('searchProp', …)`, which the surface calls, sync the prop into the cell.
+
+Never write `open`, `search`, `openProp` or `searchProp` yourself with `set`, `update`, `setState` or another state setter: that changes the mirror and not the cell, and skips the consumer's callback. `bazza/no-raw-controlled-state` reports such a write when the receiver looks like a store (`this`, or an identifier or member named `store` or ending in `Store`) and the field is a literal key: `store.set('open', …)`, `store.update({ search })`, `useControlledProp('open', …)`. It doesn't see other receivers (`params.set('search', q)` is fine), computed calls (`store['set'](…)`), destructured methods, keys in variables or computed keys, or objects built elsewhere (`store.update(changes)`). The store's own writes in `setOpen` and `setSearch`, made with their cell, carry an inline exception; its prop sync writes through computed keys, which the rule doesn't see.
 
 Rows and items don't reach state when they register. `registerRow` and `registerItem` queue the change, and `flushPendingRegistrations()` publishes the whole batch: one sort of `orderedRows`, one rescore of `filteredItems` and `filteredCount`, and one auto-highlight check. The list flushes from its layout effect, and a microtask flushes anything left. Between a registration and the flush, those fields are stale. A store method that reads them calls the flush first, as `getVisibleItemIds()`, `selectByShortcut()` and `validateHighlight()` do:
 
@@ -212,7 +215,7 @@ Read an item's registration with `getRegistration(store, id)` and a shortcut's i
 
 `src` is layered, and imports only go down (ADR 0006). From the bottom:
 
-- **`@bazza-ui/menu-core`** (`packages/menu-core`) is below all of `src`: engine code with no React, no Base UI and no import from this package (text matching, event reasons and change details, aim-guard geometry, node def kinds, the menu tree resolver and the data-first pipeline). Any layer of `src` may import it, always as `@bazza-ui/menu-core`. It is private and never published, so it is a devDependency and tsdown bundles it into `dist` (`deps.alwaysBundle` in `tsdown.config.ts`); `bench:dist-imports` fails if `dist` still imports it. When code moves there, its old path in `src` re-exports it, so `internal/popup-menu` and `internal/listbox` export what they did.
+- **`@bazza-ui/menu-core`** (`packages/menu-core`) is below all of `src`: engine code with no React, no Base UI and no import from this package (text matching, event reasons and change details, controlled cells, aim-guard geometry, node def kinds, the menu tree resolver and the data-first pipeline). Any layer of `src` may import it, always as `@bazza-ui/menu-core`. It is private and never published, so it is a devDependency and tsdown bundles it into `dist` (`deps.alwaysBundle` in `tsdown.config.ts`); `bench:dist-imports` fails if `dist` still imports it. When code moves there, its old path in `src` re-exports it, so `internal/popup-menu` and `internal/listbox` export what they did.
 - **`src/utils`** imports nothing else in `src`. Code two layers or families share lives here, as the keybinding helpers and `useHotkey` do in `utils/keybinding` (`kbd` re-exports them, and CommandMenu imports `useHotkey` from there).
 - **`internal/listbox`** imports `src/utils` only. It never imports `internal/popup-menu`: the event types both need live in `internal/listbox/events.ts`, and `internal/popup-menu/events.ts` re-exports them under the same names.
 - **`internal/popup-menu`** imports `src/utils` and `internal/listbox`, deep paths included. Together with `internal/listbox` this is the engine. The engine never imports a member, a loader, `kbd` or `video-player`. When a member needs the engine to behave differently, the engine takes a generic option on its own context and the member sets it: Combobox sets `externalFocus` (focus stays in its input) and `inputEmbedded` (Popup and List render `data-input-embedded`) on `PopupMenuProviders`. Member-only behaviour lives in the member's own part, as `Combobox.Icon` wraps `PopupMenuIcon` to toggle the popup.

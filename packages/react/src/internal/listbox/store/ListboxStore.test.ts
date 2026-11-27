@@ -1,3 +1,4 @@
+import { renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ListboxContext, ListboxState } from './ListboxStore.js'
 import { ListboxStore } from './ListboxStore.js'
@@ -11,6 +12,23 @@ function createStore(
   context?: Partial<ListboxContext>,
 ) {
   return new ListboxStore(initialState, context)
+}
+
+/**
+ * Syncs a controlled prop the way a root does, with
+ * `store.useControlledProp(key, value)`. Returns a setter for the prop.
+ */
+function control<Key extends 'openProp' | 'searchProp'>(
+  store: ListboxStore,
+  key: Key,
+  value: ListboxState[Key],
+) {
+  const { rerender } = renderHook(
+    (props: { value: ListboxState[Key] }) =>
+      store.useControlledProp(key, props.value),
+    { initialProps: { value } },
+  )
+  return (next: ListboxState[Key]) => rerender({ value: next })
 }
 
 function registerItems(
@@ -1351,19 +1369,18 @@ describe('ListboxStore', () => {
 
   describe('controlled prop separation', () => {
     describe('while open is controlled', () => {
-      // The app opens the menu through the prop alone, so the internal `open`
-      // field stays false and only the effective state is open.
+      // The app opens the menu through the prop alone, never through setOpen.
       function openThroughProp(
         initialState?: Partial<ListboxState>,
         context?: Partial<ListboxContext>,
       ) {
         const store = createStore({ ...initialState, open: false }, context)
-        store.update({ openProp: true })
-        return store
+        const setOpenProp = control(store, 'openProp', true)
+        return { store, setOpenProp }
       }
 
       it('highlights the first enabled item when items register after opening', () => {
-        const store = openThroughProp()
+        const { store } = openThroughProp()
         registerItems(store, [
           { id: 'disabled', value: 'Disabled', disabled: true },
           { id: 'first', value: 'First' },
@@ -1372,7 +1389,10 @@ describe('ListboxStore', () => {
       })
 
       it('highlights the first enabled virtual item when virtual items arrive', () => {
-        const store = openThroughProp({ virtualized: true }, { filter: false })
+        const { store } = openThroughProp(
+          { virtualized: true },
+          { filter: false },
+        )
         store.setVirtualItems([
           { value: 'disabled', disabled: true },
           { value: 'first' },
@@ -1381,7 +1401,7 @@ describe('ListboxStore', () => {
       })
 
       it('highlights the first ordered item when ordered items are set after opening', () => {
-        const store = openThroughProp({}, { filter: false })
+        const { store } = openThroughProp({}, { filter: false })
         registerItems(store, [
           { id: 'first', value: 'First' },
           { id: 'second', value: 'Second' },
@@ -1393,7 +1413,7 @@ describe('ListboxStore', () => {
       it('highlights the first ordered item when it registers after opening', () => {
         const store = createStore({ open: false }, { filter: false })
         store.setOrderedItems(['first', 'second'])
-        store.update({ openProp: true })
+        control(store, 'openProp', true)
         expect(store.state.highlightedId).toBeNull()
         registerItems(store, [
           { id: 'first', value: 'First' },
@@ -1403,7 +1423,7 @@ describe('ListboxStore', () => {
       })
 
       it('applies a value auto-highlight', () => {
-        const store = openThroughProp({}, { autoHighlightFirst: 'second' })
+        const { store } = openThroughProp({}, { autoHighlightFirst: 'second' })
         registerItems(store, [
           { id: 'first', value: 'First' },
           { id: 'second', value: 'Second' },
@@ -1413,7 +1433,7 @@ describe('ListboxStore', () => {
       })
 
       it('highlights the first match after a search', () => {
-        const store = openThroughProp()
+        const { store } = openThroughProp()
         registerItems(store, [
           { id: 'apple', value: 'Apple' },
           { id: 'banana', value: 'Banana' },
@@ -1423,49 +1443,100 @@ describe('ListboxStore', () => {
       })
 
       it('clears the search when the prop closes it', () => {
-        const store = openThroughProp({ search: 'query' })
-        store.update({ openProp: false })
+        const { store, setOpenProp } = openThroughProp({ search: 'query' })
+        setOpenProp(false)
         expect(store.state.search).toBe('')
+      })
+
+      it('reads the controlled open from state too', () => {
+        const { store } = openThroughProp()
+
+        expect(store.state.open).toBe(true)
+        expect(store.state.openProp).toBe(true)
+        expect(store.select('open')).toBe(true)
+      })
+
+      it('stays open when setOpen asks to close, after asking the consumer', () => {
+        const onOpenChange = vi.fn()
+        const { store } = openThroughProp({}, { onOpenChange })
+        store.setOpen(false)
+
+        expect(onOpenChange).toHaveBeenCalledWith(false, expect.anything())
+        expect(store.state.open).toBe(true)
+        expect(store.select('open')).toBe(true)
+      })
+
+      it('closes when the consumer syncs the prop from inside onOpenChange', () => {
+        let setOpenProp: (open: boolean) => void = () => {}
+        const { store, setOpenProp: sync } = openThroughProp(
+          {},
+          // A parent that commits synchronously (e.g. under `flushSync`).
+          { onOpenChange: (open) => setOpenProp(open) },
+        )
+        setOpenProp = sync
+        store.setOpen(false)
+        expect(store.select('open')).toBe(false)
+
+        // The prop still controls it, from where the consumer left it.
+        setOpenProp(true)
+        expect(store.select('open')).toBe(true)
       })
     })
 
-    it('effective open resolves openProp over internal open', () => {
-      const store = createStore({ open: false })
-      store.update({ openProp: true })
-
-      expect(store.state.open).toBe(false)
-      expect(store.state.openProp).toBe(true)
+    it('stays controlled when the consumer starts controlling open inside onOpenChange', () => {
+      let controlling = false
+      const store: ListboxStore = createStore(
+        { open: false },
+        {
+          onOpenChange: (open) => {
+            if (controlling) return
+            controlling = true
+            control(store, 'openProp', open)
+          },
+        },
+      )
+      store.setOpen(true)
       expect(store.select('open')).toBe(true)
-    })
 
-    it('setOpen updates internal open but effective open stays controlled', () => {
-      const store = createStore({ open: false, openProp: true })
       store.setOpen(false)
-
-      expect(store.state.open).toBe(false)
       expect(store.select('open')).toBe(true)
     })
 
-    it('effective search resolves searchProp over internal search', () => {
-      const store = createStore({ search: 'banana' })
-      store.update({ searchProp: 'apple' })
+    it('calls onOpenChange before the open state changes', () => {
+      const seen: boolean[] = []
+      const store: ListboxStore = createStore(
+        { open: false },
+        { onOpenChange: () => seen.push(store.select('open')) },
+      )
+      store.setOpen(true)
 
-      expect(store.state.search).toBe('banana')
+      expect(seen).toEqual([false])
+      expect(store.select('open')).toBe(true)
+    })
+
+    it('reads the controlled search from state too', () => {
+      const store = createStore({ search: 'banana' })
+      control(store, 'searchProp', 'apple')
+
+      expect(store.state.search).toBe('apple')
       expect(store.state.searchProp).toBe('apple')
       expect(store.select('search')).toBe('apple')
     })
 
-    it('setSearch updates internal search but effective search stays controlled', () => {
-      const store = createStore({ search: 'banana', searchProp: 'apple' })
+    it('keeps a controlled search when setSearch changes it', () => {
+      const onSearchChange = vi.fn()
+      const store = createStore({ search: 'banana' }, { onSearchChange })
+      control(store, 'searchProp', 'apple')
       store.setSearch('cherry')
 
-      expect(store.state.search).toBe('cherry')
-      expect(store.select('search')).toBe('apple')
+      expect(onSearchChange).toHaveBeenCalledWith('cherry')
+      expect(store.state.search).toBe('apple')
+      expect(store.state.normalizedSearch).toBe('apple')
     })
 
     it('normalizedSearch syncs with effective search when searchProp changes', () => {
       const store = createStore({ search: '' })
-      store.update({ searchProp: 'APPLE' })
+      control(store, 'searchProp', 'APPLE')
 
       expect(store.state.normalizedSearch).toBe('APPLE')
     })
@@ -1481,11 +1552,13 @@ describe('ListboxStore', () => {
     })
 
     it('does nothing when searchProp is controlled', () => {
-      const store = createStore({ search: '' })
-      store.update({ searchProp: 'controlled' })
+      const onSearchChange = vi.fn()
+      const store = createStore({ search: '' }, { onSearchChange })
+      control(store, 'searchProp', 'controlled')
       store.initializeDefaultSearch('x')
 
-      expect(store.state.search).toBe('')
+      expect(onSearchChange).not.toHaveBeenCalled()
+      expect(store.state.search).toBe('controlled')
       expect(store.state.searchProp).toBe('controlled')
     })
 
