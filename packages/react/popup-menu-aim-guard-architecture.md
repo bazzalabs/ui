@@ -3,385 +3,153 @@
 ## Document Status
 
 - Status: Implemented (matches current code)
-- Scope: `packages/react/src/internal/popup-menu`
+- Scope: `packages/menu-core/src/controllers/` and `packages/react/src/internal/popup-menu`
 - Audience: Maintainers of popup menu, listbox, and submenu behavior
-- Last reviewed against code: 2026-02-27
+- Last reviewed against code: 2026-11-30 (UI-683, `AimGuardController`)
+
+The vocabulary (Aim Guard Controller, Aim Guard Trigger, Submenu Controller) is defined in `src/internal/popup-menu/CONTEXT.md`; the rules for controllers and their bindings are in `packages/react/AGENTS.md` ("Layers"). This document explains how the pieces work together and why.
 
 ## 1. Problem Statement
 
-Nested popup menus have a well-known failure mode: while moving diagonally from a parent row to its submenu popup, the pointer briefly crosses sibling rows. If sibling highlight wins, the active submenu collapses and the experience feels unstable.
+Nested popup menus have a well-known failure mode: while moving diagonally from a parent row to its submenu popup, the pointer briefly crosses sibling rows. If a sibling takes the highlight, the open submenu collapses and the menu feels unstable.
 
-The aim guard subsystem solves this by inferring user intent from pointer trajectory and temporarily guarding sibling highlight/close behavior.
-
-This implementation is not a static triangle-only algorithm. It is a hybrid of:
+The aim guard infers intent from the pointer's trajectory and briefly stops the parent menu's other rows from taking the pointer. It is a hybrid (K7) of:
 
 - geometric trajectory projection,
-- temporal lock (short guard window), and
-- continuous re-evaluation after pointer leave.
+- a temporal lock (a short guard window), and
+- continuous re-evaluation after the pointer leaves the trigger.
 
 ## 2. Design Goals
 
-- Preserve submenu openness when pointer movement suggests intent toward submenu popup.
-- Block sibling row takeover only in the relevant menu depth.
-- Recover quickly when intent changes away (no sticky lock-in).
-- Work with both dropdown and context menu trees.
-- Avoid expensive rerenders in pointer-heavy paths.
-- Provide opt-in debug visualization to validate geometry and tuning.
+- Keep a submenu open while the pointer is heading for its popup.
+- Block the other rows only at the depth of the menu the trigger is in.
+- Recover quickly when the pointer turns away (no sticky lock).
+- Work the same in every menu family member (dropdown, context menu, data-first submenus).
+- Cost nothing while idle: no pointer listener unless a trigger is hovered or tracking an exit, no animation frames, no re-renders of rows on guard changes.
+- Offer an opt-in debug overlay and logs to tune and verify the geometry.
 
 ## 3. Non-Goals
 
-- Exact geometric triangle containment as the only signal.
-- Touch-first hover behavior (touch pointer hover is intentionally ignored).
-- Full vertical safe-triangle rendering in debug overlay (top/bottom anchors are computed but not visualized).
+- Exact triangle containment as the only signal.
+- Hover behavior for touch (touch pointers are ignored).
+- Drawing the overlay for vertical anchors (top and bottom are computed but not drawn).
 
-## 4. High-Level Architecture
+## 4. Architecture
 
-The subsystem is split into four layers:
+| Piece | Where | Does |
+| --- | --- | --- |
+| Geometry | `packages/menu-core/src/aim-guard/aim-guard.ts` | Anchor side, smoothed heading, projected hit test. Pure functions. |
+| `AimGuardController` | `packages/menu-core/src/controllers/aim-guard.ts` | The tree's guard: who holds it, its timeout, one pointer listener for every held trail, popup reports, logs. One per menu root. |
+| `AimGuardTrigger` | same file, from `AimGuardController.trigger()` | One submenu trigger's side: reads the pointer leaving the trigger and moving on, keeps its trail, holds and releases the guard for its trigger and depth, works out its debug overlay. It reaches the tree only through the controller's private link. |
+| `SubmenuController` | `packages/menu-core/src/controllers/submenu.ts` | Decides what each reading means in each state (`idle`, `open-pending`, `open`, `guarded`, `close-pending`): when to hold, release, open, close, and how long to track the exit. Takes the trigger's `AimGuardTrigger` as its `aimGuard`. |
+| React tree binding | `src/internal/popup-menu/hooks/use-aim-guard.tsx` | `createAimGuard(settings)`: the controller on the window's `pointermove`, logging gated on `debug.logAimGuardEvents`, overlay settings from `debug.showSafeTriangleArea`. `useMaybeAimGuard()` reads it from the tree tier; `useAimGuardRefs()` gives listbox rows their `AimGuardRefs`. |
+| React trigger binding | `components/submenu-trigger/use-submenu-aim-guard.ts` | Makes the trigger's `AimGuardTrigger` with getters for the trigger's and popup's rects, configures it, disposes it, and subscribes to its overlay only while the debug flag is on. |
+| Submenu trigger | `components/submenu-trigger/submenu-trigger.tsx`, `use-submenu-controller.ts` | Sends pointer events to the `SubmenuController`, holds the hover trail while hovered, renders the overlay. |
+| Popup | `components/popup/popup.tsx` | Reports the pointer over a submenu popup (`pointerInPopup`), from its `onPointerEnter` and `onPointerMove`, composed after the consumer's props. |
+| Rows | `hooks/use-popup-menu-item.ts`, `internal/listbox/hooks/use-listbox-item.ts` | A row at the guarded depth doesn't take the pointer highlight. |
+| Overlay | `components/submenu-trigger/submenu-safe-triangle-area.tsx` | Draws the safe triangle from the trigger's debug snapshot. |
 
-1. Geometry and intent math (`aim-guard/aim-guard.ts` in `@bazza-ui/menu-core`)
-2. Shared guard state and lifecycle (`hooks/use-aim-guard.tsx`)
-3. Trigger-side event orchestration (`components/submenu-trigger/submenu-trigger.tsx`)
-4. Popup-side guard finalization (`components/popup/popup.tsx`)
+Only `AimGuardRefs` (`internal/listbox`) is published; everything else here is internal.
 
-### 4.1 Module Map
+## 5. The Guard
 
-| Module | Responsibility |
-| --- | --- |
-| `packages/menu-core/src/aim-guard/aim-guard.ts` | Anchor detection, heading smoothing, projected hit-test |
-| `packages/react/src/internal/popup-menu/utils/use-mouse-trail.ts` | Pointer trail buffer, recorded only while a trigger holds it (hover or leave monitor) |
-| `packages/react/src/internal/popup-menu/hooks/use-aim-guard.tsx` | Global guard state, refs, timer, activation/clear API |
-| `packages/react/src/internal/popup-menu/hooks/use-popup-menu-item.ts` | Bridges guard refs into listbox item behavior |
-| `packages/react/src/internal/listbox/hooks/use-listbox-item.ts` | Depth-scoped pointer highlight blocking |
-| `packages/react/src/internal/popup-menu/components/submenu-trigger/submenu-trigger.tsx` | Pointer enter/move/leave logic, monitor loop, guard transitions |
-| `packages/react/src/internal/popup-menu/components/popup/popup.tsx` | Clears guard once pointer enters guarded submenu popup |
-| `packages/react/src/internal/popup-menu/components/submenu-trigger/submenu-safe-triangle-area.tsx` | Debug-only overlay rendering |
-| `packages/react/src/internal/popup-menu/contexts/popup-menu-debug-context.ts` | Debug configuration parsing/defaults |
+`AimGuardState` is `{ active, triggerId, depth, submenuSurfaceId }`:
 
-## 5. Context and State Model
+- `triggerId`: the trigger whose row is protected.
+- `depth`: the depth of the menu that trigger is in. Only that menu's rows are blocked, so the submenu's own rows and nested triggers stay interactive.
+- `submenuSurfaceId`: the popup the pointer is heading to. A report that the pointer is over that popup releases the guard.
 
-Aim guard is provided once per popup-menu tree by `PopupMenuProviders` via `AimGuardProvider`.
+Holding it for 600 ms (a hit), releasing it, and its timeout change the state; `subscribe` is told once per real change, and `getSnapshot` returns a new object only then. A trigger holds and releases through its `AimGuardTrigger`:
 
-### 5.1 Guard Context State
+- `hold(ms)` for its own trigger and depth;
+- `release()` releases whoever holds it (the pointer entered a trigger, or left one with a miss);
+- `releaseOwn()` releases it only if this trigger holds it (its submenu closed, the trigger hid or unmounted);
+- `isBlocked()` is whether another trigger at the same depth holds it.
 
-`AimGuardProvider` provides two contexts:
+Rows read it as refs whose `current` reads the state when read, so a row's pointer handler always sees the guard as it is, and no row re-renders when it changes.
 
-- `AimGuardCtx` (`useAimGuard()`): ref mirrors (`aimGuardActiveRef`, `guardedTriggerIdRef`, `guardedDepthRef`, `guardedSubmenuSurfaceIdRef`) and stable callbacks (`activateAimGuard`, `clearAimGuard`, `isGuardBlocking`). Its value never changes for the provider's lifetime; the logging flag is read through a ref. Every row reads this context (via `usePopupMenuItem`), as does `Popup`.
-- `AimGuardStateCtx` (`useAimGuardState()`): React state for components that render from the guard:
-  - `aimGuardActive: boolean`
-  - `guardedTriggerId: string | null`
-  - `guardedDepth: number | null`
-  - `guardedSubmenuSurfaceId: string | null`
-
-  Only submenu triggers read it (for the safe-triangle debug state).
-
-Why two contexts: every guard activate and clear updates the state. If that state shared a context with the refs, every row in the menu would re-render on each guard transition, though rows only need the refs. Ref mirrors are also what high-frequency pointer handlers read, to avoid stale closures.
-
-### 5.2 Why Trigger + Depth + Surface ID?
-
-- `guardedTriggerId` identifies which row is protected.
-- `guardedDepth` scopes blocking to the parent menu depth only.
-- `guardedSubmenuSurfaceId` identifies the destination popup that should clear guard on successful entry.
-
-This prevents over-blocking unrelated menu levels and lets the popup side confidently clear only when the pointer reaches the intended submenu.
-
-## 6. Geometry Engine
-
-Implemented in `packages/menu-core/src/aim-guard/aim-guard.ts`.
+## 6. Geometry
 
 ### 6.1 `resolveAnchorSide(rect, triggerRect, mx, my?)`
 
-Determines which side of submenu popup the trigger is anchored to.
-
-- Preferred input: `triggerRect` center relative to `rect`.
-- Fallback: pointer position (`mx`, `my`).
-- Supports `left | right | top | bottom`.
-
-Behavior:
-
-- If outside submenu rect, choose side with the largest gap.
-- If inside rect, choose nearest edge.
-
-This supports flipped placements and non-right-opening submenus.
+Which side of the submenu popup the trigger is on: from the trigger's center (or the pointer when there is no trigger rect). Outside the popup, the side with the largest gap; inside, the nearest edge. This handles flipped and non-right-opening submenus.
 
 ### 6.2 `getSmoothedHeading(trail, exitX, exitY, anchor, triggerRect, rect)`
 
-Computes a smoothed vector `(dx, dy)` from recent pointer trail segments.
+The sum of up to 4 recent deltas of the trail. Below a magnitude of 0.5, it falls back to the direction from the trigger's center to the middle of the popup's entry edge.
 
-- Uses up to 4 recent deltas.
-- If magnitude is very low (`< 0.5`), infers fallback direction from trigger center toward submenu edge center.
-
-The fallback avoids a zero-vector decision when pointerleave event is nearly stationary.
-
-The trail starts empty at hover (see 7.4), so a fast pass may record only one sample inside the trigger. When fewer than 2 points remain, the leave handler appends the leave point, so the heading comes from the real path through the trigger rather than the fallback. An empty trail means the pointer never moved over the trigger: the trigger moved under it (scrolling, a layout shift). The leave then counts as a miss, without a heading check. The trail is deliberately not seeded from earlier positions (such as the listbox's last pointer position), which can be stale.
+A trigger's trail starts empty when it starts recording. A fast pass may leave a single sample; the leave point is then added so the heading comes from the real path. An empty trail means the pointer never moved over the trigger (the trigger moved under it, by scrolling or a layout shift), and the leave counts as a miss.
 
 ### 6.3 `willHitSubmenu(exitX, exitY, heading, rect, anchor, triggerRect)`
 
-Projects heading to the submenu entry edge and checks if projected cross-axis coordinate lands in an expanded acceptance band.
+Projects the heading onto the popup's entry edge and checks the cross-axis coordinate against the popup's bounds plus a small band:
 
-Algorithm summary:
+1. The primary axis is `dx` for left and right anchors, `dy` for top and bottom.
+2. A primary component under 0.01, or one pointing away from the anchor, is a miss.
+3. `t` is where the heading reaches the edge; `t <= 0` is a miss.
+4. The band is `extra = clamp(triggerCrossSize * 0.75 (or 28), 12, 36)`, and the bounds grow by `extra * 0.25` on each side.
 
-1. Pick primary axis (`dx` for horizontal anchors, `dy` for vertical anchors).
-2. Reject near-zero primary velocity (`abs(primary) < 0.01`).
-3. Reject wrong direction by anchor sign.
-4. Compute intersection parameter `t` with anchor edge.
-5. Reject if `t <= 0` (not moving toward the relevant edge).
-6. Compute projected cross-axis coordinate.
-7. Accept if inside `[min, max]` where range is submenu bounds plus small expansion.
+## 7. A Pointer Leaving a Trigger
 
-Band expansion is based on trigger cross-size:
+The trigger binding filters DOM events (consumer `preventDefault`, disabled, non-mouse pointers, pointer moves under 1 px) and sends the rest to its `SubmenuController`, which asks its `AimGuardTrigger` for geometry:
 
-- `baseBand = triggerCrossSize * 0.75` (or default 28)
-- `extra = clamp(baseBand, 12, 36)`
-- final bounds extend by `extra * 0.25`
+1. `pointer.enter` / `pointer.move`: a trigger blocked by another trigger's guard at its depth does nothing. Otherwise it takes the highlight. Then, only with `openOnHighlight` on and auto-open not suppressed (`suppressAutoOpen`, set by an explicit close and cleared when the trigger loses the highlight): entering releases any guard and cancels pending close and tracking, and opens a closed submenu now or after the pointer delay; moving opens a closed one the same way, keeping a delay already running.
+2. `pointer.leave`: the pending open is cancelled, then `leave(point)` reads the pointer:
+   - no popup rect: release; with `closeOnPointerLeave` on, close an open submenu (now, or after `closeDelay`), otherwise it stays `open`;
+   - inside the popup: release; the submenu stays open;
+   - outside, aiming at the popup: hold the guard for 600 ms, keep the trigger highlighted and the submenu open, and track the exit for 600 ms (if the submenu refuses to open, the guard is released and nothing is tracked);
+   - outside, missing it: release; with `closeOnPointerLeave` on, close an open submenu, or with `closeDelay` wait it out while tracking the exit for that long; with it off, the submenu stays `open` and nothing is tracked.
+3. While tracking, `watch()` adds a second pointer listener (mouse-like moves only), and each move is read by `track(point)`:
+   - in `guarded`, moving back by 2 px or more along the anchor axis, or a heading that misses, releases the guard; with `closeOnPointerLeave` on it then closes (or waits out `closeDelay`, tracking for that long), and with it off it stops tracking and stays `open`;
+   - in `close-pending`, a heading that hits holds the guard again, keeps the submenu open, and tracks for 600 ms;
+   - inside the popup, or once the popup has no rect, tracking ends.
+4. The pointer over the submenu's popup (`pointerInPopup`) releases a guard on the way there and tells the trigger, which ends any pending close and tracking.
 
-This gives tolerance for human motion jitter without over-accepting clearly wrong trajectories.
+## 8. Pointer Trail
 
-## 7. Pointer Event Pipeline
+A trigger records its trail (last 4 points, every pointer type) while a reason holds it:
 
-Primary orchestration is in `packages/react/src/internal/popup-menu/components/submenu-trigger/submenu-trigger.tsx`.
+- `hover`: from pointer enter (or the first move over the trigger) until after the leave is read, or until the trigger hides;
+- `monitor`: while its exit is tracked, held before the tracking listener is added, so each move reaches the trail first.
 
-### 7.1 Pointer Enter (`onPointerEnter`)
+One listener records every held trail of the tree; with no trail held it is removed. So the window has no `pointermove` listener while idle, one while a trigger is hovered, and two while an exit is tracked.
 
-- Ignore non-mouse-like pointers.
-- If guard blocks this trigger at the same parent depth (different guarded row), do nothing.
-- Highlight this row.
-- Clear existing guard and pending close/monitor timers.
-- Open submenu immediately or after pointer delay.
+## 9. Timing and Thresholds
 
-Depth scoping here is intentional: a parent-depth guard should not suppress pointer handling for nested destination triggers inside the already-open submenu.
+- Guard and exit tracking after a hit: 600 ms
+- Exit tracking after a miss: `closeDelay`
+- Keyboard open delay: 150 ms by default; pointer open delay: 0 ms by default
+- Close delay: 0 ms by default (per trigger)
+- Moving back: 2 px along the anchor axis
+- Near-zero heading: 0.01 on the primary axis; slow-motion fallback: magnitude under 0.5
 
-### 7.2 Pointer Move (`onPointerMove`)
+## 10. Debug Overlay and Logs
 
-- Ignore disabled/non-mouse-like events.
-- Require real movement via `parentStore.shouldAllowPointerHighlight(x, y)`.
-- If guard active at this depth and guarded row is different, block highlight/open.
-- Otherwise highlight row and optionally open submenu (with delay rules).
+Set on the root's `debug` prop:
 
-### 7.3 Pointer Leave (`onPointerLeave`)
+- `showSafeTriangleArea`: the overlay. A trigger's overlay is worked out only while its binding subscribes (`subscribeDebug`), which it does only while the flag is on. Tones: `hover` (live rects), `activated` (a hit; frozen on the reading with `freezeOnPointerLeave`), `missed` (for `missFreezeDuration`, with `showMissState`). An activated triangle goes when the guard stops being its trigger's, unless `persistOnSuccess`, and when its submenu closes. It is drawn in a portal on `document.body`, for left and right anchors only.
+- `logAimGuardEvents`: console logs, `[PopupMenu][AimGuardProvider] <event>` for the guard (`activate`, `clear`, `timeout-expired`, `provider-unmount-clear`) and `[PopupMenu][AimGuard] <event>` for a trigger's readings and decisions (`pointerleave-hit-activate-guard`, `pointerleave-miss-close`, `leave-monitor-reversal-close`, …). Details are built only while logging.
 
-Core decision point:
+## 11. Testing
 
-1. Cancel pending open timer.
-2. Capture content rect and trigger rect.
-3. If pointer already inside popup bounds, treat as success (keep open, clear close pressure).
-4. Else compute `anchor`, `heading`, and `hit`.
-5. If hit:
-   - activate guard for 600ms,
-   - keep row highlighted,
-   - keep submenu open,
-   - start leave monitor for continuous checks.
-6. If miss:
-   - clear guard,
-   - schedule close (immediate or delayed),
-   - optionally start leave monitor during close-delay window.
+- `packages/menu-core/src/aim-guard/aim-guard.test.ts`: the geometry.
+- `packages/menu-core/src/controllers/aim-guard.test.ts`: the guard, the trail, a trigger's geometry and its overlay, on a fake clock and a fake pointer.
+- `packages/menu-core/src/controllers/submenu.test.ts`: every Submenu Controller transition, on a fake guard.
+- `packages/react/src/internal/popup-menu/popup-menu.test.tsx`, `pointer-trail.test.tsx`, `row-renders.test.tsx`: the DOM behavior, window listeners, logs and render budgets.
+- `packages/react/src/context-menu/root/idle-frames.browser.test.tsx`: no animation frames while idle, with or past a submenu.
 
-### 7.4 Pointer Trail Lifetime
+## 12. Change Safety Checklist
 
-`useMouseTrail` records positions only while at least one hold is active, through one shared `window` `pointermove` listener:
+When changing aim guard logic, check that:
 
-- `hover`: taken on pointer enter (or the first pointer move over the trigger), starting from an empty trail; released after the leave logic runs, or when the trigger is hidden (a hidden trigger gets no pointerleave).
-- `monitor`: taken when the leave monitor starts, before its listener is added so each move reaches the trail first; released when the monitor is cleared.
-
-With no trigger hovered and no monitor running, no trail listener exists.
-
-## 8. Continuous Intent Monitoring
-
-`startLeaveMonitor(...)` sets a temporary `window.pointermove` listener after leave.
-
-It tracks whether intent flips over time rather than assuming leave-time decision is final.
-
-### 8.1 Reversal Fast Path
-
-If initial state was hit, and axis delta indicates movement away from submenu by threshold (`2px`), monitor immediately drops guard and triggers close path.
-
-This avoids stale protection when user changes direction right after leaving.
-
-### 8.2 Dynamic Hit/Miss Transitions
-
-On each monitor pointermove:
-
-- recompute heading using live trail,
-- recompute hit with `willHitSubmenu`,
-- if state flips miss->hit: reactivate guard and keep submenu open,
-- if state flips hit->miss: clear guard and close/schedule close.
-
-Monitor exits when:
-
-- pointer enters popup,
-- timeout expires,
-- explicit cleanup occurs.
-
-## 9. Guard Enforcement in Listbox Layer
-
-Actual highlight suppression happens in listbox item pointer move logic.
-
-Flow:
-
-- `usePopupMenuItem` injects aim guard refs into `useListboxItem`.
-- `useListboxItem` checks guard only when `guardedDepthRef.current === depth`.
-- If active at same depth, pointer highlight is blocked.
-
-This is the key depth-scoping behavior that lets submenu internals remain interactive while parent sibling rows are temporarily frozen.
-
-## 10. Popup-Side Guard Completion
-
-`PopupMenuPopup` clears guard when pointer moves inside the guarded submenu popup, but only if:
-
-- this popup is a submenu,
-- guard is active,
-- `guardedSubmenuSurfaceIdRef.current === surfaceId`.
-
-This guarantees lock is removed when destination is reached, reducing unnecessary blocked hover after successful traversal.
-
-## 11. Interaction with Other Menu Subsystems
-
-### 11.1 Focus Ownership
-
-Focus ownership is independent but coordinated:
-
-- pointer movement in surfaces/popup can transfer focus owner,
-- aim guard only controls highlight/open close behavior.
-
-### 11.2 Pointer Debounce
-
-`ListboxStore.shouldAllowPointerHighlight` filters phantom highlights by requiring >1px movement from last pointer position.
-
-This complements aim guard by reducing accidental highlight transitions due to DOM shifts.
-
-### 11.3 Sibling Submenu Closing
-
-Listbox store closes sibling submenus when highlighted row changes. Aim guard reduces unintended highlight changes, indirectly stabilizing submenu openness.
-
-## 12. Timing and Thresholds
-
-Current implementation constants/tuning:
-
-- Guard default in provider API: `450ms`
-- Guard duration used by submenu trigger hit path: `600ms`
-- Keyboard submenu open delay default: `150ms`
-- Pointer submenu open delay default: `0ms`
-- Close delay default: `0ms` (configurable per submenu trigger)
-- Reversal threshold in monitor: `2px` axis movement away
-- Near-zero heading rejection: `0.01` on primary axis
-- Slow-motion fallback threshold: heading magnitude `< 0.5`
-
-## 13. Debug Visualization Architecture
-
-Debug mode is configured from root through:
-
-- `debug.showSafeTriangleArea` for visual overlay rendering.
-- `debug.logAimGuardEvents` for opt-in aim-guard console diagnostics.
-
-### 13.1 States
-
-- `hover`: blue/idle (by default)
-- `activated`: green/success (guard hit)
-- `missed`: red/miss (optional)
-
-### 13.2 Rendering
-
-- Overlay is rendered in a portal to `document.body`.
-- Uses live pointer position or frozen snapshot captured at leave-time transitions.
-- Drawn only for horizontal anchors (`left` and `right`).
-
-### 13.3 Configurable Options
-
-- colors, opacities, stroke and dot styling
-- freeze behavior on leave
-- persistence on success
-- miss state visibility and freeze duration
-
-This debug path is valuable for tuning and regression verification without changing runtime behavior.
-
-## 14. State Machine (Conceptual)
-
-```text
-IDLE
-  -> (pointerenter trigger) HOVER
-
-HOVER
-  -> (pointerleave + hit) GUARD_ACTIVE
-  -> (pointerleave + miss) CLOSING or IDLE
-
-GUARD_ACTIVE
-  -> (pointer enters guarded popup) IDLE (guard cleared)
-  -> (monitor detects reversal/miss) CLOSING or IDLE
-  -> (timeout) IDLE
-
-CLOSING
-  -> (pointer re-enters trigger/popup or hit transition) GUARD_ACTIVE or HOVER
-  -> (delay expires) IDLE (submenu closed)
-```
-
-## 15. End-to-End Narrative
-
-1. User hovers submenu row; row highlights and submenu opens.
-2. User leaves row diagonally toward submenu.
-3. System computes side, heading, and projected hit.
-4. If hit, parent-depth sibling highlight is guarded for a short window.
-5. While crossing the gap, sibling rows cannot steal highlight.
-6. If user keeps moving toward popup, entering popup clears guard and interaction continues.
-7. If user reverses away, monitor drops guard and closes submenu quickly.
-8. Guard also expires naturally on timeout to prevent stale lock behavior.
-
-## 16. Testing Coverage Snapshot
-
-Implemented tests cover:
-
-- geometry functions (`resolveAnchorSide`, `getSmoothedHeading`, `willHitSubmenu`)
-- debug visualization rendering and configuration
-- miss/success transitions
-- close-delay interactions and cancellation paths
-- lifecycle cleanup when root closes
-- pointer modality gating (touch blocked, pen allowed)
-- continuous monitoring and reversal behavior
-- timeout unblocking for sibling submenu activation
-- nested destination trigger visualization while parent-depth guard is active
-- debug-log gating via `debug.logAimGuardEvents`
-
-Primary files:
-
-- `packages/menu-core/src/aim-guard/aim-guard.test.ts`
-- `packages/react/src/internal/popup-menu/popup-menu.test.tsx`
-- `packages/react/src/internal/popup-menu/utils/use-mouse-trail.test.tsx`
-- `packages/react/src/internal/popup-menu/pointer-trail.test.tsx`
-
-## 17. Performance Characteristics
-
-- Hot path avoids React state reads in handlers by using refs.
-- Mouse trail uses one shared listener with subscriber fanout, attached only while a trigger is hovered or its leave monitor runs (usually one subscriber).
-- Monitor listener is short-lived and created only during leave windows.
-- Pointer highlight debounce in listbox reduces noisy updates.
-
-Potential pressure points:
-
-- high-volume console logging when `debug.logAimGuardEvents` is enabled.
-
-## 18. Known Limitations and Improvement Opportunities
-
-1. `debug.logAimGuardEvents` is intentionally noisy and best kept for diagnostics only.
-2. `isGuardBlocking` exists in context but appears unused by current callsites.
-3. Debug triangle currently skips vertical anchor visualization.
-4. Timing values are duplicated in callsites (for example `600ms`) rather than centralized constants.
-5. `useMouseTrail` captures all pointer moves regardless of pointerType; optional filtering could reduce noise.
-
-## 19. Change Safety Checklist
-
-When modifying aim guard logic, verify:
-
-- depth-scoped blocking still only affects parent menu level,
-- guard clears on popup entry, submenu close, unmount, and root close,
-- delayed close can still be canceled by renewed intent,
-- sibling submenu activation still works after timeout,
-- touch modality remains non-hover-driven.
-
-Recommended validation command:
+- blocking still affects only the trigger's own menu depth;
+- the guard is released on reaching the popup, on the submenu closing, on the trigger hiding or unmounting, and on timeout;
+- a delayed close can still be cancelled by renewed intent;
+- a sibling submenu still opens after the timeout;
+- touch input still doesn't hover-open or get tracked;
+- nothing listens to the pointer, and no animation frame runs, while idle.
 
 ```bash
 bun run test --filter @bazza-ui/menu-core
-cd packages/react && bunx vitest run src/internal/popup-menu/popup-menu.test.tsx
+cd packages/react && bunx vitest run src/internal/popup-menu src/context-menu
 ```
-
-## 20. Summary
-
-The current architecture is robust because it combines geometric intent detection with temporal scoping and continuous post-leave monitoring. It is deliberately conservative about where blocking occurs (same depth only) and aggressive about cleanup when destination is reached or intent changes, which gives stable submenu traversal without making hover feel sticky.

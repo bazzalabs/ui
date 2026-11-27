@@ -1,8 +1,8 @@
 'use client'
 
 import { ReactStore } from '@base-ui/utils/store'
+import type { AimGuardController } from '@bazza-ui/menu-core'
 import * as React from 'react'
-import type { AimGuardStore } from '../store/AimGuardStore.js'
 import type { FocusZoneRegistry } from '../store/FocusZoneRegistry.js'
 import type { MenuTreeStore } from '../store/MenuTreeStore.js'
 import type { ComponentName } from './component-name-context.js'
@@ -37,7 +37,7 @@ export class MenuTreeTier {
     readonly componentName: ComponentName | null,
     readonly settings: MenuTreeSettings,
     /** Safe-polygon navigation toward the tree's submenus. */
-    readonly aimGuard: AimGuardStore,
+    readonly aimGuard: AimGuardController,
     /** Each surface's focus zones and parent, for Tab. */
     readonly focusZones: FocusZoneRegistry,
   ) {}

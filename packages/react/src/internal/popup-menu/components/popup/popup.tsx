@@ -18,7 +18,7 @@ import {
   DataPopupProvider,
   DataSubpagesContent,
 } from '../../data-first/data-subpages.js'
-import { useAimGuard } from '../../hooks/use-aim-guard.js'
+import { useMaybeAimGuard } from '../../hooks/use-aim-guard.js'
 import { useMenuElement, usePressClaim } from '../../hooks/use-menu-element.js'
 import { useSubpageStackState } from '../../hooks/use-subpage-stack-state.js'
 import { getElementRegistry } from '../../store/MenuTreeStore.js'
@@ -95,9 +95,8 @@ export const PopupMenuPopup = React.forwardRef<
   // Get submenu context to set contentRef for aim guard and get childSurfaceId for focus transfer
   const submenuContext = useMaybeSubmenuContext()
 
-  // Get aim guard to clear it when pointer enters submenu
-  const { clearAimGuard, aimGuardActiveRef, guardedSubmenuSurfaceIdRef } =
-    useAimGuard()
+  // The tree's aim guard: the pointer over a submenu popup reached it
+  const aimGuard = useMaybeAimGuard()
 
   // Get focus owner store for transferring ownership
   const focusOwnerStore = useFocusOwner()
@@ -183,54 +182,11 @@ export const PopupMenuPopup = React.forwardRef<
     popupMenuContext?.store.setPopupRef(popupRef)
   }, [depth, popupMenuContext])
 
-  // Clear aim guard when pointer moves inside this submenu popup
-  // Only clear if aim guard is actually active AND this is the target submenu
-  const handlePointerMove = React.useCallback(() => {
-    // Only handle if this is a submenu popup (not the root popup) and aim guard is active
-    // Also verify this is the specific submenu the user was aiming for
-    if (
-      submenuContext &&
-      aimGuardActiveRef.current &&
-      guardedSubmenuSurfaceIdRef.current === surfaceId
-    ) {
-      clearAimGuard()
-    }
-  }, [
-    submenuContext,
-    aimGuardActiveRef,
-    guardedSubmenuSurfaceIdRef,
-    surfaceId,
-    clearAimGuard,
-  ])
-
-  React.useEffect(() => {
-    if (
-      submenuContext?.open !== false ||
-      !aimGuardActiveRef.current ||
-      guardedSubmenuSurfaceIdRef.current !== surfaceId
-    ) {
-      return
-    }
-
-    clearAimGuard()
-  }, [
-    submenuContext?.open,
-    aimGuardActiveRef,
-    guardedSubmenuSurfaceIdRef,
-    surfaceId,
-    clearAimGuard,
-  ])
-
-  React.useEffect(() => {
-    return () => {
-      if (
-        aimGuardActiveRef.current &&
-        guardedSubmenuSurfaceIdRef.current === surfaceId
-      ) {
-        clearAimGuard()
-      }
-    }
-  }, [aimGuardActiveRef, guardedSubmenuSurfaceIdRef, surfaceId, clearAimGuard])
+  // The pointer over a submenu popup (or a popup nested in it) reached it:
+  // a guard on the way there is released, and its trigger hears of it
+  const handlePointerInPopup = React.useCallback(() => {
+    if (submenuContext) aimGuard?.pointerInPopup(surfaceId)
+  }, [submenuContext, aimGuard, surfaceId])
 
   // Transfer focus ownership when pointer moves inside this submenu popup
   // We ignore events shortly after open to prevent focus transfer when
@@ -352,12 +308,19 @@ export const PopupMenuPopup = React.forwardRef<
                 ? ''
                 : undefined,
             }}
+            {...rest}
+            // After the consumer's props, so theirs can't replace these: the
+            // engine's part runs first, as `onPointerMove` always has, then
+            // the consumer's handler
+            onPointerEnter={(event) => {
+              handlePointerInPopup()
+              rest.onPointerEnter?.(event)
+            }}
             onPointerMove={(event) => {
-              handlePointerMove()
+              handlePointerInPopup()
               handleFocusTransferOnMove(event)
               rest.onPointerMove?.(event)
             }}
-            {...rest}
             onPointerDownCapture={claimPress}
           >
             {children}

@@ -3,7 +3,7 @@
 import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect'
 import { useStableCallback } from '@base-ui/utils/useStableCallback'
 import {
-  type SubmenuAimGuard,
+  type AimGuardTrigger,
   SubmenuController,
   type SubmenuSettings,
 } from '@bazza-ui/menu-core'
@@ -23,7 +23,7 @@ function useSubmenuStore(): ListboxStore {
 
 export interface SubmenuControllerParams {
   settings: SubmenuSettings
-  aimGuard: SubmenuAimGuard
+  aimGuard: AimGuardTrigger
   /** The store of the menu the trigger is in. */
   parentStore: ListboxStore
   /** The trigger's id in `parentStore`. */
@@ -42,7 +42,7 @@ export interface SubmenuControllerParams {
  * A submenu trigger's `SubmenuController`, bound to its menus: it opens and
  * closes the submenu and highlights the trigger as the controller decides,
  * and sends it what happens outside the trigger's own pointer events (its
- * highlight, its submenu's open state, its popup's pointer events, a key,
+ * highlight, its submenu's open state, the pointer over its popup, a key,
  * a sibling's highlight, its menu closing). The trigger sends its pointer
  * events itself.
  */
@@ -120,19 +120,14 @@ export function useSubmenuController(
     [controller, parentStore],
   )
 
-  React.useEffect(() => {
-    if (!open) return
-    const contentEl = contentRef.current
-    if (!contentEl) return
-
-    const onPointer = () => controller.send({ type: 'pointer.enterPopup' })
-    contentEl.addEventListener('pointerenter', onPointer)
-    contentEl.addEventListener('pointermove', onPointer, { passive: true })
-    return () => {
-      contentEl.removeEventListener('pointerenter', onPointer)
-      contentEl.removeEventListener('pointermove', onPointer)
-    }
-  }, [controller, open, contentRef])
+  // The pointer over the submenu's popup, as the popup reports it
+  React.useEffect(
+    () =>
+      aimGuard.onPopupPointer(() =>
+        controller.send({ type: 'pointer.enterPopup' }),
+      ),
+    [controller, aimGuard],
+  )
 
   // ArrowRight / Ctrl+L on the trigger (the parent store calls this): open,
   // and move focus into the submenu

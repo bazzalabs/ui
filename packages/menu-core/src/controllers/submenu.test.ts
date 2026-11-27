@@ -28,6 +28,8 @@ function fakeAimGuard() {
     releases: 0,
     ownReleases: 0,
     shown: [] as SubmenuAimDecision[],
+    /** Holds, releases and shows, in order. */
+    calls: [] as string[],
     onMove: null as ((point: Point) => void) | null,
     isBlocked: () => guard.blocked,
     leave: () => guard.aim,
@@ -39,9 +41,11 @@ function fakeAimGuard() {
       }
     },
     hold: (ms: number) => {
+      guard.calls.push('hold')
       guard.held = ms
     },
     release: () => {
+      guard.calls.push('release')
       guard.releases++
       guard.held = null
     },
@@ -50,6 +54,7 @@ function fakeAimGuard() {
       guard.held = null
     },
     show: (decision: SubmenuAimDecision) => {
+      guard.calls.push(`show:${decision}`)
       guard.shown.push(decision)
     },
     /** Whether the controller is tracking the pointer's exit. */
@@ -327,6 +332,7 @@ describe('SubmenuController when the submenu refuses a change', () => {
     expect(t.aimGuard.held).toBe(null)
     expect(t.aimGuard.ownReleases).toBe(1)
     expect(t.aimGuard.tracking).toBe(false)
+    expect(t.aimGuard.shown).toEqual(['none'])
   })
 
   it('stays open when a close is refused', () => {
@@ -769,6 +775,58 @@ describe('SubmenuController from close-pending', () => {
     expect(t.changes).toEqual([[false, 'sibling-open']])
     t.clock.advance(1000)
     expect(t.changes).toHaveLength(1)
+  })
+})
+
+describe('SubmenuController and its guard overlay', () => {
+  // The overlay reads who holds the guard as the hit is shown
+  it('holds or releases the guard before it shows a hit', () => {
+    const inside = openSetup()
+    inside.aimGuard.calls.length = 0
+    inside.leave(INSIDE)
+    expect(inside.aimGuard.calls).toEqual(['release', 'show:hit'])
+
+    const leaving = openSetup()
+    leaving.aimGuard.calls.length = 0
+    leaving.leave(HIT)
+    expect(leaving.aimGuard.calls).toEqual(['hold', 'show:hit'])
+
+    const tracked = closePendingSetup()
+    tracked.aimGuard.calls.length = 0
+    tracked.aimGuard.move(HIT)
+    expect(tracked.aimGuard.calls).toEqual(['hold', 'show:hit'])
+  })
+})
+
+describe('SubmenuController exit tracking window', () => {
+  it('tracks for the guard once a hit turns close-pending into guarded', () => {
+    const t = closePendingSetup(200)
+    t.clock.advance(150)
+    t.aimGuard.move(HIT)
+    expect(t.state()).toBe('guarded')
+    // Past the close delay's tracking window: the guard's runs on
+    t.clock.advance(100)
+    expect(t.state()).toBe('guarded')
+    expect(t.aimGuard.tracking).toBe(true)
+    t.clock.advance(499)
+    expect(t.aimGuard.tracking).toBe(true)
+    t.clock.advance(1)
+    expect(t.state()).toBe('open')
+    expect(t.aimGuard.tracking).toBe(false)
+  })
+
+  it('tracks for the close delay once moving back turns guarded into close-pending', () => {
+    const t = guardedSetup({ closeDelay: 200 })
+    t.clock.advance(550)
+    t.aimGuard.move(AWAY)
+    expect(t.state()).toBe('close-pending')
+    // Past the guard's tracking window: a hit still keeps the submenu
+    t.clock.advance(100)
+    expect(t.aimGuard.tracking).toBe(true)
+    t.aimGuard.move(HIT)
+    expect(t.state()).toBe('guarded')
+    t.clock.advance(1000)
+    expect(t.changes).toEqual([])
   })
 })
 

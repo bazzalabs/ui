@@ -653,6 +653,7 @@ function NestedMenuForDataAttrs({
   submenuCloseOnPointerLeave,
   submenuDelay,
   submenuKeepMounted,
+  submenuPopupProps,
 }: {
   debug?: {
     showSafeTriangleArea?:
@@ -680,6 +681,10 @@ function NestedMenuForDataAttrs({
   submenuCloseOnPointerLeave?: boolean
   submenuDelay?: number
   submenuKeepMounted?: boolean
+  submenuPopupProps?: Pick<
+    React.ComponentProps<typeof DropdownMenu.Popup>,
+    'onPointerEnter' | 'onPointerMove'
+  >
 } = {}) {
   return (
     <DropdownMenu.Root debug={debug}>
@@ -705,7 +710,10 @@ function NestedMenuForDataAttrs({
                   </DropdownMenu.SubmenuTrigger>
                   <DropdownMenu.Portal keepMounted={submenuKeepMounted}>
                     <DropdownMenu.Positioner>
-                      <DropdownMenu.Popup data-testid="popup-submenu-1">
+                      <DropdownMenu.Popup
+                        data-testid="popup-submenu-1"
+                        {...submenuPopupProps}
+                      >
                         <DropdownMenu.Surface data-testid="surface-submenu-1">
                           <DropdownMenu.List>
                             <DropdownMenu.Item
@@ -1913,6 +1921,27 @@ describe('PopupMenu', () => {
       }
     })
 
+    it('cancels delayed close when the pointer enters the submenu popup without moving', async () => {
+      const scenario = await setupCloseDelayScenario(220)
+
+      try {
+        fireMissTrajectory(scenario.submenuTrigger)
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+
+        // Only the popup sees it: the trigger's exit tracking reads window
+        // moves, and there are none
+        fireEvent.pointerEnter(scenario.submenuPopup, {
+          clientX: 300,
+          clientY: 120,
+        })
+
+        await sleep(320)
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+      } finally {
+        scenario.cleanup()
+      }
+    })
+
     it('cancels delayed close when pointer enters the submenu popup', async () => {
       const scenario = await setupCloseDelayScenario(220)
 
@@ -1935,6 +1964,78 @@ describe('PopupMenu', () => {
       } finally {
         scenario.cleanup()
       }
+    })
+  })
+
+  describe('consumer pointer handlers on a submenu popup', () => {
+    const openSubmenu = async (
+      submenuPopupProps: Parameters<
+        typeof NestedMenuForDataAttrs
+      >[0]['submenuPopupProps'],
+      submenuCloseDelay?: number,
+    ) => {
+      const user = userEvent.setup()
+      render(
+        <NestedMenuForDataAttrs
+          submenuCloseDelay={submenuCloseDelay}
+          submenuPopupProps={submenuPopupProps}
+        />,
+      )
+      await user.click(screen.getByTestId('trigger'))
+      const submenuTrigger = await screen.findByTestId('submenu-trigger-1')
+      await user.hover(submenuTrigger)
+      const submenuPopup = await screen.findByTestId('popup-submenu-1')
+      vi.spyOn(submenuTrigger, 'getBoundingClientRect').mockImplementation(() =>
+        createRect({ top: 60, left: 80, width: 120, height: 30 }),
+      )
+      vi.spyOn(submenuPopup, 'getBoundingClientRect').mockImplementation(() =>
+        createRect({ top: 40, left: 240, width: 180, height: 160 }),
+      )
+      return { submenuTrigger, submenuPopup }
+    }
+
+    afterEach(() => {
+      vi.restoreAllMocks()
+    })
+
+    it('still cancels a delayed close on pointer enter with a consumer onPointerEnter', async () => {
+      const onPointerEnter = vi.fn()
+      const { submenuTrigger, submenuPopup } = await openSubmenu(
+        { onPointerEnter },
+        220,
+      )
+
+      fireEvent.pointerEnter(submenuTrigger, { clientX: 180, clientY: 220 })
+      fireEvent.pointerMove(window, { clientX: 180, clientY: 220 })
+      fireEvent.pointerMove(window, { clientX: 160, clientY: 230 })
+      fireEvent.pointerMove(window, { clientX: 140, clientY: 240 })
+      fireEvent.pointerLeave(submenuTrigger, { clientX: 130, clientY: 260 })
+
+      fireEvent.pointerEnter(submenuPopup, { clientX: 300, clientY: 120 })
+      expect(onPointerEnter).toHaveBeenCalledTimes(1)
+
+      await sleep(320)
+      expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+    })
+
+    it('still releases the guard when the pointer reaches the popup with a consumer onPointerMove', async () => {
+      const onPointerMove = vi.fn()
+      const { submenuTrigger, submenuPopup } = await openSubmenu({
+        onPointerMove,
+      })
+
+      fireEvent.pointerMove(window, { clientX: 120, clientY: 90 })
+      fireEvent.pointerMove(window, { clientX: 150, clientY: 92 })
+      fireEvent.pointerMove(window, { clientX: 180, clientY: 94 })
+      fireEvent.pointerLeave(submenuTrigger, { clientX: 190, clientY: 94 })
+
+      fireEvent.pointerMove(submenuPopup, { clientX: 250, clientY: 90 })
+      expect(onPointerMove).toHaveBeenCalledTimes(1)
+
+      // Well within the guard's 600 ms: only reaching the popup released it
+      const rootItem = screen.getByTestId('root-item-1')
+      fireEvent.pointerMove(rootItem, { clientX: 100, clientY: 78 })
+      expect(rootItem).toHaveAttribute('data-highlighted', '')
     })
   })
 
@@ -2890,6 +2991,62 @@ describe('PopupMenu', () => {
 
         await sleep(300)
 
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+      } finally {
+        scenario.cleanup()
+      }
+    })
+
+    it('keeps the rows of the guarded menu from taking the pointer until the guard times out', async () => {
+      const scenario = await setupAimMonitoringScenario(0)
+
+      try {
+        fireEvent.pointerMove(window, { clientX: 120, clientY: 90 })
+        fireEvent.pointerMove(window, { clientX: 150, clientY: 92 })
+        fireEvent.pointerMove(window, { clientX: 180, clientY: 94 })
+        fireEvent.pointerLeave(scenario.submenuTrigger, {
+          clientX: 190,
+          clientY: 94,
+        })
+
+        // Still heading for the submenu, over a row of the guarded menu
+        const rootItem = screen.getByTestId('root-item-1')
+        fireEvent.pointerMove(rootItem, { clientX: 200, clientY: 94 })
+        expect(rootItem).not.toHaveAttribute('data-highlighted')
+        expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
+
+        await sleep(650)
+        fireEvent.pointerMove(rootItem, { clientX: 100, clientY: 78 })
+        expect(rootItem).toHaveAttribute('data-highlighted', '')
+      } finally {
+        scenario.cleanup()
+      }
+    })
+
+    it('ignores touch moves while it tracks the pointer after a hit', async () => {
+      const scenario = await setupAimMonitoringScenario(0)
+
+      try {
+        fireEvent.pointerMove(window, { clientX: 120, clientY: 90 })
+        fireEvent.pointerMove(window, { clientX: 150, clientY: 92 })
+        fireEvent.pointerMove(window, { clientX: 180, clientY: 94 })
+        fireEvent.pointerLeave(scenario.submenuTrigger, {
+          clientX: 190,
+          clientY: 94,
+        })
+
+        // A reversal, but from touch: a mouse's would close the submenu
+        fireEvent.pointerMove(window, {
+          clientX: 150,
+          clientY: 94,
+          pointerType: 'touch',
+        })
+        fireEvent.pointerMove(window, {
+          clientX: 110,
+          clientY: 94,
+          pointerType: 'touch',
+        })
+        await sleep(50)
         expect(screen.getByTestId('popup-submenu-1')).toBeInTheDocument()
       } finally {
         scenario.cleanup()
