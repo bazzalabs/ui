@@ -1230,7 +1230,7 @@ export const DataListInner = React.forwardRef<
   } = props
 
   const tree = useMenuTree()
-  const scopeId = React.useContext(LoaderScopeContext)
+  const scopeId = React.useContext(LoaderScopeContext)?.id ?? null
   const popupId = usePopupSurfaceId()
   const graftParent = useGraftPoint()
   const { depth: surfaceDepth } = useListboxContext()

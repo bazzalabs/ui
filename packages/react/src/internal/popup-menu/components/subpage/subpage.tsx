@@ -13,6 +13,11 @@ import {
 import { PopupSurfaceIdContext } from '../../contexts/popup-surface-id-context.js'
 import { SubpageContext } from '../../contexts/subpage-context.js'
 import { useSubpageStack } from '../../contexts/subpage-stack-context.js'
+import {
+  MenuSurfaceTier,
+  SurfaceTierContext,
+  useMaybeMenuSurfaceTier,
+} from '../../contexts/surface-tier-context.js'
 
 export interface PopupMenuSubpageProps {
   /** Unique page ID for stack navigation. */
@@ -142,6 +147,13 @@ export function PopupMenuSubpage(props: PopupMenuSubpageProps) {
     [store, parentPopupMenuContext],
   )
 
+  // The page's surface tier; the submenu around it stays its submenu.
+  const parentTier = useMaybeMenuSurfaceTier()
+  const surfaceTier = React.useMemo(
+    () => new MenuSurfaceTier(store, parentTier),
+    [store, parentTier],
+  )
+
   const shouldRenderChildren = isActive
 
   return (
@@ -149,7 +161,9 @@ export function PopupMenuSubpage(props: PopupMenuSubpageProps) {
       <PopupSurfaceIdContext.Provider value={surfaceId}>
         <PopupMenuContext.Provider value={popupMenuContextValue}>
           <ListboxContextProvider.Provider value={listboxContextValue}>
-            {shouldRenderChildren ? children : null}
+            <SurfaceTierContext.Provider value={surfaceTier}>
+              {shouldRenderChildren ? children : null}
+            </SurfaceTierContext.Provider>
           </ListboxContextProvider.Provider>
         </PopupMenuContext.Provider>
       </PopupSurfaceIdContext.Provider>

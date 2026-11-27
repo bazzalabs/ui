@@ -99,9 +99,14 @@ export interface MenuTreeState {
   version: number
 }
 
+/** A data surface's loaders, by its scope id. */
+export const selectLoaders = (
+  state: Pick<MenuTreeState, 'loaders'>,
+  scopeId: string,
+): LoaderScope => state.loaders[scopeId] ?? EMPTY_LOADER_SCOPE
+
 const selectors = {
-  loaders: (state: MenuTreeState, scopeId: string) =>
-    state.loaders[scopeId] ?? EMPTY_LOADER_SCOPE,
+  loaders: selectLoaders,
   popup: (state: MenuTreeState, popupId: string) =>
     state.popups[popupId] ?? EMPTY_POPUP,
   version: (state: MenuTreeState) => state.version,

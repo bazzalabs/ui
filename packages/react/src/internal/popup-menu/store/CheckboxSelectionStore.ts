@@ -155,6 +155,28 @@ const AUTO_SCROLL_MAX_STEP_PX = 16
 // Store
 // ============================================================================
 
+function initialState(): CheckboxSelectionState {
+  return {
+    anchorId: null,
+    gesture: null,
+    preview: new Map(),
+    announcement: null,
+  }
+}
+
+function initialContext(listbox: SelectionListbox): CheckboxSelectionContext {
+  return {
+    listbox,
+    rows: new Map(),
+    warnedUnmounted: false,
+    press: null,
+    suppressClick: false,
+    autoScrollFrame: null,
+    autoScrollVelocity: 0,
+    getAriaSelectionText: undefined,
+  }
+}
+
 /**
  * Owns range selection and drag selection state for one surface: the
  * registered checkbox rows, the anchor, the active gesture, and the preview
@@ -166,21 +188,27 @@ export class CheckboxSelectionStore extends ReactStore<
   CheckboxSelectionContext,
   typeof selectors
 > {
+  #owner: object | undefined
+
   constructor(listbox: SelectionListbox) {
-    super(
-      { anchorId: null, gesture: null, preview: new Map(), announcement: null },
-      {
-        listbox,
-        rows: new Map(),
-        warnedUnmounted: false,
-        press: null,
-        suppressClick: false,
-        autoScrollFrame: null,
-        autoScrollVelocity: 0,
-        getAriaSelectionText: undefined,
-      },
-      selectors,
-    )
+    super(initialState(), initialContext(listbox), selectors)
+  }
+
+  /**
+   * Makes `owner`, a mounted Surface, the one this store serves. A new owner
+   * gets the store as a new store starts; the same one again (shown again
+   * by `<Activity>`, or after Fast Refresh) keeps it as it was. Call from a
+   * layout effect.
+   */
+  claim(owner: object) {
+    if (this.#owner === owner) return
+    const fresh = this.#owner === undefined
+    this.#owner = owner
+    if (fresh) return
+    this.cancelPress()
+    this.cancelGesture()
+    Object.assign(this.context, initialContext(this.context.listbox))
+    this.setState(initialState())
   }
 
   /**

@@ -5,12 +5,12 @@ import type { ListboxContextValue } from '../../listbox/contexts/listbox-context
 import { ListboxContext as ListboxContextProvider } from '../../listbox/contexts/listbox-context.js'
 import type { ListboxStore } from '../../listbox/index.js'
 import { getOpenOwner } from '../../listbox/store/ListboxStore.js'
+import type { ComponentName } from '../contexts/component-name-context.js'
 import {
-  type ComponentName,
-  ComponentNameContext,
-} from '../contexts/component-name-context.js'
-import { FocusZoneRegistryContext } from '../contexts/focus-zone-context.js'
-import { MenuTreeContext } from '../contexts/menu-tree-context.js'
+  MenuTreeContext,
+  MenuTreeSettings,
+  MenuTreeTier,
+} from '../contexts/menu-tree-context.js'
 import {
   PopupMenuContext,
   type PopupMenuContextValue,
@@ -18,13 +18,17 @@ import {
   type VirtualizationConfig,
 } from '../contexts/popup-menu-context.js'
 import {
-  PopupMenuDebugContext,
   type PopupMenuDebugContextValue,
   type PopupMenuDebugOptions,
   resolvePopupMenuSafeTriangleAreaDebugConfig,
 } from '../contexts/popup-menu-debug-context.js'
-import { AimGuardProvider } from '../hooks/use-aim-guard.js'
+import {
+  MenuSurfaceTier,
+  SurfaceTierContext,
+  useMaybeMenuSurfaceTier,
+} from '../contexts/surface-tier-context.js'
 import type { MenuTreeResolver } from '../menu-tree/resolver.js'
+import { AimGuardStore } from '../store/AimGuardStore.js'
 import type { FocusOwnerStore } from '../store/FocusOwnerStore.js'
 import { FocusZoneRegistry } from '../store/FocusZoneRegistry.js'
 import { getElementRegistry, MenuTreeStore } from '../store/MenuTreeStore.js'
@@ -125,14 +129,12 @@ export interface PopupMenuProvidersProps {
 // ============================================================================
 
 /**
- * Provides all shared context providers for popup menus.
- * Wraps children with:
- * - PopupMenuDebugContext (debug visualization flags)
- * - PopupMenuContext (menu-specific state)
- * - ListboxContextProvider (for compatibility with listbox components)
- * - AimGuardProvider (for submenu aim detection)
- * - MenuTreeContext (focus tracking across submenus and the open submenu
- *   chain, through the tree's FocusOwner and OpenChain stores)
+ * Provides a menu root's tiers and its published contexts:
+ * - MenuTreeContext (the tree tier: the root's `MenuTreeStore`, component
+ *   name, debug flags, aim guard and focus zones)
+ * - SurfaceTierContext (the root surface's tier)
+ * - PopupMenuContext and ListboxContextProvider (published; for consumers
+ *   and parts that read them)
  */
 export function PopupMenuProviders(props: PopupMenuProvidersProps) {
   const {
@@ -180,10 +182,43 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
     })
   }, [store, openChainStore, focusOwnerStore, menuTreeResolver])
 
-  const focusZoneRegistryRef = React.useRef<FocusZoneRegistry | null>(null)
-  if (!focusZoneRegistryRef.current) {
-    focusZoneRegistryRef.current = new FocusZoneRegistry()
-  }
+  const debugValue: PopupMenuDebugContextValue = React.useMemo(
+    () => ({
+      showSafeTriangleArea: resolvePopupMenuSafeTriangleAreaDebugConfig(
+        debug?.showSafeTriangleArea,
+        debug?.showSubmenuSafeTriangleArea,
+      ),
+      logAimGuardEvents: debug?.logAimGuardEvents ?? false,
+    }),
+    [
+      debug?.showSafeTriangleArea,
+      debug?.showSubmenuSafeTriangleArea,
+      debug?.logAimGuardEvents,
+    ],
+  )
+  // The tree tier. Its parts live as long as this root does, made with its
+  // first props; later debug flags are synced into its settings.
+  const [settings] = React.useState(
+    () => new MenuTreeSettings({ debug: debugValue }),
+  )
+  settings.useSyncedValue('debug', debugValue)
+  const [aimGuard] = React.useState(
+    () => new AimGuardStore(() => settings.state.debug.logAimGuardEvents),
+  )
+  const [focusZones] = React.useState(() => new FocusZoneRegistry())
+  React.useEffect(() => () => aimGuard.dispose(), [aimGuard])
+  const treeTier = React.useMemo(
+    () => new MenuTreeTier(tree, componentName, settings, aimGuard, focusZones),
+    [tree, componentName, settings, aimGuard, focusZones],
+  )
+
+  // The root surface's tier. A root nested in another menu's content keeps
+  // that menu's submenu around it, as its parts read it.
+  const outerTier = useMaybeMenuSurfaceTier()
+  const surfaceTier = React.useMemo(
+    () => new MenuSurfaceTier(store, outerTier),
+    [store, outerTier],
+  )
 
   // PopupMenu context value
   const popupMenuContextValue: PopupMenuContextValue = React.useMemo(
@@ -237,38 +272,15 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
     [store, depth, closeAll, registerSurface, virtualization],
   )
 
-  const popupMenuDebugContextValue: PopupMenuDebugContextValue = React.useMemo(
-    () => ({
-      showSafeTriangleArea: resolvePopupMenuSafeTriangleAreaDebugConfig(
-        debug?.showSafeTriangleArea,
-        debug?.showSubmenuSafeTriangleArea,
-      ),
-      logAimGuardEvents: debug?.logAimGuardEvents ?? false,
-    }),
-    [
-      debug?.showSafeTriangleArea,
-      debug?.showSubmenuSafeTriangleArea,
-      debug?.logAimGuardEvents,
-    ],
-  )
-
   return (
-    <ComponentNameContext.Provider value={componentName}>
-      <PopupMenuDebugContext.Provider value={popupMenuDebugContextValue}>
-        <PopupMenuContext.Provider value={popupMenuContextValue}>
-          <ListboxContextProvider.Provider value={listboxContextValue}>
-            <AimGuardProvider>
-              <MenuTreeContext.Provider value={tree}>
-                <FocusZoneRegistryContext.Provider
-                  value={focusZoneRegistryRef.current}
-                >
-                  {children}
-                </FocusZoneRegistryContext.Provider>
-              </MenuTreeContext.Provider>
-            </AimGuardProvider>
-          </ListboxContextProvider.Provider>
-        </PopupMenuContext.Provider>
-      </PopupMenuDebugContext.Provider>
-    </ComponentNameContext.Provider>
+    <PopupMenuContext.Provider value={popupMenuContextValue}>
+      <ListboxContextProvider.Provider value={listboxContextValue}>
+        <MenuTreeContext.Provider value={treeTier}>
+          <SurfaceTierContext.Provider value={surfaceTier}>
+            {children}
+          </SurfaceTierContext.Provider>
+        </MenuTreeContext.Provider>
+      </ListboxContextProvider.Provider>
+    </PopupMenuContext.Provider>
   )
 }

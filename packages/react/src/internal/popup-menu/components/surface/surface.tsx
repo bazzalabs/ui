@@ -1,7 +1,6 @@
 'use client'
 
 import { useRender } from '@base-ui/react/use-render'
-import { useRefWithInit } from '@base-ui/utils/useRefWithInit'
 import { useStableCallback } from '@base-ui/utils/useStableCallback'
 import * as React from 'react'
 import { REASONS } from '../../../../utils/events/index.js'
@@ -18,7 +17,6 @@ import {
   type SearchNormalizer,
   SurfaceContext,
   useListboxContext,
-  useSurfaceContext,
 } from '../../../listbox/index.js'
 import {
   type ListboxStore,
@@ -27,7 +25,6 @@ import {
   syncSurfaceSettings,
 } from '../../../listbox/store/ListboxStore.js'
 import { POINTER_EVENT_DEBOUNCE_MS } from '../../constants.js'
-import { CheckboxSelectionContext } from '../../contexts/checkbox-selection-context.js'
 import {
   getSlotAttribute,
   useMaybeComponentName,
@@ -41,7 +38,16 @@ import { usePopupSurfaceId } from '../../contexts/popup-surface-id-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
 import { useMaybeSubpageContext } from '../../contexts/subpage-context.js'
 import { useMaybeSubpageStack } from '../../contexts/subpage-stack-context.js'
-import { AsyncMenuCoordinatorProvider } from '../../data-first/async-coordinator.js'
+import {
+  findSurfaceTier,
+  MenuSurfaceTier,
+  SurfaceTierContext,
+  useMaybeMenuSurfaceTier,
+} from '../../contexts/surface-tier-context.js'
+import {
+  LoaderScopeContext,
+  useLoaderScope,
+} from '../../data-first/async-coordinator.js'
 import {
   DataPopupContext,
   DataSurfaceContext,
@@ -54,7 +60,6 @@ import type {
 import { useMenuElement } from '../../hooks/use-menu-element.js'
 import { useInactiveRootResolution } from '../../hooks/use-resolution.js'
 import { isPopupMenuNode } from '../../menu-tree/resolve.js'
-import { CheckboxSelectionStore } from '../../store/CheckboxSelectionStore.js'
 import { getTabbables } from '../../utils/tabbables.js'
 import { PopupMenuCheckboxSelectionStatus } from './checkbox-selection-status.js'
 
@@ -141,21 +146,6 @@ export interface PopupMenuSurfaceProps
   children: React.ReactNode
 }
 
-function DataSurfaceAsyncCoordinatorScope({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  const { store } = useSurfaceContext()
-  const searchQuery = store.useState('normalizedSearch')
-
-  return (
-    <AsyncMenuCoordinatorProvider searchQuery={searchQuery}>
-      {children}
-    </AsyncMenuCoordinatorProvider>
-  )
-}
-
 /**
  * Syncs the Surface's settings into its store in the layout effects of the
  * commit that renders them. Rendered as the Surface's first child, so they
@@ -240,6 +230,16 @@ export const PopupMenuSurface = React.forwardRef<
 
   // Get store and depth from Listbox context
   const { store, depth, virtualization } = useListboxContext()
+
+  // The tier of this surface's store, made where the store was (a root,
+  // submenu or subpage); a Surface whose store has none provides its own.
+  const nearestTier = useMaybeMenuSurfaceTier()
+  const storeTier = findSurfaceTier(nearestTier, store)
+  const ownTier = React.useMemo(
+    () => (storeTier ? null : new MenuSurfaceTier(store, nearestTier)),
+    [storeTier, store, nearestTier],
+  )
+  const tier = storeTier ?? (ownTier as MenuSurfaceTier)
 
   store.initializeDefaultSearch(defaultSearch)
 
@@ -414,6 +414,9 @@ export const PopupMenuSurface = React.forwardRef<
   // meanwhile, so the open page stays while its id is still there.
   const tree = useMenuTree()
   const graftPoint = useGraftPoint()
+  // Live while the Surface shows its data-first content: a subpage that
+  // hides it drops the scope, so the root starts a new one on the way back.
+  const loaderScope = useLoaderScope(tree, store, isDataMode && isSurfaceActive)
   useInactiveRootResolution(
     tree,
     popupSurfaceId,
@@ -580,34 +583,14 @@ export const PopupMenuSurface = React.forwardRef<
     [store, surfaceId],
   )
 
-  const selectionStore = useRefWithInit(
-    () =>
-      new CheckboxSelectionStore({
-        getVisibleItemIds: () => store.getVisibleItemIds(),
-        getItemElement: (id) =>
-          store.context.refs.itemRefs.get(id)?.current ?? null,
-        getScrollElement: () => {
-          const listElement = store.context.refs.listRef.current
-          const scrollElement =
-            store.context.refs.listScrollContainerRef.current ??
-            (listElement ? store.getScrollResetElement(listElement) : null)
-          // Never auto-scroll an ancestor outside this surface (the page or
-          // an app shell); fall back to the list element itself.
-          if (
-            scrollElement &&
-            surfaceRef.current &&
-            !surfaceRef.current.contains(scrollElement)
-          ) {
-            return listElement
-          }
-          return scrollElement
-        },
-        setHighlightedId: (id) => store.setHighlightedId(id, 'pointer'),
-        observeOpen: (listener) =>
-          store.observe('open', (open) => listener(open)),
-      }),
-  ).current
-
+  // The tier's selection. This Surface claims it as it mounts, which starts
+  // it fresh for a new Surface and keeps it for this one shown again.
+  const selectionStore = tier.selection
+  const [selectionOwner] = React.useState(() => ({}))
+  React.useLayoutEffect(
+    () => selectionStore.claim(selectionOwner),
+    [selectionStore, selectionOwner],
+  )
   React.useEffect(() => selectionStore.attach(), [selectionStore])
   React.useEffect(() => {
     selectionStore.setAnnouncementFormatter(
@@ -774,9 +757,9 @@ export const PopupMenuSurface = React.forwardRef<
 
   const renderedChildren = isDataMode ? (
     <DataSurfaceContext.Provider value={dataSurfaceContextValue}>
-      <DataSurfaceAsyncCoordinatorScope>
+      <LoaderScopeContext.Provider value={loaderScope}>
         {children}
-      </DataSurfaceAsyncCoordinatorScope>
+      </LoaderScopeContext.Provider>
     </DataSurfaceContext.Provider>
   ) : (
     children
@@ -784,7 +767,7 @@ export const PopupMenuSurface = React.forwardRef<
 
   const element = useRender({
     render,
-    ref: [surfaceRef, forwardedRef, elementRef],
+    ref: [surfaceRef, tier.surfaceRef, forwardedRef, elementRef],
     props: {
       ...rest,
       ...(slotAttr ? { [slotAttr]: '' } : {}),
@@ -810,7 +793,7 @@ export const PopupMenuSurface = React.forwardRef<
   // through a portal inside the trigger's group, and without this its rows
   // would join that group: its description, its positional flags, its
   // search-hidden state, and its label setter.
-  return (
+  const surface = (
     <SurfaceContext.Provider value={contextValue}>
       <SurfaceConfigSync
         store={store}
@@ -818,10 +801,15 @@ export const PopupMenuSurface = React.forwardRef<
         orderedItems={orderedItems}
         orderedItemsChangedRef={orderedItemsChangedRef}
       />
-      <CheckboxSelectionContext.Provider value={selectionStore}>
-        <GroupContext.Provider value={null}>{element}</GroupContext.Provider>
-      </CheckboxSelectionContext.Provider>
+      <GroupContext.Provider value={null}>{element}</GroupContext.Provider>
     </SurfaceContext.Provider>
+  )
+  return ownTier ? (
+    <SurfaceTierContext.Provider value={ownTier}>
+      {surface}
+    </SurfaceTierContext.Provider>
+  ) : (
+    surface
   )
 })
 
