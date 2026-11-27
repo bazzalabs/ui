@@ -7,6 +7,7 @@ import {
 } from '../data-first/append-loaded.js'
 import type { AsyncSubmenuInfo } from '../data-first/async.js'
 import { collectAsyncSubmenus } from '../data-first/async.js'
+import type { DataSurfaceContextValue } from '../data-first/context.js'
 import type {
   AsyncContentMode,
   AsyncLoaderConfig,
@@ -66,6 +67,8 @@ export interface ResolutionResult {
    * `null` in `'replace'` mode.
    */
   localDefs: ReadonlySet<NodeDef> | null
+  /** The root loader's rows, when they're part of the tree. */
+  loaded: readonly NodeDef[] | undefined
 }
 
 type ResolutionInput = Omit<UseResolutionOptions, 'tree' | 'scopeId'> & {
@@ -151,18 +154,32 @@ function withLoaded(
   return result.defs
 }
 
+function createMemo(): ResolutionMemo {
+  return {
+    branches: new Set(),
+    append: null,
+    localIds: new WeakMap(),
+    unpublished: false,
+  }
+}
+
 /**
  * Applies a list's content and its loader scope's results to the Menu Tree:
- * the content (with the root loader's rows) at the list's graft point, then
- * each async branch's rows under it. Every target is re-grafted with its
- * current base on every run (static children alone when its loader has no
- * usable result), so a result that disappears is withdrawn; the resolver's
- * reference fast path makes the unchanged cases free.
+ * the content (with the root loader's rows, `loaded`) at the list's graft
+ * point, then each async branch's rows under it. Every target is re-grafted
+ * with its current base on every run (static children alone when its loader
+ * has no usable result), so a result that disappears is withdrawn; the
+ * resolver's reference fast path makes the unchanged cases free. Without a
+ * scope (its surface is inactive) the branches are left as they are.
  */
 function resolveList(
   input: ResolutionInput,
-  scope: LoaderScope,
+  scope: LoaderScope | null,
   memo: ResolutionMemo,
+  loaded: readonly NodeDef[] | undefined = scope?.root?.result.data &&
+  !scope.rootError
+    ? scope.root.result.data
+    : undefined,
 ): ResolveOutput {
   const {
     resolver,
@@ -181,10 +198,6 @@ function resolveList(
   const branchDefs = (node: PopupMenuNode) =>
     (node.def as SubmenuDef | SubpageDef).nodes ?? []
 
-  const loaded =
-    scope.root?.result.data && !scope.rootError
-      ? scope.root.result.data
-      : undefined
   const withRoot = (
     local: readonly NodeDef[],
     parent: PopupMenuNode | null,
@@ -221,6 +234,8 @@ function resolveList(
     changed ||= before !== resolver.rootNodes
     nodes = resolver.rootNodes
   }
+
+  if (!scope) return { changed, nodes, local, loaded, asyncSubmenus: [] }
 
   // Async branches are collected over static children only, so the grafts
   // below never add one.
@@ -284,12 +299,7 @@ export function useResolution({
   }
 
   const memoRef = React.useRef<ResolutionMemo | null>(null)
-  memoRef.current ??= {
-    branches: new Set(),
-    append: null,
-    localIds: new WeakMap(),
-    unpublished: false,
-  }
+  memoRef.current ??= createMemo()
   const memo = memoRef.current
   const sliceRef = React.useRef<TreeSlice | null>(null)
 
@@ -323,7 +333,12 @@ export function useResolution({
       add(output.local)
       localDefs = defs
     }
-    return { slice, asyncSubmenus: output.asyncSubmenus, localDefs }
+    return {
+      slice,
+      asyncSubmenus: output.asyncSubmenus,
+      localDefs,
+      loaded: output.loaded,
+    }
   }, [
     resolver,
     content,
@@ -359,4 +374,147 @@ export function useResolution({
   }, [tree, scopeId, memo])
 
   return resolution
+}
+
+/** A branch's rows a loader added, past its authored children. */
+interface LoadedRows {
+  id: string
+  /** The loader the rows came from (the branch def's `asyncNodes`). */
+  asyncNodes: unknown
+  rows: Array<{ id: string; def: NodeDef }>
+  /** The branch's children start with its authored ones. */
+  afterStatic: boolean
+}
+
+const asyncNodesOf = (def: NodeDef) =>
+  (def as SubmenuDef | SubpageDef).asyncNodes
+
+/** Every branch's loaded rows under `nodes`, parents first. */
+function loadedRowsUnder(nodes: readonly PopupMenuNode[]): LoadedRows[] {
+  const found: LoadedRows[] = []
+  const walk = (list: readonly PopupMenuNode[]) => {
+    for (const node of list) {
+      const authored = new Set(childDefsOf(node.def))
+      const rows = node.children
+        .filter((child) => !authored.has(child.def))
+        .map((child) => ({ id: child.id, def: child.def }))
+      if (rows.length > 0) {
+        found.push({
+          id: node.id,
+          asyncNodes: asyncNodesOf(node.def),
+          rows,
+          afterStatic: rows.length < node.children.length,
+        })
+      }
+      walk(node.children)
+    }
+  }
+  walk(nodes)
+  return found
+}
+
+/**
+ * Grafts each branch's loaded rows back under it, after its authored
+ * children, when a reconcile reset it to them (a matched node whose def
+ * changed gets its static children only), while its def keeps the loader they
+ * came from. A row whose id one of the new static children has is left out
+ * (a loaded container that merged into a local one, ADR-0001). Returns
+ * whether the tree changed.
+ */
+function restoreLoadedRows(
+  resolver: MenuTreeResolver,
+  found: readonly LoadedRows[],
+): boolean {
+  let changed = false
+  for (const { id, asyncNodes, rows, afterStatic } of found) {
+    const node = resolver.getNodeById(id)
+    if (!node || asyncNodesOf(node.def) !== asyncNodes) continue
+    const authored = new Set(childDefsOf(node.def))
+    const staticIds = new Set(
+      node.children
+        .filter((child) => authored.has(child.def))
+        .map((child) => child.id),
+    )
+    const kept = rows
+      .filter((row) => !staticIds.has(row.id))
+      .map((row) => row.def)
+    const defs = new Set(node.children.map((child) => child.def))
+    if (kept.every((def) => defs.has(def))) continue
+    const before = node.children
+    resolver.graft(node, [...(afterStatic ? authored : []), ...kept])
+    changed ||= before !== node.children
+  }
+  return changed
+}
+
+const sameDefs = (a: readonly NodeDef[], b: readonly NodeDef[]) =>
+  a.length === b.length && a.every((def, index) => def === b[index])
+
+/**
+ * Resolves a popup's root data surface's content while its list is unmounted
+ * (a subpage is open), in render (ADR-0002), when it has other defs than the
+ * content the list last resolved. It resolves as the list does, with the root
+ * loader's rows the list last had (its scope is gone while it's unmounted),
+ * and keeps the rows loaders added under branches that are still there. The
+ * open page stays while its id is still in the tree; a page whose id is gone
+ * leaves the outlet, and with it the subpage stack.
+ */
+export function useInactiveRootResolution(
+  tree: MenuTreeStore,
+  popupId: string | null,
+  surface: DataSurfaceContextValue,
+  graftPoint: PopupMenuNode | null,
+  depth: number,
+  enabled: boolean,
+): void {
+  const { resolver } = tree
+  const { content } = surface
+  const record =
+    enabled && popupId !== null ? tree.select('popup', popupId) : undefined
+  const recorded = record?.content
+  const stale = recorded !== undefined && recorded !== content
+  // Set while rendering, cleared once published: a render StrictMode repeats,
+  // or one React discards, still publishes the change it made.
+  const unpublishedRef = React.useRef(false)
+  // A new array of the same defs (a submenu's `staticChildrenOf` on each
+  // parent render) is only recorded, so the outlet keeps matching it.
+  const resolves =
+    recorded !== undefined && stale && !sameDefs(recorded, content)
+  if (resolves) {
+    const found = loadedRowsUnder(
+      graftPoint ? graftPoint.children : resolver.rootNodes,
+    )
+    let changed = resolveList(
+      {
+        resolver,
+        content,
+        asyncContent: surface.asyncContent,
+        asyncContentMode: surface.asyncContentMode,
+        graftParent: graftPoint,
+        isSubpageSurface: false,
+        isResolutionRoot: depth === 0,
+        includeInDeepSearch: surface.includeInDeepSearch,
+      },
+      null,
+      createMemo(),
+      // Only while the surface keeps the loader the rows came from.
+      record?.loadedBy === surface.asyncContent ? record?.loaded : undefined,
+    ).changed
+    changed = restoreLoadedRows(resolver, found) || changed
+    if (changed) unpublishedRef.current = true
+  }
+  React.useLayoutEffect(() => {
+    if (!stale || popupId === null) return
+    tree.updatePopup(
+      popupId,
+      resolves ? { content, slot: undefined } : { content },
+    )
+  }, [stale, resolves, tree, popupId, content])
+  // Readers of the tree's version (`resolvedNodes.graftVersion`) move with
+  // the nodes (see "Store state" in packages/react/AGENTS.md).
+  React.useLayoutEffect(() => {
+    if (!unpublishedRef.current) return
+    unpublishedRef.current = false
+    tree.publishResolved()
+  })
 }

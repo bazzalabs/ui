@@ -1252,7 +1252,7 @@ export const DataListInner = React.forwardRef<
   const isDeepSearchActive =
     deepSearchConfig.enabled !== false && normalizedSearch.length >= minLength
 
-  const { slice, asyncSubmenus, localDefs } = useResolution({
+  const { slice, asyncSubmenus, localDefs, loaded } = useResolution({
     tree,
     scopeId,
     content,
@@ -1276,7 +1276,12 @@ export const DataListInner = React.forwardRef<
   React.useLayoutEffect(() => {
     if (isSubpageSurface || !setResolvedNodes) return
     if (ENGINE_SETTERS.has(setResolvedNodes)) {
-      tree.updatePopup(popupId ?? '', { content, slot: undefined })
+      tree.updatePopup(popupId ?? '', {
+        content,
+        loaded,
+        loadedBy: asyncContent,
+        slot: undefined,
+      })
     } else {
       setResolvedNodes({
         nodes: slice.nodes,
@@ -1291,6 +1296,8 @@ export const DataListInner = React.forwardRef<
     setResolvedNodes,
     slice,
     content,
+    loaded,
+    asyncContent,
     treeVersion,
   ])
 
