@@ -1,10 +1,8 @@
 'use client'
 
 import * as React from 'react'
-import {
-  PopupMenuPositioner,
-  usePopupMenuContext,
-} from '../../internal/popup-menu/index.js'
+import { PopupMenuPositioner } from '../../internal/popup-menu/index.js'
+import { useMenuSurfaceTier } from '../../internal/popup-menu/members.js'
 import { useSuggestionMenuRootContext } from '../root/root-context.js'
 
 type Side = NonNullable<PopupMenuPositioner.Props['side']>
@@ -41,7 +39,7 @@ export const SuggestionMenuPositioner = React.forwardRef<
     collisionAvoidance,
     ...rest
   } = props
-  const { store } = usePopupMenuContext()
+  const { store } = useMenuSurfaceTier()
   const { query, anchorReady: anchored } = useSuggestionMenuRootContext()
   const open = store.useState('open')
   const positionerRef = React.useRef<HTMLDivElement | null>(null)

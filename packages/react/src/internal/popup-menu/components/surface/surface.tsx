@@ -16,7 +16,6 @@ import {
   normalizeValue,
   type SearchNormalizer,
   SurfaceContext,
-  useListboxContext,
 } from '../../../listbox/index.js'
 import {
   type ListboxStore,
@@ -33,17 +32,12 @@ import { useFocusOwner } from '../../contexts/focus-owner-context.js'
 import { useMaybeFocusZoneRegistry } from '../../contexts/focus-zone-context.js'
 import { useGraftPoint } from '../../contexts/graft-point-context.js'
 import { useMenuTree } from '../../contexts/menu-tree-context.js'
-import { usePopupMenuContext } from '../../contexts/popup-menu-context.js'
 import { usePopupSurfaceId } from '../../contexts/popup-surface-id-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
 import { useMaybeSubpageContext } from '../../contexts/subpage-context.js'
 import { useMaybeSubpageStack } from '../../contexts/subpage-stack-context.js'
-import {
-  findSurfaceTier,
-  MenuSurfaceTier,
-  SurfaceTierContext,
-  useMaybeMenuSurfaceTier,
-} from '../../contexts/surface-tier-context.js'
+import { useMenuSurfaceSettings } from '../../contexts/surface-settings-context.js'
+import { useMaybeMenuSurfaceTier } from '../../contexts/surface-tier-context.js'
 import {
   LoaderScopeContext,
   useLoaderScope,
@@ -225,18 +219,15 @@ export const PopupMenuSurface = React.forwardRef<
     deepSearch !== undefined ||
     props.includeInDeepSearch !== undefined
 
-  // Get store and depth from Listbox context
-  const { store, depth, virtualization } = useListboxContext()
-
-  // The tier of this surface's store, made where the store was (a root,
-  // submenu or subpage); a Surface whose store has none provides its own.
-  const nearestTier = useMaybeMenuSurfaceTier()
-  const storeTier = findSurfaceTier(nearestTier, store)
-  const ownTier = React.useMemo(
-    () => (storeTier ? null : new MenuSurfaceTier(store, nearestTier)),
-    [storeTier, store, nearestTier],
-  )
-  const tier = storeTier ?? (ownTier as MenuSurfaceTier)
+  // The surface's tier, made where its store was (a root, a submenu or a
+  // subpage): its store, depth and settings.
+  const tier = useMaybeMenuSurfaceTier()
+  if (!tier) {
+    throw new Error('Listbox components must be used within a Listbox provider')
+  }
+  const { store, depth } = tier
+  const menuSettings = useMenuSurfaceSettings('listbox')
+  const { virtualization } = menuSettings
 
   store.initializeDefaultSearch(defaultSearch)
 
@@ -339,7 +330,7 @@ export const PopupMenuSurface = React.forwardRef<
     if (reapplyAutoHighlight(autoHighlightFirst)) store.applyAutoHighlight()
   }, [store, autoHighlightFirst])
 
-  const popupMenuContext = usePopupMenuContext()
+  const popupMenuContext = menuSettings
   const deepSearchConfig: DeepSearchConfig = React.useMemo(() => {
     if (typeof deepSearch === 'boolean' || deepSearch === undefined) {
       return {
@@ -781,7 +772,7 @@ export const PopupMenuSurface = React.forwardRef<
   // through a portal inside the trigger's group, and without this its rows
   // would join that group: its description, its positional flags, its
   // search-hidden state, and its label setter.
-  const surface = (
+  return (
     <SurfaceContext.Provider value={contextValue}>
       <SurfaceConfigSync
         store={store}
@@ -791,13 +782,6 @@ export const PopupMenuSurface = React.forwardRef<
       />
       <GroupContext.Provider value={null}>{element}</GroupContext.Provider>
     </SurfaceContext.Provider>
-  )
-  return ownTier ? (
-    <SurfaceTierContext.Provider value={ownTier}>
-      {surface}
-    </SurfaceTierContext.Provider>
-  ) : (
-    surface
   )
 })
 

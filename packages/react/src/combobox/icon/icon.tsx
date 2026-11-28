@@ -4,8 +4,8 @@ import * as React from 'react'
 import {
   PopupMenuIcon,
   type PopupMenuIconState,
-  usePopupMenuContext,
 } from '../../internal/popup-menu/index.js'
+import { useMenuSurfaceTier } from '../../internal/popup-menu/members.js'
 import {
   resolveLabel,
   stringifyAsValue,
@@ -31,7 +31,7 @@ export const ComboboxIcon = React.forwardRef<
   const { onPointerDown, onClick, ...rest } = props
 
   const comboboxContext = useComboboxContext()
-  const { store } = usePopupMenuContext()
+  const { store } = useMenuSurfaceTier()
   const open = store.useState('open')
 
   // Prevent pointer down from stealing focus from the input

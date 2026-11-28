@@ -13,10 +13,11 @@ import {
   useMaybeMenuTreeTier,
   useMenuTree,
 } from '../../contexts/menu-tree-context.js'
-import { useMaybePopupMenuContext } from '../../contexts/popup-menu-context.js'
 import { PopupSurfaceIdContext } from '../../contexts/popup-surface-id-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
 import { SubpageStackContext } from '../../contexts/subpage-stack-context.js'
+import { useMaybeMenuSurfaceSettings } from '../../contexts/surface-settings-context.js'
+import { useMaybeMenuSurfaceTier } from '../../contexts/surface-tier-context.js'
 import {
   DataPopupProvider,
   DataSubpagesContent,
@@ -108,8 +109,11 @@ export const PopupMenuPopup = React.forwardRef<
   const tree = useMenuTree()
 
   // Get popup menu context for depth
-  const popupMenuContext = useMaybePopupMenuContext()
-  const depth = popupMenuContext?.depth ?? 0
+  // The popup's level: the root's or its submenu's surface tier.
+  const tier = useMaybeMenuSurfaceTier()
+  const menuSettings = useMaybeMenuSurfaceSettings()
+  const depth = tier?.depth ?? 0
+  const popupStore = tier?.store ?? null
 
   // Generate surfaceId for root menus, use submenu context for submenus
   const generatedSurfaceId = React.useId()
@@ -123,7 +127,7 @@ export const PopupMenuPopup = React.forwardRef<
     openSubpageIds,
   } = useSubpageStackState({
     surfaceId,
-    store: popupMenuContext?.store ?? null,
+    store: popupStore,
   })
 
   const activeSurfaceId = subpageStackContextValue.activeSurfaceId
@@ -148,7 +152,7 @@ export const PopupMenuPopup = React.forwardRef<
   // Local ref for the popup element
   const popupRef = React.useRef<HTMLDivElement>(null)
   // With nothing to animate, the close completes in the frame it closes.
-  const observeClose = useCloseInOneFrame(popupMenuContext?.store, depth)
+  const observeClose = useCloseInOneFrame(tier)
 
   const registerPopup = useMenuElement('popup', surfaceId)
   const claimPress = usePressClaim(rest.onPointerDownCapture)
@@ -185,8 +189,8 @@ export const PopupMenuPopup = React.forwardRef<
     if (depth !== 0) {
       return
     }
-    popupMenuContext?.store.setPopupRef(popupRef)
-  }, [depth, popupMenuContext])
+    popupStore?.setPopupRef(popupRef)
+  }, [depth, popupStore])
 
   // The pointer over a submenu popup (or a popup nested in it) reached it:
   // a guard on the way there is released, and its trigger hears of it
@@ -237,7 +241,7 @@ export const PopupMenuPopup = React.forwardRef<
   // Disable Base UI's auto-focus behavior for:
   // - Submenus: Focus is managed by our FocusOwner system
   // - Menus whose focus stays on an element outside the popup (`externalFocus`)
-  const externalFocus = popupMenuContext?.externalFocus ?? false
+  const externalFocus = menuSettings?.externalFocus ?? false
   const initialFocus = submenuContext || externalFocus ? false : undefined
 
   // Disable returning focus to trigger when popup closes for:
@@ -247,7 +251,7 @@ export const PopupMenuPopup = React.forwardRef<
   const finalFocus = submenuContext || externalFocus ? false : undefined
 
   // Add data-input-embedded attribute when the popup embeds an input (`inputEmbedded`)
-  const isInputEmbedded = popupMenuContext?.inputEmbedded ?? false
+  const isInputEmbedded = menuSettings?.inputEmbedded ?? false
 
   // Determine if this popup is a submenu (not the root menu)
   const isSubmenu = !!submenuContext

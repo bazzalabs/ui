@@ -12,6 +12,15 @@ export {
   popupActionsOf,
 } from '../listbox/store/ListboxStore.js'
 export {
+  useMaybeMenuSurfaceSettings,
+  useMenuSurfaceSettings,
+} from './contexts/surface-settings-context.js'
+export {
+  isLevelDisabled,
+  useMaybeMenuSurfaceTier,
+  useMenuSurfaceTier,
+} from './contexts/surface-tier-context.js'
+export {
   DataPopupProvider,
   DataSubpagesContent,
 } from './data-first/data-subpages.js'

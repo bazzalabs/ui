@@ -11,7 +11,7 @@ import {
   getSlotAttribute,
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
-import { usePopupMenuContext } from '../../contexts/popup-menu-context.js'
+import { useMenuSurfaceTier } from '../../contexts/surface-tier-context.js'
 import { useMenuElement } from '../../hooks/use-menu-element.js'
 import { PopupMenuIconDataAttributes } from './icon.data-attrs.js'
 
@@ -43,7 +43,7 @@ export const PopupMenuIcon = React.forwardRef<
 >(function PopupMenuIcon(props, forwardedRef) {
   const { render, className, style, children, ...rest } = props
 
-  const { store } = usePopupMenuContext()
+  const { store } = useMenuSurfaceTier()
   const open = store.useState('open')
 
   const state: PopupMenuIcon.State = React.useMemo(() => ({ open }), [open])

@@ -2,11 +2,12 @@
 
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
+import { useFocusOwner } from '../../internal/popup-menu/index.js'
 import {
-  useFocusOwner,
-  usePopupMenuContext,
-} from '../../internal/popup-menu/index.js'
-import { useMenuElement } from '../../internal/popup-menu/members.js'
+  useMenuElement,
+  useMenuSurfaceSettings,
+  useMenuSurfaceTier,
+} from '../../internal/popup-menu/members.js'
 import { resolveLabelFromItems } from '../../utils/items.js'
 import {
   resolveClassName,
@@ -89,12 +90,12 @@ export const ComboboxInput = React.forwardRef<
   } = props
 
   const comboboxContext = useComboboxContext()
-  const popupMenuContext = usePopupMenuContext()
+  const tier = useMenuSurfaceTier()
   const focusOwnerStore = useFocusOwner()
   const isInsideInputWrapper = useIsInsideInputWrapper()
 
-  const disabled =
-    (disabledProp ?? comboboxContext.disabled) || popupMenuContext.disabled
+  const menuDisabled = useMenuSurfaceSettings().disabled
+  const disabled = (disabledProp ?? comboboxContext.disabled) || menuDisabled
 
   // A `null` item's label (looked up under the empty-string key) acts as the
   // placeholder, taking precedence over the Root placeholder but not an
@@ -106,7 +107,7 @@ export const ComboboxInput = React.forwardRef<
     comboboxContext.placeholder
 
   // Get open state
-  const open = popupMenuContext.store.useState('open')
+  const open = tier.store.useState('open')
 
   // Use display value hook
   const { hasValue, displayValue, getValueText } = useComboboxDisplayValue({
@@ -118,7 +119,7 @@ export const ComboboxInput = React.forwardRef<
   const { handleChange, handleFocus, handleBlur, handleClick, handleKeyDown } =
     useComboboxInputBehavior({
       comboboxContext,
-      store: popupMenuContext.store,
+      store: tier.store,
       focusOwnerStore,
       open,
       disabled,

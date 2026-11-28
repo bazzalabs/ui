@@ -9,7 +9,6 @@ import {
 import type { ComponentProps } from '../../../../utils/types.js'
 import {
   RowWidthContext,
-  useListboxContext,
   useStickyRowWidth,
   useSurfaceContext,
 } from '../../../listbox/index.js'
@@ -19,9 +18,10 @@ import {
 } from '../../contexts/component-name-context.js'
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
 import { useMenuTree } from '../../contexts/menu-tree-context.js'
-import { usePopupMenuContext } from '../../contexts/popup-menu-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
 import { useMaybeSubpageContext } from '../../contexts/subpage-context.js'
+import { useMenuSurfaceSettings } from '../../contexts/surface-settings-context.js'
+import { useMenuSurfaceTier } from '../../contexts/surface-tier-context.js'
 import { useMaybeDataSurfaceContext } from '../../data-first/context.js'
 import { DataListInner } from '../../data-first/data-list.js'
 import { usePopupMenuKeyboard } from '../../hooks/use-popup-menu-keyboard.js'
@@ -119,11 +119,14 @@ export const PopupMenuListPrimitive = React.forwardRef<
   } = props
 
   const { store, surfaceId } = useSurfaceContext()
-  const { depth, closeAll } = useListboxContext()
+  const tier = useMenuSurfaceTier('listbox')
+  const { depth } = tier
+  const settings = useMenuSurfaceSettings('listbox')
+  const { closeAll } = settings
   const submenuContext = useMaybeSubmenuContext()
   const subpageContext = useMaybeSubpageContext()
-  const { disabled: popupMenuDisabled, inputEmbedded: isInputEmbedded } =
-    usePopupMenuContext()
+  const popupMenuDisabled = settings.disabled
+  const isInputEmbedded = settings.inputEmbedded
   const focusOwnerStore = useFocusOwner()
   const tree = useMenuTree()
   const internalRef = React.useRef<HTMLDivElement>(null)

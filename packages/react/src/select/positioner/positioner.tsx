@@ -3,8 +3,11 @@
 import { useDirection } from '@base-ui/react/internals/direction-context'
 import { Popover, type PopoverPositionerProps } from '@base-ui/react/popover'
 import * as React from 'react'
-import { usePopupMenuContext } from '../../internal/popup-menu/index.js'
-import { useMenuElement } from '../../internal/popup-menu/members.js'
+import {
+  useMenuElement,
+  useMenuSurfaceSettings,
+  useMenuSurfaceTier,
+} from '../../internal/popup-menu/members.js'
 import { clamp } from '../../utils/clamp.js'
 import { REASONS } from '../../utils/events/index.js'
 import { composeStyle } from '../../utils/resolve-state-props.js'
@@ -93,12 +96,12 @@ export const SelectPositioner = React.forwardRef<
     ...rest
   } = props
 
-  const popupMenuContext = usePopupMenuContext()
+  const tier = useMenuSurfaceTier()
   const selectContext = useSelectContext()
   const direction = useDirection() === 'rtl' ? 'rtl' : 'ltr'
 
-  const store = popupMenuContext.store
-  const closeAll = popupMenuContext.closeAll
+  const store = tier.store
+  const { closeAll } = useMenuSurfaceSettings()
   const open = store.useState('open')
   const openMethod = store.useState('openMethod')
   // True whenever a search input is actually rendered in the Surface (an

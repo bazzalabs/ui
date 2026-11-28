@@ -9,10 +9,9 @@ import * as React from 'react'
 import {
   type UseListboxItemParams,
   type UseListboxItemReturn,
-  useListboxContext,
   useListboxItem,
 } from '../../listbox/index.js'
-import { useMaybePopupMenuContext } from '../contexts/popup-menu-context.js'
+import { useMenuSurfaceSettings } from '../contexts/surface-settings-context.js'
 import { useAimGuardRefs } from './use-aim-guard.js'
 
 export interface UsePopupMenuItemParams
@@ -46,10 +45,7 @@ export function usePopupMenuItem(
     ...rest
   } = params
   const aimGuard = useAimGuardRefs()
-  const { closeAll } = useListboxContext()
-  const popupMenuContext = useMaybePopupMenuContext()
-
-  const menuDisabled = popupMenuContext?.disabled ?? false
+  const { closeAll, disabled: menuDisabled } = useMenuSurfaceSettings('listbox')
   const effectiveDisabled = disabled || menuDisabled
 
   // Handle after-select behavior (close menu if closeOnClick is true)

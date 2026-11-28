@@ -1,7 +1,6 @@
 'use client'
 
 import * as React from 'react'
-import { useMaybeListboxContext } from '../../listbox/contexts/listbox-context.js'
 import { PopupMenuCheckboxGroupValue } from '../components/checkbox-group/checkbox-group-value.js'
 import {
   GraftPointContext,
@@ -9,6 +8,7 @@ import {
 } from '../contexts/graft-point-context.js'
 import { useMenuTree } from '../contexts/menu-tree-context.js'
 import { usePopupSurfaceId } from '../contexts/popup-surface-id-context.js'
+import { useMaybeMenuSurfaceTier } from '../contexts/surface-tier-context.js'
 import { staticChildrenOf } from '../menu-tree/resolve.js'
 import type { PopupMenuNode } from '../menu-tree/types.js'
 import { useAsyncMenuCoordinator } from './async-coordinator.js'
@@ -122,7 +122,7 @@ function collectDisplaySubpages(
 function usePopupNodes(): () => readonly PopupMenuNode[] {
   const tree = useMenuTree()
   const graftPoint = useGraftPoint()
-  const depth = useMaybeListboxContext()?.depth ?? 0
+  const depth = useMaybeMenuSurfaceTier()?.depth ?? 0
   return React.useCallback(
     () =>
       graftPoint

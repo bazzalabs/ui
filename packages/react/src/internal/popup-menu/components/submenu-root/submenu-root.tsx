@@ -9,7 +9,6 @@ import { REASONS } from '../../../../utils/events/index.js'
 import {
   ListboxContextProvider,
   ListboxStore,
-  useMaybeListboxContext,
   useSurfaceContext,
   type VirtualItem,
 } from '../../../listbox/index.js'
@@ -21,15 +20,18 @@ import {
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
 import { useMenuTree } from '../../contexts/menu-tree-context.js'
 import { useOpenChain } from '../../contexts/open-chain-context.js'
-import {
-  PopupMenuContext,
-  useMaybePopupMenuContext,
-} from '../../contexts/popup-menu-context.js'
+import { PopupMenuContext } from '../../contexts/popup-menu-context.js'
 import {
   type SubmenuContextValue,
   SubmenuHandle,
 } from '../../contexts/submenu-context.js'
 import {
+  type MenuSurfaceSettings,
+  SurfaceSettingsContext,
+  useMaybeMenuSurfaceSettings,
+} from '../../contexts/surface-settings-context.js'
+import {
+  isLevelDisabled,
   MenuSurfaceTier,
   SurfaceTierContext,
   useMaybeMenuSurfaceTier,
@@ -151,11 +153,13 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
     ...rest
   } = props
 
-  const parentListboxContext = useMaybeListboxContext()
-  const parentPopupMenuContext = useMaybePopupMenuContext()
-  const parentDepth = parentListboxContext?.depth ?? 0
-  const parentCloseAll = parentListboxContext?.closeAll
-  const parentRegisterSurface = parentListboxContext?.registerSurface
+  // The level the submenu opens from: its tier and settings, which the
+  // submenu's own inherit.
+  const parentTier = useMaybeMenuSurfaceTier()
+  const parentSettings = useMaybeMenuSurfaceSettings()
+  const parentDepth = parentTier?.depth ?? 0
+  const parentCloseAll = parentSettings?.closeAll
+  const parentRegisterSurface = parentSettings?.registerSurface
   const menuTree = useMenuTree()
   const menuTreeResolver = menuTree.resolver
 
@@ -199,13 +203,17 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
 
   const [imperativeDisabled, setImperativeDisabled] = React.useState(false)
   const disabled =
-    (parentPopupMenuContext?.disabled ?? false) ||
-    disabledProp ||
-    imperativeDisabled
+    (parentSettings?.disabled ?? false) || disabledProp || imperativeDisabled
 
   const setDisabled = React.useCallback((nextDisabled: boolean) => {
     setImperativeDisabled(nextDisabled)
   }, [])
+  // Its own `disabled` (its prop or its actions') as last committed, for the
+  // gates of the submenus inside it (`isLevelDisabled`).
+  const ownDisabledRef = React.useRef(disabledProp || imperativeDisabled)
+  React.useInsertionEffect(() => {
+    ownDisabledRef.current = disabledProp || imperativeDisabled
+  }, [disabledProp, imperativeDisabled])
 
   // Every open change of the submenu: the close policy decides, then the
   // store takes it (and tells the consumer, unless there's nothing to
@@ -227,7 +235,11 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
         reason,
         event,
         level: 'submenu',
-        disabled,
+        // Its own as last committed (this callback is the last committed
+        // render's), and every level's above it, up to the root, as last
+        // committed too (`isLevelDisabled`).
+        disabled:
+          disabledProp || imperativeDisabled || isLevelDisabled(parentTier),
         // Escape is routed where the key is handled (the listbox): one that
         // reaches the submenu closes only it, whatever `closeRootOnEsc` says
         closeRootOnEsc: false,
@@ -369,7 +381,6 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
 
   // The submenu surface's tier, which its trigger, positioner, popup and
   // surface read the submenu from (`useSubmenuContext`).
-  const parentTier = useMaybeMenuSurfaceTier()
   // biome-ignore lint/correctness/useExhaustiveDependencies(closeRootOnEsc): it seeds the handle; later values are synced into the handle's state below
   const submenu = React.useMemo(
     () =>
@@ -395,7 +406,7 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
   // element outside the tree. Any other close only drops its ownership.
   // Subscribed in a layout effect, before a close a layout effect makes.
   const focusOwnerStore = useFocusOwner()
-  const parentStore = parentListboxContext?.store
+  const parentStore = parentTier?.store
   useIsoLayoutEffect(
     () =>
       store.observe('open', (isOpen, wasOpen) => {
@@ -434,11 +445,6 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
     ],
   )
 
-  const surfaceTier = React.useMemo(
-    () => new MenuSurfaceTier(store, parentTier, submenu),
-    [store, parentTier, submenu],
-  )
-
   // Memoize listbox wiring config for this submenu
   const virtualization = React.useMemo(() => {
     if (!virtualized && !onHighlightChange) {
@@ -452,78 +458,103 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
     }
   }, [virtualized, itemsProp, handleHighlightChange, onHighlightChange])
 
-  // Listbox context value with incremented depth
-  // Pass parent's closeAll through unchanged; this submenu's own submenus
-  // register with it
+  // The submenu surface's settings: its parent's, with its own `disabled`
+  // (its parent's or its own), its own submenus' registry and virtualization.
+  // The parent's `closeAll` passes through unchanged. Memoised on the fields
+  // it inherits one by one, so a parent field it overrides (the parent's
+  // virtualization) leaves it as it is.
+  const explicitTabBehavior = parentSettings?.explicitTabBehavior ?? false
+  const tabWithoutZones = parentSettings?.tabWithoutZones ?? 'close'
+  const externalFocus = parentSettings?.externalFocus ?? false
+  const inputEmbedded = parentSettings?.inputEmbedded ?? false
+  const virtualAnchor = parentSettings?.virtualAnchor
+  const menuType = parentSettings?.menuType ?? 'dropdown'
+  const closeOnOutsidePress =
+    parentSettings?.closeOnOutsidePress ?? 'pointerdown'
+  const rangeSelection = parentSettings?.rangeSelection ?? true
+  const dragSelection = parentSettings?.dragSelection ?? false
+  const getAriaSelectionText = parentSettings?.getAriaSelectionText
+  const settings: MenuSurfaceSettings = React.useMemo(
+    () => ({
+      explicitTabBehavior,
+      tabWithoutZones,
+      externalFocus,
+      inputEmbedded,
+      virtualAnchor,
+      menuType,
+      closeOnOutsidePress,
+      rangeSelection,
+      dragSelection,
+      getAriaSelectionText,
+      disabled,
+      closeAll: parentCloseAll ?? (() => setOpen(false)),
+      registerSurface,
+      virtualization,
+    }),
+    [
+      explicitTabBehavior,
+      tabWithoutZones,
+      externalFocus,
+      inputEmbedded,
+      virtualAnchor,
+      menuType,
+      closeOnOutsidePress,
+      rangeSelection,
+      dragSelection,
+      getAriaSelectionText,
+      disabled,
+      parentCloseAll,
+      setOpen,
+      registerSurface,
+      virtualization,
+    ],
+  )
+
+  // The submenu surface's tier.
+  const surfaceTier = React.useMemo(
+    () =>
+      new MenuSurfaceTier(store, parentTier, depth, {
+        submenu,
+        isOwnDisabled: () => ownDisabledRef.current,
+      }),
+    [store, parentTier, depth, submenu],
+  )
+
+  // The published contexts, built from the same settings, in the same
+  // render.
+  const { closeAll, virtualization: settingsVirtualization } = settings
   const listboxContextValue = React.useMemo(
     () => ({
       store,
       depth,
-      closeAll: parentCloseAll ?? (() => setOpen(false)),
+      closeAll,
       registerSurface,
-      virtualization,
+      virtualization: settingsVirtualization,
     }),
-    [store, depth, parentCloseAll, setOpen, registerSurface, virtualization],
+    [store, depth, closeAll, registerSurface, settingsVirtualization],
   )
-
-  // PopupMenu context value with incremented depth
-  // This is needed for PopupMenuPositioner to get the correct depth
   const popupMenuContextValue = React.useMemo(
-    () => ({
-      store,
-      disabled,
-      depth,
-      closeAll: parentCloseAll ?? (() => setOpen(false)),
-      explicitTabBehavior: parentPopupMenuContext?.explicitTabBehavior ?? false,
-      tabWithoutZones: parentPopupMenuContext?.tabWithoutZones ?? 'close',
-      externalFocus: parentPopupMenuContext?.externalFocus ?? false,
-      inputEmbedded: parentPopupMenuContext?.inputEmbedded ?? false,
-      registerSurface,
-      virtualization,
-      virtualAnchor: parentPopupMenuContext?.virtualAnchor,
-      menuType: parentPopupMenuContext?.menuType ?? ('dropdown' as const),
-      closeOnOutsidePress:
-        parentPopupMenuContext?.closeOnOutsidePress ?? 'pointerdown',
-      rangeSelection: parentPopupMenuContext?.rangeSelection ?? true,
-      dragSelection: parentPopupMenuContext?.dragSelection ?? false,
-      getAriaSelectionText: parentPopupMenuContext?.getAriaSelectionText,
-    }),
-    [
-      store,
-      disabled,
-      depth,
-      parentCloseAll,
-      parentPopupMenuContext?.explicitTabBehavior,
-      parentPopupMenuContext?.tabWithoutZones,
-      parentPopupMenuContext?.externalFocus,
-      parentPopupMenuContext?.inputEmbedded,
-      registerSurface,
-      setOpen,
-      virtualization,
-      parentPopupMenuContext?.virtualAnchor,
-      parentPopupMenuContext?.menuType,
-      parentPopupMenuContext?.closeOnOutsidePress,
-      parentPopupMenuContext?.rangeSelection,
-      parentPopupMenuContext?.dragSelection,
-      parentPopupMenuContext?.getAriaSelectionText,
-    ],
+    () => ({ store, depth, ...settings }),
+    [store, depth, settings],
   )
 
   return (
     <SurfaceTierContext.Provider value={surfaceTier}>
-      <PopupMenuContext.Provider value={popupMenuContextValue}>
-        <ListboxContextProvider.Provider value={listboxContextValue}>
-          <Popover.Root
-            {...rest}
-            open={open}
-            onOpenChange={handlePopoverOpenChange}
-            onOpenChangeComplete={handleOpenChangeComplete}
-            actionsRef={popoverActionsRef}
-          >
-            {children}
-          </Popover.Root>
-        </ListboxContextProvider.Provider>
-      </PopupMenuContext.Provider>
+      <SurfaceSettingsContext.Provider value={settings}>
+        <PopupMenuContext.Provider value={popupMenuContextValue}>
+          <ListboxContextProvider.Provider value={listboxContextValue}>
+            <Popover.Root
+              {...rest}
+              open={open}
+              onOpenChange={handlePopoverOpenChange}
+              onOpenChangeComplete={handleOpenChangeComplete}
+              actionsRef={popoverActionsRef}
+            >
+              {children}
+            </Popover.Root>
+          </ListboxContextProvider.Provider>
+        </PopupMenuContext.Provider>
+      </SurfaceSettingsContext.Provider>
     </SurfaceTierContext.Provider>
   )
 }

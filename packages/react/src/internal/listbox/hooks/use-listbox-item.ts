@@ -5,9 +5,9 @@ import * as React from 'react'
 import { useMaybeCollectionRows } from '../contexts/collection-row-context.js'
 import { useGroupContext } from '../contexts/group-context.js'
 import type { ItemContextValue } from '../contexts/item-context.js'
-import { useListboxContext } from '../contexts/listbox-context.js'
 import { useMaybeRowWidthContext } from '../contexts/row-width-context.js'
 import { useSurfaceContext } from '../contexts/surface-context.js'
+import { useSurfaceTier } from '../contexts/surface-tier-context.js'
 import {
   bindDataRow,
   isVisible as isVisibleSelector,
@@ -256,7 +256,7 @@ export function useListboxItem(
 
   const { store } = useSurfaceContext()
   const groupContext = useGroupContext()
-  const { depth } = useListboxContext()
+  const { depth } = useSurfaceTier()
 
   const ref = React.useRef<HTMLDivElement>(null)
 

@@ -1,18 +1,12 @@
 'use client'
 
 import * as React from 'react'
-import {
-  ListboxContextProvider,
-  ListboxStore,
-  useMaybeListboxContext,
-} from '../../../listbox/index.js'
-import {
-  PopupMenuContext,
-  useMaybePopupMenuContext,
-} from '../../contexts/popup-menu-context.js'
+import { ListboxContextProvider, ListboxStore } from '../../../listbox/index.js'
+import { PopupMenuContext } from '../../contexts/popup-menu-context.js'
 import { PopupSurfaceIdContext } from '../../contexts/popup-surface-id-context.js'
 import { SubpageContext } from '../../contexts/subpage-context.js'
 import { useSubpageStack } from '../../contexts/subpage-stack-context.js'
+import { useMaybeMenuSurfaceSettings } from '../../contexts/surface-settings-context.js'
 import {
   MenuSurfaceTier,
   SurfaceTierContext,
@@ -40,11 +34,12 @@ export interface PopupMenuSubpageProps {
 export function PopupMenuSubpage(props: PopupMenuSubpageProps) {
   const { pageId, closeRootOnEsc = false, children } = props
 
-  const parentListboxContext = useMaybeListboxContext()
-  const parentPopupMenuContext = useMaybePopupMenuContext()
+  // The page shares its popup's level: its depth and its settings.
+  const parentTier = useMaybeMenuSurfaceTier()
+  const parentSettings = useMaybeMenuSurfaceSettings()
   const subpageStack = useSubpageStack()
 
-  if (!parentListboxContext || !parentPopupMenuContext) {
+  if (!parentTier || !parentSettings) {
     throw new Error('PopupMenu.Subpage must be used within PopupMenu.Popup')
   }
 
@@ -55,7 +50,7 @@ export function PopupMenuSubpage(props: PopupMenuSubpageProps) {
   const surfaceId = React.useId()
 
   // Parent popup open state.
-  const parentOpen = parentListboxContext.store.useState('open')
+  const parentOpen = parentTier.store.useState('open')
 
   const activePageId = subpageStack.activePageId
   const stack = subpageStack.stack
@@ -83,12 +78,11 @@ export function PopupMenuSubpage(props: PopupMenuSubpageProps) {
   }, [store, parentOpen, isActive])
 
   // Register with root closeAll tracking.
+  const parentDepth = parentTier.depth
+  const { registerSurface } = parentSettings
   React.useEffect(() => {
-    return parentListboxContext.registerSurface(
-      parentListboxContext.depth,
-      (nextOpen) => store.setOpen(nextOpen),
-    )
-  }, [parentListboxContext, store])
+    return registerSurface(parentDepth, (nextOpen) => store.setOpen(nextOpen))
+  }, [registerSurface, parentDepth, store])
 
   const parentSurfaceId = React.useMemo(() => {
     const currentIndex = stack.lastIndexOf(pageId)
@@ -114,43 +108,30 @@ export function PopupMenuSubpage(props: PopupMenuSubpageProps) {
     [pageId, surfaceId, parentSurfaceId, isActive, closeRootOnEsc, goBack],
   )
 
+  // The published contexts: the popup's level, with the page's store.
+  const { closeAll, virtualization } = parentSettings
   const listboxContextValue = React.useMemo(
     () => ({
       store,
-      depth: parentListboxContext.depth,
-      closeAll: parentListboxContext.closeAll,
-      registerSurface: parentListboxContext.registerSurface,
-      virtualization: parentListboxContext.virtualization,
+      depth: parentDepth,
+      closeAll,
+      registerSurface,
+      virtualization,
     }),
-    [store, parentListboxContext],
+    [store, parentDepth, closeAll, registerSurface, virtualization],
   )
 
   const popupMenuContextValue = React.useMemo(
-    () => ({
-      store,
-      depth: parentPopupMenuContext.depth,
-      closeAll: parentPopupMenuContext.closeAll,
-      explicitTabBehavior: parentPopupMenuContext.explicitTabBehavior,
-      tabWithoutZones: parentPopupMenuContext.tabWithoutZones,
-      externalFocus: parentPopupMenuContext.externalFocus,
-      inputEmbedded: parentPopupMenuContext.inputEmbedded,
-      registerSurface: parentPopupMenuContext.registerSurface,
-      virtualization: parentPopupMenuContext.virtualization,
-      virtualAnchor: parentPopupMenuContext.virtualAnchor,
-      menuType: parentPopupMenuContext.menuType,
-      disabled: parentPopupMenuContext.disabled,
-      closeOnOutsidePress: parentPopupMenuContext.closeOnOutsidePress,
-      rangeSelection: parentPopupMenuContext.rangeSelection,
-      dragSelection: parentPopupMenuContext.dragSelection,
-      getAriaSelectionText: parentPopupMenuContext.getAriaSelectionText,
-    }),
-    [store, parentPopupMenuContext],
+    () => ({ store, depth: parentDepth, ...parentSettings }),
+    [store, parentDepth, parentSettings],
   )
 
-  // The page's surface tier; the submenu around it stays its submenu.
-  const parentTier = useMaybeMenuSurfaceTier()
+  // The page's surface tier; the submenu around it stays its submenu, and
+  // its settings are its popup's (`SurfaceSettingsContext` around it).
   const surfaceTier = React.useMemo(
-    () => new MenuSurfaceTier(store, parentTier),
+    () =>
+      // Its settings and its `disabled` are its popup's: none of its own.
+      new MenuSurfaceTier(store, parentTier, parentTier.depth),
     [store, parentTier],
   )
 

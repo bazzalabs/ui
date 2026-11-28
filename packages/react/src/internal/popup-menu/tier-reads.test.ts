@@ -8,7 +8,8 @@ import { describe, expect, it } from 'vitest'
  * UI-680 option 1): the published contexts are still provided, for
  * consumers. This pins the reads that remain, each with the slice that
  * removes it; a new direct read fails here, and so does one removed without
- * its entry.
+ * its entry. A context no engine part reads any more (`members: true`) is
+ * held for the menu members' parts too.
  */
 
 const SRC = join(import.meta.dirname, '../..')
@@ -19,6 +20,11 @@ interface Published {
   hooks: readonly string[]
   /** The module that creates it, whose own hooks read it. */
   module: string
+  /**
+   * Whether the menu members' parts are held to it too (`MEMBERS`), not only
+   * the engine's: once no part reads it, none may again.
+   */
+  members?: true
 }
 
 const PUBLISHED: Record<string, Published> = {
@@ -26,11 +32,13 @@ const PUBLISHED: Record<string, Published> = {
     names: ['PopupMenuContext'],
     hooks: ['usePopupMenuContext', 'useMaybePopupMenuContext'],
     module: 'internal/popup-menu/contexts/popup-menu-context.ts',
+    members: true,
   },
   ListboxContext: {
     names: ['ListboxContext', 'ListboxContextProvider'],
     hooks: ['useListboxContext', 'useMaybeListboxContext'],
     module: 'internal/listbox/contexts/listbox-context.ts',
+    members: true,
   },
   SurfaceContext: {
     names: ['SurfaceContext'],
@@ -86,52 +94,13 @@ const PUBLISHED: Record<string, Published> = {
 
 /** The reads that remain: who removes them, why they're there, and where. */
 interface Allowed {
-  removedBy: 'UI-754' | 'UI-755' | 'UI-690' | 'permanent'
+  removedBy: 'UI-755' | 'UI-690' | 'permanent'
   reason: string
   /** Each engine file's direct reads, by its path from `src`. */
   reads: Record<string, number>
 }
 
 const ALLOWED: Record<string, Allowed> = {
-  PopupMenuContext: {
-    removedBy: 'UI-754',
-    reason:
-      "The level's settings (depth, disabled, tab handling, selection, the positioner's) and its store, until they're on the surface tier.",
-    reads: {
-      'internal/popup-menu/components/checkbox-group/checkbox-group.tsx': 1,
-      'internal/popup-menu/components/checkbox-item/checkbox-item.tsx': 1,
-      'internal/popup-menu/components/icon/icon.tsx': 1,
-      'internal/popup-menu/components/input/input.tsx': 1,
-      'internal/popup-menu/components/list/list.tsx': 1,
-      'internal/popup-menu/components/popup/popup.tsx': 1,
-      'internal/popup-menu/components/positioner/positioner.tsx': 1,
-      'internal/popup-menu/components/radio-group/radio-group.tsx': 1,
-      'internal/popup-menu/components/submenu-root/submenu-root.tsx': 1,
-      'internal/popup-menu/components/subpage-back/subpage-back.tsx': 1,
-      'internal/popup-menu/components/subpage/subpage.tsx': 1,
-      'internal/popup-menu/components/surface/surface.tsx': 1,
-      'internal/popup-menu/hooks/use-popup-menu-item.ts': 1,
-      'internal/popup-menu/hooks/use-popup-menu-keyboard.ts': 1,
-    },
-  },
-  ListboxContext: {
-    removedBy: 'UI-754',
-    reason:
-      "The level's depth, closeAll, registerSurface and virtualization, until they're on the surface tier.",
-    reads: {
-      'internal/listbox/hooks/use-listbox-item.ts': 1,
-      'internal/popup-menu/components/input/input.tsx': 1,
-      'internal/popup-menu/components/link-item/link-item.tsx': 1,
-      'internal/popup-menu/components/list/list.tsx': 1,
-      'internal/popup-menu/components/submenu-root/submenu-root.tsx': 1,
-      'internal/popup-menu/components/submenu-trigger/submenu-trigger.tsx': 1,
-      'internal/popup-menu/components/subpage/subpage.tsx': 1,
-      'internal/popup-menu/components/surface/surface.tsx': 1,
-      'internal/popup-menu/data-first/data-list.tsx': 1,
-      'internal/popup-menu/data-first/data-subpages.tsx': 1,
-      'internal/popup-menu/hooks/use-popup-menu-item.ts': 1,
-    },
-  },
   SurfaceContext: {
     removedBy: 'UI-755',
     reason:
@@ -235,10 +204,23 @@ const ALLOWED: Record<string, Allowed> = {
   },
 }
 
-/** Engine source files, by their path from `src`. */
-function engineFiles(): string[] {
+/** The engine's layers, by their path from `src`. */
+const ENGINE = ['internal/popup-menu', 'internal/listbox']
+/** The menu members and the loaders, which build on the engine. */
+const MEMBERS = [
+  'combobox',
+  'command-menu',
+  'context-menu',
+  'dropdown-menu',
+  'loaders',
+  'select',
+  'suggestion-menu',
+]
+
+/** Source files under `folders`, by their path from `src`. */
+function sourceFiles(folders: readonly string[]): string[] {
   const files: string[] = []
-  for (const layer of ['internal/popup-menu', 'internal/listbox']) {
+  for (const layer of folders) {
     for (const entry of readdirSync(join(SRC, layer), {
       recursive: true,
       withFileTypes: true,
@@ -400,13 +382,13 @@ const DESTRUCTURED = `\\{[^{}]*\\bNAMES\\s*:\\s*(${ID})[^{}]*\\}\\s*=`
 const ASSIGNED = `\\b(?:const|let|var)\\s+(${ID})\\s*(?::[^=;]+)?=\\s*${QUALIFIER}NAMES\\b(?![\\w$]|\\s*[(.])`
 
 /**
- * Each published context's direct reads in each engine file, read from its
- * code (`code`):
+ * Each published context's direct reads in each engine file (and member
+ * file, for a context with `members: true`), read from its code (`code`):
  * - a call of one of its hooks, as `useX()` or `ns.useX()`;
  * - `useContext(X)` or `use(X)` of it, `React.` before them or not, and
  *   `X` itself as `ns.X` or not;
  * - under its own names, or any alias they have: renamed in an import or
- *   export anywhere in the engine (`X as Y`), or in the file, destructured
+ *   export anywhere in the engine or the members (`X as Y`), or in the file, destructured
  *   (`const { X: Y } = ns`) or assigned (`const Y = X`, `const Y = ns.X`).
  *
  * It doesn't see a context or hook passed as an argument and read
@@ -414,10 +396,15 @@ const ASSIGNED = `\\b(?:const|let|var)\\s+(${ID})\\s*(?::[^=;]+)?=\\s*${QUALIFIE
  * dynamically.
  */
 function directReads(): Record<string, Record<string, number>> {
-  const files = engineFiles().map((path) => ({
+  const read = (path: string, member: boolean) => ({
     path,
+    member,
     source: code(readFileSync(join(SRC, path), 'utf8'), path),
-  }))
+  })
+  const files = [
+    ...sourceFiles(ENGINE).map((path) => read(path, false)),
+    ...sourceFiles(MEMBERS).map((path) => read(path, true)),
+  ]
   const reads: Record<string, Record<string, number>> = {}
   for (const [context, published] of Object.entries(PUBLISHED)) {
     // Renamed anywhere: an engine module may re-export it as another name.
@@ -427,8 +414,8 @@ function directReads(): Record<string, Record<string, number>> {
       if (hooks.size > 0) addAliases(source, hooks, RENAMED)
       addAliases(source, names, RENAMED)
     }
-    for (const { path, source } of files) {
-      if (path === published.module) continue
+    for (const { path, member, source } of files) {
+      if (path === published.module || (member && !published.members)) continue
       const fileHooks = new Set(hooks)
       const fileNames = new Set(names)
       for (const pattern of [DESTRUCTURED, ASSIGNED]) {
