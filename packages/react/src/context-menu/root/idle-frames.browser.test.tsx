@@ -165,4 +165,104 @@ describe('ContextMenu idle frames in the browser', () => {
     await settle()
     expect(await idleFrames()).toBe(0)
   })
+
+  it('runs no animation frames while idle after a drag selection, and stops its auto-scroll frames on release', async () => {
+    render(
+      <ContextMenu.Root dragSelection="keep">
+        <ContextMenu.Trigger
+          data-testid="trigger"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: 400,
+            height: 400,
+          }}
+        />
+        <ContextMenu.Portal>
+          <ContextMenu.Positioner data-testid="positioner">
+            <ContextMenu.Popup data-testid="popup">
+              <ContextMenu.Surface>
+                <ContextMenu.List
+                  data-testid="list"
+                  style={{ maxHeight: 128, overflowY: 'auto' }}
+                >
+                  {Array.from({ length: 20 }, (_, index) => (
+                    <ContextMenu.CheckboxItem
+                      // biome-ignore lint/suspicious/noArrayIndexKey: a fixed list
+                      key={index}
+                      data-testid={`cb-${index}`}
+                      style={{ height: 32, boxSizing: 'border-box' }}
+                    >
+                      Row {index}
+                    </ContextMenu.CheckboxItem>
+                  ))}
+                </ContextMenu.List>
+              </ContextMenu.Surface>
+            </ContextMenu.Popup>
+          </ContextMenu.Positioner>
+        </ContextMenu.Portal>
+      </ContextMenu.Root>,
+    )
+
+    await userEvent.click(screen.getByTestId('trigger'), {
+      button: 'right',
+      position: { x: 150, y: 200 },
+    })
+    await findPositioned('positioner')
+    const settle = async () => {
+      await vi.waitFor(() => {
+        expect(document.getAnimations()).toHaveLength(0)
+      })
+      await nextFrame()
+      await nextFrame()
+    }
+    const idleFrames = () =>
+      countAnimationFrames(
+        () => new Promise((resolve) => setTimeout(resolve, IDLE_MS)),
+      )
+    await settle()
+
+    const list = screen.getByTestId('list')
+    const first = screen.getByTestId('cb-0')
+    const box = first.getBoundingClientRect()
+    const pointer = (type: string, target: EventTarget, clientY: number) =>
+      target.dispatchEvent(
+        new PointerEvent(type, {
+          bubbles: true,
+          cancelable: true,
+          composed: true,
+          pointerId: 7,
+          pointerType: 'mouse',
+          button: 0,
+          buttons: type === 'pointerup' ? 0 : 1,
+          clientX: box.left + 10,
+          clientY,
+        }),
+      )
+
+    // Pressed and dragged inside the list, clear of its edges: no frames.
+    pointer('pointerdown', first, box.top + 16)
+    pointer('pointermove', document, box.top + 48)
+    await vi.waitFor(() => {
+      expect(screen.getByTestId('cb-1')).toHaveAttribute('data-pending')
+    })
+    expect(await idleFrames()).toBe(0)
+
+    // Held past the bottom edge: auto-scroll runs a frame at a time.
+    const bottom = list.getBoundingClientRect().bottom
+    const scrolling = await countAnimationFrames(async () => {
+      pointer('pointermove', document, bottom + 40)
+      await vi.waitFor(() => expect(list.scrollTop).toBeGreaterThan(64))
+    })
+    expect(scrolling).toBeGreaterThan(0)
+
+    // Released: the drag commits, and nothing runs while idle.
+    pointer('pointerup', document, bottom + 40)
+    await vi.waitFor(() => {
+      expect(first).toHaveAttribute('aria-checked', 'true')
+    })
+    await settle()
+    expect(await idleFrames()).toBe(0)
+  })
 })
