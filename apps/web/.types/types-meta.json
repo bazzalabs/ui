@@ -8897,6 +8897,35 @@
           }
         ]
       },
+      "LoaderState": {
+        "name": "LoaderState",
+        "kind": "typealias",
+        "typeParams": [
+          {
+            "name": "T",
+            "default": "NodeDef[]"
+          }
+        ],
+        "doc": "Where one data-first loader stands (`useLoader`), tied to the query its\nresults answer (`token`):\n- `idle`: asked nothing (not running, not reporting yet, or a query below\n  its `minQueryLength` with no initial query)\n- `debouncing`: a new query waits out the loader's `debounce`; `previous`\n  is what the loader still shows\n- `loading`: the query is loading, with nothing to show\n- `refreshing`: the query is loading while the loader still shows `data`\n  from an earlier query\n- `settled`: `data` is final for the query; a background refetch of it\n  keeps it settled. `undefined` when the loader settled without rows\n- `error`: the query failed; `previous` is what the loader still shows",
+        "definition": "CoreLoaderState<T>"
+      },
+      "QueryToken": {
+        "name": "QueryToken",
+        "kind": "interface",
+        "doc": "The query a loader's results answer, with a sequence number that tells\napart two runs of the same query: a new token each time the query a loader\nis asked changes, or it starts again after not being asked anything.",
+        "props": [
+          {
+            "name": "query",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "seq",
+            "type": "number",
+            "required": true
+          }
+        ]
+      },
       "CommandMenuBackdropProps": {
         "name": "CommandMenuBackdropProps",
         "kind": "interface",

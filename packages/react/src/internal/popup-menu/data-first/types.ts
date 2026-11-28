@@ -10,6 +10,7 @@ import type {
   DisplaySeparatorNode as CoreDisplaySeparatorNode,
   DisplaySubpageNode as CoreDisplaySubpageNode,
   GroupRenderContext as CoreGroupRenderContext,
+  LoaderState as CoreLoaderState,
   RowNodeDef as CoreRowNodeDef,
   RowRenderContext as CoreRowRenderContext,
   ScoredNode as CoreScoredNode,
@@ -58,6 +59,7 @@ export type {
   GroupBehavior,
   IncludeInDeepSearch,
   InitialQueryBehavior,
+  QueryToken,
   RadioGroupBehavior,
 } from '@bazza-ui/menu-core'
 
@@ -229,67 +231,78 @@ export interface AsyncRenderState {
 export interface AsyncState {
   /**
    * Any loader is currently in initial loading phase
-   * @deprecated Kept for one release: each loader's state is becoming one status (idle, debouncing, loading, refreshing, settled or error).
+   * @deprecated Kept for one release. For one loader's status, use
+   * `useLoader`; for this aggregate, `useAsyncMenuCoordinator().isAnyLoading`.
    */
   isLoading: boolean
 
   /**
    * Any loader is currently fetching
-   * @deprecated Kept for one release: each loader's state is becoming one status (idle, debouncing, loading, refreshing, settled or error).
+   * @deprecated Kept for one release. For one loader's status, use
+   * `useLoader`; for this aggregate, `useAsyncMenuCoordinator().isAnyFetching`.
    */
   isFetching: boolean
 
   /**
    * Any loader is in first-load phase
-   * @deprecated Kept for one release: each loader's state is becoming one status (idle, debouncing, loading, refreshing, settled or error).
+   * @deprecated Kept for one release. For one loader's status, use
+   * `useLoader`; for this aggregate, `useAsyncMenuCoordinator().isAnyInitialLoading`.
    */
   isInitialLoading: boolean
 
   /**
    * Any loader is in background refetch phase
-   * @deprecated Kept for one release: each loader's state is becoming one status (idle, debouncing, loading, refreshing, settled or error).
+   * @deprecated Kept for one release. For one loader's status, use
+   * `useLoader`; for this aggregate, `useAsyncMenuCoordinator().isAnyRefetching`.
    */
   isRefetching: boolean
 
   /**
    * All registered loaders are in background refetch phase
-   * @deprecated Kept for one release: each loader's state is becoming one status (idle, debouncing, loading, refreshing, settled or error).
+   * @deprecated Kept for one release. For one loader's status, use
+   * `useLoader`; for this aggregate, `useAsyncMenuCoordinator().isAllRefetching`.
    */
   isAllRefetching: boolean
 
   /**
    * Static loaders specifically are loading
-   * @deprecated Kept for one release: each loader's state is becoming one status (idle, debouncing, loading, refreshing, settled or error).
+   * @deprecated Kept for one release. For one loader's status, use
+   * `useLoader`; for this aggregate, `useAsyncMenuCoordinator().isStaticLoading`.
    */
   isStaticLoading: boolean
 
   /**
    * Static loaders in first-load phase
-   * @deprecated Kept for one release: each loader's state is becoming one status (idle, debouncing, loading, refreshing, settled or error).
+   * @deprecated Kept for one release. For one loader's status, use
+   * `useLoader`; for this aggregate, `useAsyncMenuCoordinator().isStaticInitialLoading`.
    */
   isStaticInitialLoading: boolean
 
   /**
    * Static loaders in background refetch phase
-   * @deprecated Kept for one release: each loader's state is becoming one status (idle, debouncing, loading, refreshing, settled or error).
+   * @deprecated Kept for one release. For one loader's status, use
+   * `useLoader`; for this aggregate, `useAsyncMenuCoordinator().isStaticRefetching`.
    */
   isStaticRefetching: boolean
 
   /**
    * Query loaders specifically are loading
-   * @deprecated Kept for one release: each loader's state is becoming one status (idle, debouncing, loading, refreshing, settled or error).
+   * @deprecated Kept for one release. For one loader's status, use
+   * `useLoader`; for this aggregate, `useAsyncMenuCoordinator().isQueryLoading`.
    */
   isQueryLoading: boolean
 
   /**
    * Query loaders in first-load phase
-   * @deprecated Kept for one release: each loader's state is becoming one status (idle, debouncing, loading, refreshing, settled or error).
+   * @deprecated Kept for one release. For one loader's status, use
+   * `useLoader`; for this aggregate, `useAsyncMenuCoordinator().isQueryInitialLoading`.
    */
   isQueryInitialLoading: boolean
 
   /**
    * Query loaders in background refetch phase
-   * @deprecated Kept for one release: each loader's state is becoming one status (idle, debouncing, loading, refreshing, settled or error).
+   * @deprecated Kept for one release. For one loader's status, use
+   * `useLoader`; for this aggregate, `useAsyncMenuCoordinator().isQueryRefetching`.
    */
   isQueryRefetching: boolean
 
@@ -299,6 +312,22 @@ export interface AsyncState {
     | { kind: 'branch'; id: string; reason: 'error' }
   >
 }
+
+/**
+ * Where one data-first loader stands (`useLoader`), tied to the query its
+ * results answer (`token`):
+ * - `idle`: asked nothing (not running, not reporting yet, or a query below
+ *   its `minQueryLength` with no initial query)
+ * - `debouncing`: a new query waits out the loader's `debounce`; `previous`
+ *   is what the loader still shows
+ * - `loading`: the query is loading, with nothing to show
+ * - `refreshing`: the query is loading while the loader still shows `data`
+ *   from an earlier query
+ * - `settled`: `data` is final for the query; a background refetch of it
+ *   keeps it settled. `undefined` when the loader settled without rows
+ * - `error`: the query failed; `previous` is what the loader still shows
+ */
+export type LoaderState<T = NodeDef[]> = CoreLoaderState<T>
 
 // ============================================================================
 /**

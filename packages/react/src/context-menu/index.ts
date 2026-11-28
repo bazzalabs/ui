@@ -318,3 +318,10 @@ export {
   useMaybeDataList,
   useMaybeDataSurfaceContext,
 } from '../internal/popup-menu/index.js'
+
+// Loader state
+export type {
+  LoaderState,
+  QueryToken,
+} from '../internal/popup-menu/members.js'
+export { useLoader } from '../internal/popup-menu/members.js'

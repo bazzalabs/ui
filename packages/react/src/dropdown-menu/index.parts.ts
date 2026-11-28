@@ -69,6 +69,7 @@ export {
   useMaybeAsyncMenuCoordinator,
   useMaybeDataList,
 } from '../internal/popup-menu/index.js'
+export { useLoader } from '../internal/popup-menu/members.js'
 // Dropdown-menu specific components
 export { DropdownMenuRoot as Root } from './root/root.js'
 export { DropdownMenuTrigger as Trigger } from './trigger/trigger.js'

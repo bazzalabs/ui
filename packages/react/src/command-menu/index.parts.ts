@@ -32,6 +32,7 @@ export {
   PopupMenuSubpageTrigger as SubpageTrigger,
   PopupMenuSurface as Surface,
 } from '../internal/popup-menu/index.js'
+export { useLoader } from '../internal/popup-menu/members.js'
 export { CommandMenuBackdrop as Backdrop } from './backdrop/backdrop.js'
 export { CommandMenuInput as Input } from './input/input.js'
 export { CommandMenuPopup as Popup } from './popup/popup.js'
