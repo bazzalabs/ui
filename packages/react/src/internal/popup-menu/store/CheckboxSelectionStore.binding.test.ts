@@ -21,12 +21,17 @@ function setup() {
       return [id, element]
     }),
   )
+  let preview: ReadonlySet<string> = new Set()
   const store = new CheckboxSelectionStore({
     getVisibleItemIds: () => ids,
     getItemElement: (id) => elements.get(id) ?? null,
     getScrollElement: () => null,
     setHighlightedId: vi.fn(),
     observeOpen: () => () => {},
+    getPreview: () => preview,
+    setPreview: (next) => {
+      preview = next
+    },
   })
   const commits = new Map(ids.map((id) => [id, vi.fn(() => true)]))
   for (const id of ids) {

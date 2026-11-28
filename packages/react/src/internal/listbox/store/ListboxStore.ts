@@ -524,6 +524,48 @@ export function hasResults(state: ListboxState): boolean {
   return !selectors.hasSearchWithNoResults(state)
 }
 
+// ============================================================================
+// Selection preview
+//
+// The rows a range or drag selection would change, which show the opposite
+// of their committed checked state until it commits. Exported from this
+// module only, off the published `ListboxStore` and `ListboxState` types:
+// it's in the store's state under a symbol key.
+// ============================================================================
+
+const pendingKey: unique symbol = Symbol('pendingRows')
+
+/** `ListboxState` with the selection preview. */
+type StateWithPending = ListboxState & {
+  [pendingKey]?: ReadonlySet<string>
+}
+
+const NO_PENDING: ReadonlySet<string> = new Set()
+
+/**
+ * Whether a range or drag selection would change a row's checked state (and
+ * shows the opposite of it). A key selector: read it with
+ * `useStore(store, isPending, id)`.
+ */
+export function isPending(state: ListboxState, rowId: string): boolean {
+  return (state as StateWithPending)[pendingKey]?.has(rowId) ?? false
+}
+
+/** The rows a selection gesture would change (see `isPending`). */
+export function getPendingRows(store: ListboxStore): ReadonlySet<string> {
+  return (store.state as StateWithPending)[pendingKey] ?? NO_PENDING
+}
+
+/** Replaces the rows a selection gesture would change: its controller's only write. */
+export function setPendingRows(
+  store: ListboxStore,
+  rows: ReadonlySet<string>,
+): void {
+  if (getPendingRows(store) === rows) return
+  // Through `setState`: `update` only looks at string keys.
+  store.setState({ ...store.state, [pendingKey]: rows } as StateWithPending)
+}
+
 interface DomOrderEntry {
   id: string
   element: HTMLElement | null

@@ -1,6 +1,7 @@
 'use client'
 
 import { useRender } from '@base-ui/react/use-render'
+import { useStore } from '@base-ui/utils/store'
 import type { CheckboxItemFields } from '@bazza-ui/menu-core'
 import * as React from 'react'
 import {
@@ -12,7 +13,8 @@ import {
   resolveStyle,
 } from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
-import { ItemContext } from '../../../listbox/index.js'
+import { ItemContext, useSurfaceContext } from '../../../listbox/index.js'
+import { isPending } from '../../../listbox/store/ListboxStore.js'
 import { useCheckboxSelection } from '../../contexts/checkbox-selection-context.js'
 import {
   getSlotAttribute,
@@ -23,7 +25,9 @@ import type {
   CheckedChangeReason,
   SelectionCommitReason,
 } from '../../events.js'
+import { useMaybeStore } from '../../hooks/use-maybe-store.js'
 import { usePopupMenuItem } from '../../hooks/use-popup-menu-item.js'
+import { isChecked } from '../../store/CheckboxGroupStore.js'
 import { useMaybeCheckboxGroupContext } from '../checkbox-group/checkbox-group-context.js'
 import { PopupMenuCheckboxItemDataAttributes } from './checkbox-item.data-attrs.js'
 import {
@@ -116,29 +120,31 @@ export const PopupMenuCheckboxItem = React.forwardRef<
 
   const group = useMaybeCheckboxGroupContext()
   const registerItemValue = group?.registerItemValue
+  // In a group, the group's store has the checked state, read by this item's
+  // value (a key selector), so a change re-renders only the items it checks
+  // or unchecks.
+  const groupStore = group?.store ?? null
 
   // Controlled/uncontrolled state management
   const [internalChecked, setInternalChecked] =
     React.useState<boolean>(defaultChecked)
   const isControlled = checkedProp !== undefined
   const ownChecked = isControlled ? checkedProp : internalChecked
-  const groupValue = group?.value
-  const checked = group
-    ? value !== undefined && (groupValue?.includes(value) ?? false)
-    : ownChecked
+  const groupChecked = useMaybeStore(groupStore, isChecked, false, value)
+  const checked = groupStore ? groupChecked : ownChecked
 
   const toggleChecked = React.useCallback(
     (reason: CheckedChangeReason = REASONS.itemPress, event?: Event) => {
-      const newChecked = !checked
-      if (group) {
+      if (groupStore) {
         if (value === undefined) return
-        const current = group.value
-        const next = newChecked
-          ? [...current, value]
-          : current.filter((entry) => entry !== value)
-        group.setValue(next, reason, event)
+        const current = groupStore.getValue()
+        const next = current.includes(value)
+          ? current.filter((entry) => entry !== value)
+          : [...current, value]
+        groupStore.setValue(next, reason, event)
         return
       }
+      const newChecked = !checked
       const eventDetails = createChangeEventDetails(reason, event)
 
       // Call user's callback first
@@ -151,7 +157,7 @@ export const PopupMenuCheckboxItem = React.forwardRef<
         setInternalChecked(newChecked)
       }
     },
-    [checked, group, value, isControlled, onCheckedChange],
+    [checked, groupStore, value, isControlled, onCheckedChange],
   )
 
   React.useEffect(() => {
@@ -204,9 +210,11 @@ export const PopupMenuCheckboxItem = React.forwardRef<
 
   const selection = useCheckboxSelection()
   const { rangeSelection, dragSelection } = usePopupMenuContext()
-  const preview = selection.useState('getPreview', item.storeId)
-  const displayChecked = preview ?? checked
-  const pending = preview !== undefined && preview !== checked
+  // A range or drag selection previews the opposite of the committed state
+  // for each item it would change, in the surface's store.
+  const { store } = useSurfaceContext()
+  const pending = useStore(store, isPending, item.storeId)
+  const displayChecked = pending ? !checked : checked
 
   const commitOwn = React.useCallback(
     (nextChecked: boolean, reason: SelectionCommitReason, event?: Event) => {
@@ -221,38 +229,31 @@ export const PopupMenuCheckboxItem = React.forwardRef<
 
   const checkedRef = React.useRef(checked)
   checkedRef.current = checked
-  const groupValueRef = React.useRef(group?.value ?? [])
-  groupValueRef.current = group?.value ?? []
   const groupId = group?.groupId
-  const groupSetValue = group?.setValue
 
   React.useEffect(() => {
     if (!item.storeId || disabled) return
-    if (groupId !== undefined && value === undefined) return
+    if (groupStore && value === undefined) return
     const owner =
-      groupId !== undefined && groupSetValue !== undefined
+      groupStore && groupId !== undefined
         ? {
             id: groupId,
-            getValue: () => groupValueRef.current,
-            setValue: groupSetValue,
+            getValue: () => groupStore.getValue(),
+            setValue: groupStore.setValue.bind(groupStore),
           }
         : null
     return selection.registerRow({
       id: item.storeId,
       value: value ?? item.storeId,
       owner,
-      getChecked: () => checkedRef.current,
+      // A group's committed value is its store's; a standalone item's is
+      // its own state, as it last rendered.
+      getChecked: groupStore
+        ? () => isChecked(groupStore.state, value)
+        : () => checkedRef.current,
       commit: commitOwn,
     })
-  }, [
-    selection,
-    item.storeId,
-    value,
-    groupId,
-    groupSetValue,
-    disabled,
-    commitOwn,
-  ])
+  }, [selection, item.storeId, value, groupId, groupStore, disabled, commitOwn])
 
   // Register the select handler that toggles checked state
   // Note: closeOnClick is handled by usePopupMenuItem's onAfterSelect

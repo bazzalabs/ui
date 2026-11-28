@@ -61,10 +61,8 @@ export interface SelectionCommitResult {
 export interface SelectionGestureSnapshot {
   /** The checkbox row of the latest interaction in this surface. */
   readonly anchorId: string | null
-  /** The active gesture, if any. */
+  /** The active gesture, if any. Its preview lives in `SelectionPreview`. */
   readonly gesture: SelectionGesture | null
-  /** Preview overrides by registration id while a gesture is active. */
-  readonly preview: ReadonlyMap<string, boolean>
   /**
    * Latest announcement for the surface's status region; `key` increments
    * per announcement so identical texts still mutate the region.
@@ -86,10 +84,22 @@ export interface SelectionGestureLayout {
   scrollBy(delta: number): boolean
 }
 
+/**
+ * Where a gesture's preview lives (the surface's store, which rows read it
+ * from): the rows, by registration id, the gesture reached and would change,
+ * each showing the gesture's target (the opposite of its committed state)
+ * until it commits. The controller is the only writer.
+ */
+export interface SelectionPreview {
+  get(): ReadonlySet<string>
+  set(preview: ReadonlySet<string>): void
+}
+
 export interface SelectionGestureOptions<Reason extends string = string> {
   /** The surface's enabled, visible rows, in navigation order (its `navOrder`). */
   getNavOrder: () => readonly string[]
   readonly layout: SelectionGestureLayout
+  readonly preview: SelectionPreview
   /** Moves the surface's highlight to a row a drag reached. */
   highlight: (id: string) => void
   /** The reason a pointer drag commits with. */
@@ -138,9 +148,10 @@ function defaultSelectionText(count: number, checked: boolean): string {
 const INITIAL_SNAPSHOT: SelectionGestureSnapshot = {
   anchorId: null,
   gesture: null,
-  preview: new Map(),
   announcement: null,
 }
+
+const NO_PREVIEW: ReadonlySet<string> = new Set()
 
 // ============================================================================
 // Controller
@@ -149,7 +160,8 @@ const INITIAL_SNAPSHOT: SelectionGestureSnapshot = {
 /**
  * Range and drag selection over one surface's checkbox rows: the registered
  * rows, the anchor, the active gesture (a pointer drag or a keyboard span)
- * and the preview of checked states it shows, the commit that applies it
+ * and the rows it would change, which it previews (written to `preview`,
+ * where rows read it), the commit that applies it
  * (one `setValue` per checkbox group, one `commit` per standalone row, in
  * navigation order), the announcement for it, the click a drag's release
  * fires, and auto-scroll while a drag holds the pointer past an edge. Spans
@@ -204,6 +216,7 @@ export class SelectionGestureController<Reason extends string = string> {
     this.#suppressClick = false
     this.#stopAutoScroll()
     this.#formatAnnouncement = undefined
+    this.#setPreview(NO_PREVIEW)
     this.#set(INITIAL_SNAPSHOT)
   }
 
@@ -291,7 +304,8 @@ export class SelectionGestureController<Reason extends string = string> {
       currentId: startId,
       reached: [startId],
     }
-    this.#set({ gesture, preview: this.#buildPreview(gesture) })
+    this.#setPreview(this.#buildPreview(gesture))
+    this.#set({ gesture })
   }
 
   /** Extends the active gesture to `toId` and rebuilds the preview. */
@@ -308,19 +322,25 @@ export class SelectionGestureController<Reason extends string = string> {
           ]
         : span
     const next: SelectionGesture = { ...gesture, currentId: toId, reached }
-    this.#set({ gesture: next, preview: this.#buildPreview(next) })
+    this.#setPreview(this.#buildPreview(next))
+    this.#set({ gesture: next })
   }
 
-  /** Commits the active gesture's preview as real changes, then clears it. */
+  /**
+   * Commits the active gesture: every row it reached that's still visible and
+   * selectable and isn't in its target state now, then clears the preview.
+   */
   commitGesture(reason: Reason, event?: Event): SelectionCommitResult {
-    const { gesture, preview } = this.#snapshot
+    const { gesture } = this.#snapshot
     if (!gesture) return { count: 0, checked: false }
+    // From the rows it reached as they are now, not the preview: a row
+    // changed from outside since the preview was built still commits.
     const changes = new Map<string, boolean>()
-    for (const [id, checked] of preview) {
-      const row = this.#rows.get(id)
-      if (row && row.getChecked() !== checked) changes.set(id, checked)
+    for (const id of this.#buildPreview(gesture)) {
+      changes.set(id, gesture.target)
     }
-    this.#set({ gesture: null, preview: new Map(), anchorId: gesture.startId })
+    this.#setPreview(NO_PREVIEW)
+    this.#set({ gesture: null, anchorId: gesture.startId })
     const count = this.#commitChanges(changes, reason, event)
     this.announce(count, gesture.target)
     return { count, checked: gesture.target }
@@ -329,7 +349,8 @@ export class SelectionGestureController<Reason extends string = string> {
   /** Drops the active gesture without committing. */
   cancelGesture() {
     if (!this.#snapshot.gesture) return
-    this.#set({ gesture: null, preview: new Map() })
+    this.#setPreview(NO_PREVIEW)
+    this.#set({ gesture: null })
   }
 
   // --------------------------------------------------------------------------
@@ -529,6 +550,13 @@ export class SelectionGestureController<Reason extends string = string> {
     for (const listener of this.#listeners) listener()
   }
 
+  /** Writes the preview, unless it stays empty. */
+  #setPreview(preview: ReadonlySet<string>) {
+    const { preview: sink } = this.#options
+    if (preview.size === 0 && sink.get().size === 0) return
+    sink.set(preview)
+  }
+
   #armClickSuppression() {
     this.#clearClickSuppression()
     this.#suppressClick = true
@@ -596,16 +624,18 @@ export class SelectionGestureController<Reason extends string = string> {
     this.#autoScrollVelocity = 0
   }
 
-  #buildPreview(gesture: SelectionGesture): Map<string, boolean> {
-    const preview = new Map<string, boolean>()
+  /** The rows the gesture reached that it would change (it pends only those). */
+  #buildPreview(gesture: SelectionGesture): Set<string> {
+    const preview = new Set<string>()
     const visible = new Set(this.#options.getNavOrder())
     for (const id of gesture.reached) {
       if (!visible.has(id)) continue
-      if (!this.#rows.has(id)) {
+      const row = this.#rows.get(id)
+      if (!row) {
         this.#warnUnmountedRow(id)
         continue
       }
-      preview.set(id, gesture.target)
+      if (row.getChecked() !== gesture.target) preview.add(id)
     }
     return preview
   }
