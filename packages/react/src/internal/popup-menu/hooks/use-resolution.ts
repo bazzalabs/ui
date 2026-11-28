@@ -23,7 +23,7 @@ import {
 } from '../menu-tree/resolve.js'
 import type { MenuTreeResolver } from '../menu-tree/resolver.js'
 import type { PopupMenuNode } from '../menu-tree/types.js'
-import type { LoaderScope, MenuTreeStore } from '../store/MenuTreeStore.js'
+import type { LoaderResults, MenuTreeStore } from '../store/MenuTreeStore.js'
 
 export interface UseResolutionOptions {
   tree: MenuTreeStore
@@ -163,6 +163,15 @@ function createMemo(): ResolutionMemo {
   }
 }
 
+/** A loader's rows, unless it has none or its last report was an error. */
+function rowsOf(
+  results: LoaderResults | null,
+  id: string | null,
+): NodeDef[] | undefined {
+  const record = results?.get(id)
+  return record && !record.error ? record.result.data : undefined
+}
+
 /**
  * Applies a list's content and its loader scope's results to the Menu Tree:
  * the content (with the root loader's rows, `loaded`) at the list's graft
@@ -174,12 +183,9 @@ function createMemo(): ResolutionMemo {
  */
 function resolveList(
   input: ResolutionInput,
-  scope: LoaderScope | null,
+  results: LoaderResults | null,
   memo: ResolutionMemo,
-  loaded: readonly NodeDef[] | undefined = scope?.root?.result.data &&
-  !scope.rootError
-    ? scope.root.result.data
-    : undefined,
+  loaded: readonly NodeDef[] | undefined = rowsOf(results, null),
 ): ResolveOutput {
   const {
     resolver,
@@ -235,7 +241,7 @@ function resolveList(
     nodes = resolver.rootNodes
   }
 
-  if (!scope) return { changed, nodes, local, loaded, asyncSubmenus: [] }
+  if (!results) return { changed, nodes, local, loaded, asyncSubmenus: [] }
 
   // Async branches are collected over static children only, so the grafts
   // below never add one.
@@ -255,10 +261,7 @@ function resolveList(
   }
   memo.branches = branches
   for (const info of asyncSubmenus) {
-    const state = scope.loaders.get(info.id)
-    const rows = scope.erroredLoaders.has(info.id)
-      ? undefined
-      : state?.result.data
+    const rows = rowsOf(results, info.id)
     const statics = branchDefs(info.node)
     graft(info.node, rows ? [...statics, ...rows] : statics)
   }
@@ -285,7 +288,7 @@ export function useResolution({
   disabledBranchBehavior,
 }: UseResolutionOptions): ResolutionResult {
   const { resolver } = tree
-  const scope = tree.useState('loaders', scopeId ?? '')
+  const results = tree.useState('loaders', scopeId ?? '').loaders.results
   const input: ResolutionInput = {
     resolver,
     content,
@@ -308,7 +311,7 @@ export function useResolution({
   // without them.
   // biome-ignore lint/correctness/useExhaustiveDependencies: keyed on the resolution inputs and the scope's results (`input` is a new object every render)
   const resolution = React.useMemo(() => {
-    const output = resolveList(input, scope, memo)
+    const output = resolveList(input, results, memo)
     if (output.changed) memo.unpublished = true
     let slice = sliceRef.current
     if (!slice || output.changed || slice.nodes !== output.nodes) {
@@ -349,7 +352,7 @@ export function useResolution({
     isResolutionRoot,
     includeInDeepSearch,
     disabledBranchBehavior,
-    scope,
+    results,
   ])
 
   // The scope's results reach the tree in the store update that records

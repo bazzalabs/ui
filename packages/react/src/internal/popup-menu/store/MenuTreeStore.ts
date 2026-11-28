@@ -3,6 +3,9 @@ import {
   type CellRequestResult,
   createCell,
   ElementRegistry,
+  EMPTY_LOADER_SCOPE_SNAPSHOT,
+  LoaderManager,
+  type LoaderScopeSnapshot,
   type OpenRequestResult,
 } from '@bazza-ui/menu-core'
 import { ListboxStore } from '../../listbox/index.js'
@@ -16,16 +19,16 @@ import {
   type OpenRequest,
   requestStoreOpen,
 } from '../../listbox/store/ListboxStore.js'
-import type {
-  AsyncMenuState,
-  RootAsyncMenuState,
-  RootRevealState,
-} from '../data-first/async-coordinator.js'
+import type { RootRevealState } from '../data-first/async-coordinator.js'
 import type {
   DataSurfaceContextValue,
   ResolvedNodesSlot,
 } from '../data-first/context.js'
-import type { AsyncLoaderConfig, NodeDef } from '../data-first/types.js'
+import type {
+  AsyncLoaderConfig,
+  AsyncLoaderResult,
+  NodeDef,
+} from '../data-first/types.js'
 import type {
   PopupMenuOpenChangeEventDetails,
   PopupMenuOpenChangeReason,
@@ -38,32 +41,48 @@ import { OpenChainStore } from './OpenChainStore.js'
 // Types
 // ============================================================================
 
+/** The menu tree's loaders: every data surface's, by scope. */
+export type TreeLoaderManager = LoaderManager<
+  NodeDef[],
+  AsyncLoaderResult<NodeDef[]>,
+  AsyncLoaderConfig
+>
+
+/** One data surface's loaders, as the tree's `LoaderManager` holds them. */
+export type LoaderScopeLoaders = LoaderScopeSnapshot<
+  NodeDef[],
+  AsyncLoaderResult<NodeDef[]>,
+  AsyncLoaderConfig
+>
+
+/** What a graft reads of a data surface's loaders: their results and errors. */
+export type LoaderResults = LoaderScopeLoaders['results']
+
 /**
  * One data surface's loaders: what its coordinator
  * (`useAsyncMenuCoordinator`) reads. Replaced, never changed, on each update.
  */
 export interface LoaderScope {
-  /** Branch loaders, by the branch's Resolved ID. */
-  loaders: Map<string, AsyncMenuState>
-  erroredLoaders: Map<string, Error>
-  /** The surface's own `asyncContent` loader. */
-  root: RootAsyncMenuState | null
-  rootError: Error | null
-  rootReveal: RootRevealState
+  /** Its loaders: the tree's `LoaderManager`'s snapshot of the scope. */
+  loaders: LoaderScopeLoaders
+  /**
+   * The root content's reveal as its list last published it: whether the
+   * root loader had settled once the list showed its rows (so `Empty` never
+   * reads a settle before the rows it brings), and whether the surface holds
+   * its rows back until then (`asyncContentReveal: 'block'`).
+   */
+  reveal: RootRevealState
 }
 
 /**
  * Applies a loader scope's results to the resolved tree; returns whether any
  * node's children changed. Registered by the scope's data list.
  */
-export type Grafter = (scope: LoaderScope) => boolean
+export type Grafter = (results: LoaderResults) => boolean
 
 export const EMPTY_LOADER_SCOPE: LoaderScope = {
-  loaders: new Map(),
-  erroredLoaders: new Map(),
-  root: null,
-  rootError: null,
-  rootReveal: { settled: true, settledOnce: false, block: false },
+  loaders: EMPTY_LOADER_SCOPE_SNAPSHOT,
+  reveal: { settled: true, settledOnce: false, block: false },
 }
 
 /**
@@ -196,6 +215,7 @@ export class MenuTreeStore extends ReactStore<
   readonly #elements: ElementRegistry
   readonly #onOpenChange: MenuTreeOptions['onOpenChange']
   readonly #grafters = new Map<string, Grafter>()
+  #loaderManager: TreeLoaderManager | undefined
 
   // The root's controlled open. The root surface's store mirrors it, written
   // in the same update: by `setOpen` and `control`.
@@ -291,18 +311,45 @@ export class MenuTreeStore extends ReactStore<
   }
 
   /**
+   * The tree's loaders, made when the first data surface starts one. Each
+   * change to a scope reaches the tree's state in one update, with the graft
+   * of its results (`updateLoaders`).
+   */
+  loaderManager(): TreeLoaderManager {
+    if (!this.#loaderManager) {
+      const manager: TreeLoaderManager = new LoaderManager()
+      manager.subscribe((scopeId) => {
+        const scope = this.state.loaders[scopeId]
+        const loaders = manager.scope(scopeId)
+        if (!scope && loaders === EMPTY_LOADER_SCOPE_SNAPSHOT) return
+        this.updateLoaders(scopeId, (current) => patch(current, { loaders }))
+      })
+      this.#loaderManager = manager
+    }
+    return this.#loaderManager
+  }
+
+  /** A data surface's search changed: its loaders, if any, follow it. */
+  setLoaderSearch(scopeId: string, search: string) {
+    this.#loaderManager?.setSearch(scopeId, search)
+  }
+
+  /**
    * Updates one data surface's loaders with `recipe`, which returns the scope
-   * unchanged when nothing changes. The scope's grafter applies the new
-   * results to the tree in the same update.
+   * unchanged when nothing changes. The scope's grafter applies new results
+   * to the tree in the same update.
    */
   updateLoaders(scopeId: string, recipe: (scope: LoaderScope) => LoaderScope) {
     const current = this.select('loaders', scopeId)
     const next = recipe(current)
     if (next === current) return
     const { version } = this.state
+    const grafted =
+      next.loaders.results !== current.loaders.results &&
+      this.#grafters.get(scopeId)?.(next.loaders.results)
     this.update({
       loaders: { ...this.state.loaders, [scopeId]: next },
-      version: this.#grafters.get(scopeId)?.(next) ? version + 1 : version,
+      version: grafted ? version + 1 : version,
     })
   }
 
@@ -310,6 +357,7 @@ export class MenuTreeStore extends ReactStore<
   dropLoaders(scopeId: string) {
     const { [scopeId]: dropped, ...loaders } = this.state.loaders
     if (dropped) this.set('loaders', loaders)
+    this.#loaderManager?.drop(scopeId)
   }
 
   /** Sets how a data surface's results reach the tree; returns its removal. */

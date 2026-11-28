@@ -5984,7 +5984,8 @@
           {
             "name": "setRootReveal",
             "type": "(state: RootRevealState) => void",
-            "required": true
+            "required": true,
+            "description": "Replaces the published reveal until the root data list publishes its own\nagain. `settled` only holds results back: the reveal is settled only\nwhile the menu's loaders say the root loader has settled too."
           }
         ]
       },

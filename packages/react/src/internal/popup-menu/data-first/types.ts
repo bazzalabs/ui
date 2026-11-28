@@ -227,37 +227,70 @@ export interface AsyncRenderState {
  * Aggregate async state exposed to DataList children.
  */
 export interface AsyncState {
-  /** Any loader is currently in initial loading phase */
+  /**
+   * Any loader is currently in initial loading phase
+   * @deprecated Kept for one release: each loader's state is becoming one status (idle, debouncing, loading, refreshing, settled or error).
+   */
   isLoading: boolean
 
-  /** Any loader is currently fetching */
+  /**
+   * Any loader is currently fetching
+   * @deprecated Kept for one release: each loader's state is becoming one status (idle, debouncing, loading, refreshing, settled or error).
+   */
   isFetching: boolean
 
-  /** Any loader is in first-load phase */
+  /**
+   * Any loader is in first-load phase
+   * @deprecated Kept for one release: each loader's state is becoming one status (idle, debouncing, loading, refreshing, settled or error).
+   */
   isInitialLoading: boolean
 
-  /** Any loader is in background refetch phase */
+  /**
+   * Any loader is in background refetch phase
+   * @deprecated Kept for one release: each loader's state is becoming one status (idle, debouncing, loading, refreshing, settled or error).
+   */
   isRefetching: boolean
 
-  /** All registered loaders are in background refetch phase */
+  /**
+   * All registered loaders are in background refetch phase
+   * @deprecated Kept for one release: each loader's state is becoming one status (idle, debouncing, loading, refreshing, settled or error).
+   */
   isAllRefetching: boolean
 
-  /** Static loaders specifically are loading */
+  /**
+   * Static loaders specifically are loading
+   * @deprecated Kept for one release: each loader's state is becoming one status (idle, debouncing, loading, refreshing, settled or error).
+   */
   isStaticLoading: boolean
 
-  /** Static loaders in first-load phase */
+  /**
+   * Static loaders in first-load phase
+   * @deprecated Kept for one release: each loader's state is becoming one status (idle, debouncing, loading, refreshing, settled or error).
+   */
   isStaticInitialLoading: boolean
 
-  /** Static loaders in background refetch phase */
+  /**
+   * Static loaders in background refetch phase
+   * @deprecated Kept for one release: each loader's state is becoming one status (idle, debouncing, loading, refreshing, settled or error).
+   */
   isStaticRefetching: boolean
 
-  /** Query loaders specifically are loading */
+  /**
+   * Query loaders specifically are loading
+   * @deprecated Kept for one release: each loader's state is becoming one status (idle, debouncing, loading, refreshing, settled or error).
+   */
   isQueryLoading: boolean
 
-  /** Query loaders in first-load phase */
+  /**
+   * Query loaders in first-load phase
+   * @deprecated Kept for one release: each loader's state is becoming one status (idle, debouncing, loading, refreshing, settled or error).
+   */
   isQueryInitialLoading: boolean
 
-  /** Query loaders in background refetch phase */
+  /**
+   * Query loaders in background refetch phase
+   * @deprecated Kept for one release: each loader's state is becoming one status (idle, debouncing, loading, refreshing, settled or error).
+   */
   isQueryRefetching: boolean
 
   /** Menus that failed (skipped from results) */

@@ -1,9 +1,16 @@
 'use client'
 
 import {
+  answerKey,
   buildSnapshotWithoutPositions,
   type CollectionSnapshot,
   dataSnapshotInput,
+  decideSettled,
+  EMPTY_SETTLE_MEMO,
+  type LoaderTarget,
+  loaderTarget,
+  type SettleMemo,
+  tokenQuery,
 } from '@bazza-ui/menu-core'
 import * as React from 'react'
 import {
@@ -37,6 +44,7 @@ import type { PopupMenuNode } from '../menu-tree/types.js'
 import {
   LoaderScopeContext,
   useAsyncMenuCoordinator,
+  useLoaderTarget,
 } from './async-coordinator.js'
 import {
   DataListContext,
@@ -51,7 +59,6 @@ import type {
   AsyncContentMode,
   AsyncLoaderConfig,
   AsyncLoaderResult,
-  AsyncNodesConfig,
   AsyncRenderState,
   AsyncResultBehavior,
   BreadcrumbNode,
@@ -65,7 +72,6 @@ import type {
   ItemDef,
   LinkItemDef,
   NodeDef,
-  QueryLoaderConfig,
   RadioGroupDef,
   RowRenderContext,
   SubmenuDef,
@@ -501,65 +507,6 @@ interface AsyncLoaderRendererProps {
   enabled: boolean
 }
 
-interface QueryExecutionState {
-  effectiveQuery: string
-  enabled: boolean
-  isBelowMinLength: boolean
-}
-
-function resolveInitialQueryBehavior(config: QueryLoaderConfig):
-  | {
-      value: string
-      loadWhen: 'needed' | 'parent-open'
-    }
-  | false {
-  if (config.initialQueryBehavior !== undefined) {
-    if (config.initialQueryBehavior === false) {
-      return false
-    }
-    return {
-      value: config.initialQueryBehavior.value ?? '',
-      loadWhen: config.initialQueryBehavior.loadWhen ?? 'needed',
-    }
-  }
-
-  if (config.initialQuery !== undefined) {
-    return { value: config.initialQuery, loadWhen: 'needed' }
-  }
-
-  return { value: '', loadWhen: 'needed' }
-}
-
-function resolveQueryExecutionState(
-  config: QueryLoaderConfig,
-  query: string,
-): QueryExecutionState {
-  const minLength = config.minQueryLength ?? 1
-  const initialQueryBehavior = resolveInitialQueryBehavior(config)
-
-  if (query.length >= minLength) {
-    return {
-      effectiveQuery: query,
-      enabled: true,
-      isBelowMinLength: false,
-    }
-  }
-
-  if (initialQueryBehavior !== false) {
-    return {
-      effectiveQuery: initialQueryBehavior.value,
-      enabled: true,
-      isBelowMinLength: false,
-    }
-  }
-
-  return {
-    effectiveQuery: '',
-    enabled: false,
-    isBelowMinLength: true,
-  }
-}
-
 type BranchChildRow = PopupMenuNode<
   ItemDef | LinkItemDef | CheckboxItemDef | SubmenuDef | SubpageDef
 >
@@ -754,11 +701,7 @@ export function getBranchAsyncState(
     return undefined
   }
 
-  const isBelowMinLength =
-    node.asyncNodes.type === 'query'
-      ? resolveQueryExecutionState(node.asyncNodes, searchQuery)
-          .isBelowMinLength
-      : false
+  const { isBelowMinLength } = loaderTarget(node.asyncNodes, searchQuery)
 
   return {
     status: asyncResult.result.status,
@@ -794,20 +737,11 @@ function localFirst<T extends DisplayNode>(
 }
 
 /**
- * Whether the root `asyncContent` loader has settled for the current search.
- *
- * After the effective query changes, the loader is pending until it is not
- * loading or fetching and one of these holds: it was seen fetching since the
- * change, it produced new data or a new error, or the query returned to the
- * last settled query and that query's data (or error) is what's showing.
- * Once settled, a background refetch of the same query that keeps its data
- * stays settled; a first load does not. A root loader that is not rendered, or
- * a query loader disabled below `minQueryLength`, has nothing pending, and
- * tracking starts over when it becomes active again.
- *
- * Tracked across renders because the coordinator receives each result one
- * effect after the loader renders it, so the first render after a change
- * still holds the previous query's result.
+ * Whether the root `asyncContent` loader has settled for the current search:
+ * the settle policy (`decideSettled`) the menu tree's `LoaderManager` applies
+ * to every loader, run in render over one stream of results. A root loader
+ * that is not rendered, or a query loader disabled below `minQueryLength`, has
+ * nothing pending, and tracking starts over when it becomes active again.
  */
 export function useRootAsyncSettled(
   asyncContent: AsyncLoaderConfig | undefined,
@@ -815,209 +749,76 @@ export function useRootAsyncSettled(
   result: AsyncLoaderResult<NodeDef[]> | undefined,
   loaderRendered: boolean,
 ): { settled: boolean; settledOnce: boolean } {
-  const trackRef = React.useRef<{
-    key: string
-    dataAtChange: NodeDef[] | undefined
-    errorAtChange: Error | null | undefined
-    sawFetching: boolean
-    settled: boolean
-  } | null>(null)
-  const lastSettledRef = React.useRef<{
-    key: string
-    data: NodeDef[] | undefined
-    error: Error | null | undefined
-  } | null>(null)
-  const previousRef = React.useRef<{
-    data: NodeDef[] | undefined
-    error: Error | null | undefined
-  }>({ data: undefined, error: undefined })
-  const previous = previousRef.current
-  previousRef.current = { data: result?.data, error: result?.error }
-  const settledOnce = lastSettledRef.current !== null
-
-  if (!asyncContent || !loaderRendered) {
-    trackRef.current = null
-    return { settled: true, settledOnce }
-  }
-  const execution =
-    asyncContent.type === 'query'
-      ? resolveQueryExecutionState(asyncContent, query)
-      : null
-  if (execution && !execution.enabled) {
-    trackRef.current = null
-    return { settled: true, settledOnce }
-  }
-  const key = execution ? execution.effectiveQuery : ''
-
-  let track = trackRef.current
-  if (!track || track.key !== key) {
-    track = {
-      key,
-      dataAtChange: previous.data,
-      errorAtChange: previous.error,
-      sawFetching: false,
-      settled: false,
-    }
-    trackRef.current = track
-  }
-  if (!result) return { settled: false, settledOnce }
-  // A background refetch of a settled search keeps it settled.
-  if (track.settled && !result.isLoading) return { settled: true, settledOnce }
-  if (result.isLoading || result.isFetching) {
-    if (!debounceWaitResults.has(result)) track.sawFetching = true
-    return { settled: false, settledOnce }
-  }
-
-  const last = lastSettledRef.current
-  const returnedToLastSettled =
-    last?.key === key &&
-    last.data === result.data &&
-    last.error === result.error
-  const settled =
-    returnedToLastSettled ||
-    track.sawFetching ||
-    (result.isError
-      ? result.error !== track.errorAtChange
-      : result.data !== track.dataAtChange)
-  if (settled) {
-    track.settled = true
-    lastSettledRef.current = { key, data: result.data, error: result.error }
-  }
-  return { settled, settledOnce: lastSettledRef.current !== null }
+  const memoRef = React.useRef<SettleMemo<NodeDef[]>>(EMPTY_SETTLE_MEMO)
+  const target = asyncContent ? loaderTarget(asyncContent, query) : null
+  const decision = decideSettled(memoRef.current, {
+    active: loaderRendered && (target?.enabled ?? false),
+    key: asyncContent && target ? tokenQuery(asyncContent, target) : '',
+    result,
+    waiting: false,
+  })
+  memoRef.current = decision.memo
+  return { settled: decision.settled, settledOnce: decision.settledOnce }
 }
 
 /**
- * The query and `enabled` flag a loader receives, with the config's `debounce`
- * applied. The raw search is held for `debounce` ms after it stops changing
- * (the first search passes at once), and both values come from the held
- * search, so the loader never runs a search its config disallows. While a
- * newer search is waiting and would fetch something else, `wrap` reports the
- * loader's result as fetching.
- */
-function useLoaderQuery(
-  config: AsyncLoaderConfig | undefined,
-  query: string,
-): {
-  query: string
-  enabled: boolean
-  wrap: (result: AsyncLoaderResult<NodeDef[]>) => AsyncLoaderResult<NodeDef[]>
-} {
-  const debounceMs = config?.type === 'query' ? (config.debounce ?? 0) : 0
-  const [held, setHeld] = React.useState(query)
-  React.useEffect(() => {
-    if (debounceMs <= 0) return undefined
-    const timeout = setTimeout(() => setHeld(query), debounceMs)
-    return () => clearTimeout(timeout)
-  }, [query, debounceMs])
-  const heldQuery = debounceMs > 0 ? held : query
-
-  const heldExecution =
-    config?.type === 'query'
-      ? resolveQueryExecutionState(config, heldQuery)
-      : null
-  const currentExecution =
-    config?.type === 'query' && heldQuery !== query
-      ? resolveQueryExecutionState(config, query)
-      : heldExecution
-  const pending =
-    heldExecution !== null &&
-    currentExecution !== null &&
-    currentExecution.enabled &&
-    (!heldExecution.enabled ||
-      currentExecution.effectiveQuery !== heldExecution.effectiveQuery)
-
-  return {
-    query: heldExecution?.effectiveQuery ?? query,
-    enabled: heldExecution?.enabled ?? true,
-    wrap: (result) => (pending ? asFetching(result) : result),
-  }
-}
-
-/**
- * Results reported as fetching only because a newer search is waiting out its
- * debounce. Settling doesn't count them as the loader having fetched.
- */
-const debounceWaitResults = new WeakSet<AsyncLoaderResult<NodeDef[]>>()
-
-/** Reports a loader result as fetching, for a query still being debounced. */
-function asFetching(
-  result: AsyncLoaderResult<NodeDef[]>,
-): AsyncLoaderResult<NodeDef[]> {
-  const waiting: AsyncLoaderResult<NodeDef[]> = {
-    ...result,
-    fetchStatus: 'fetching',
-    isFetching: true,
-    isLoading: !result.hasData,
-    isInitialLoading: !result.hasData,
-    isRefetching: result.hasData,
-    loadingPhase: result.hasData ? 'background' : 'initial',
-  }
-  debounceWaitResults.add(waiting)
-  return waiting
-}
-
-/**
- * Renders an async loader component and registers its state with the coordinator.
- * This component exists solely to call the Loader component (which contains hooks).
+ * Renders an async loader component and reports its state to the loader
+ * scope. This component exists solely to call the Loader component (which
+ * contains hooks).
  */
 function AsyncLoaderRenderer({
   info,
   query,
   enabled,
 }: AsyncLoaderRendererProps) {
-  const coordinator = useAsyncMenuCoordinator()
   const { config, id } = info
   const Loader = config.Loader
 
-  const loaderQuery = useLoaderQuery(config, query)
-
-  // Track if this loader should be active
+  // Track if this loader should be active: only an active one starts.
   const isActive = enabled || shouldLoadEagerly(config)
+  const given = useLoaderTarget(id, isActive ? config : undefined, query)
 
   if (!isActive) {
     return null
   }
 
   return (
-    <Loader query={loaderQuery.query} enabled={loaderQuery.enabled}>
+    <Loader query={given.query} enabled={given.enabled}>
       {(result) => (
         <AsyncLoaderResultHandler
-          kind="branch"
           id={id}
-          config={config}
-          result={loaderQuery.wrap(result)}
-          coordinator={coordinator}
+          given={given}
+          answers={answerKey(config, given)}
+          result={result}
         />
       )}
     </Loader>
   )
 }
 
-type AsyncLoaderResultHandlerProps = (
-  | { kind: 'root'; id?: undefined }
-  | { kind: 'branch'; id: string }
-) & {
-  config: AsyncNodesConfig
+interface AsyncLoaderResultHandlerProps {
+  /** The branch's id; `null` for the surface's own loader. */
+  id: string | null
+  /** What the loader was given when it rendered `result`. */
+  given: LoaderTarget
+  /** Which query that asks for (`answerKey`): a new one is reported again. */
+  answers: string | null
   result: AsyncLoaderResult<NodeDef[]>
-  coordinator: ReturnType<typeof useAsyncMenuCoordinator>
 }
 
 /**
- * Handles registering and updating loader results with the coordinator.
+ * The one bridge from a loader adapter (vanilla, SWR, TanStack Query or a
+ * custom one) to the loader scope: reports each meaningful change of its
+ * result, with what the loader was given, and withdraws it on unmount.
  * This is a separate component to avoid re-rendering the Loader on every result change.
  */
 function AsyncLoaderResultHandler({
-  kind,
   id,
-  config,
+  given,
+  answers,
   result,
-  coordinator,
 }: AsyncLoaderResultHandlerProps) {
-  // Use refs to hold the latest values without causing re-renders
-  // This is critical because coordinator changes on every state update (new Map)
-  const configRef = React.useRef(config)
-  const coordinatorRef = React.useRef(coordinator)
-  const resultRef = React.useRef(result)
+  const handle = React.useContext(LoaderScopeContext)
 
   // Track previous result values to avoid unnecessary updates
   // TanStack Query returns new object references on every render
@@ -1037,54 +838,31 @@ function AsyncLoaderResultHandler({
     hasData: boolean
     hasFetched: boolean
     error: Error | null
-    debounceWait: boolean
+    answers: string | null
   } | null>(null)
 
-  // Keep refs up to date
-  configRef.current = config
-  coordinatorRef.current = coordinator
-  resultRef.current = result
-
-  // Register on mount, unregister on unmount
-  // IMPORTANT: Only depend on `id` - coordinator is accessed via ref to avoid
-  // infinite loops (coordinator object changes on every state update)
+  // What it reported is withdrawn with the effect, so the next setup reports
+  // again, even a result that hasn't changed: StrictMode, `<Activity>` and
+  // Fast Refresh run cleanups and setups without a new result, and a new
+  // scope or id starts with nothing.
   React.useEffect(() => {
-    const coord = coordinatorRef.current
-    if (!coord) return
-
-    if (kind === 'root') {
-      coord.registerRootLoader({
-        config: configRef.current,
-        result: resultRef.current,
-      })
-    } else {
-      coord.registerLoader({
-        id,
-        config: configRef.current,
-        result: resultRef.current,
-      })
-    }
-
+    if (!handle) return undefined
     return () => {
-      if (kind === 'root') coord.unregisterRootLoader()
-      else coord.unregisterLoader(id)
+      prevResultRef.current = null
+      handle.withdraw(id)
     }
-  }, [kind, id]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [handle, id])
 
   // Update result when meaningful values change
   // IMPORTANT: Depend on individual result values, not the result object reference.
   // TanStack Query creates new object references on every render, but we only want
-  // to trigger updates when actual values change.
-  // Using coordinatorRef prevents re-running when coordinator context changes.
+  // to trigger updates when actual values change. The query the loader was
+  // given is compared too: the scope drops a result for a query the loader
+  // no longer has, so one for the query it has now is reported again.
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally field-granular — the result object has a new identity every render (see comment above)
   React.useEffect(() => {
-    const coord = coordinatorRef.current
-    if (!coord) return
+    if (!handle) return
 
-    // Compare against previous values to avoid unnecessary updates. A debounce
-    // stand-in and the loader's real result can match field for field, so the
-    // stand-in marker is compared too: the real fetch must replace it.
-    const debounceWait = debounceWaitResults.has(result)
     const prev = prevResultRef.current
     const hasChanged =
       prev === null ||
@@ -1103,7 +881,7 @@ function AsyncLoaderResultHandler({
       prev.hasData !== result.hasData ||
       prev.hasFetched !== result.hasFetched ||
       prev.error !== result.error ||
-      prev.debounceWait !== debounceWait
+      prev.answers !== answers
 
     if (hasChanged) {
       prevResultRef.current = {
@@ -1122,13 +900,12 @@ function AsyncLoaderResultHandler({
         hasData: result.hasData,
         hasFetched: result.hasFetched,
         error: result.error,
-        debounceWait,
+        answers,
       }
-      if (kind === 'root') coord.updateRootLoaderResult(result)
-      else coord.updateLoaderResult(id, result)
+      handle.report(id, given, result)
     }
   }, [
-    kind,
+    handle,
     id,
     result.data,
     result.status,
@@ -1145,7 +922,7 @@ function AsyncLoaderResultHandler({
     result.hasData,
     result.hasFetched,
     result.error,
-    debounceWaitResults.has(result),
+    answers,
   ])
 
   return null
@@ -1163,11 +940,9 @@ interface RootAsyncLoaderProps {
  * Renders the root async content loader if configured.
  */
 function RootAsyncLoader({ query }: RootAsyncLoaderProps) {
-  const dataSurfaceCtx = useDataSurfaceContext()
-  const coordinator = useAsyncMenuCoordinator()
-  const { asyncContent } = dataSurfaceCtx
+  const { asyncContent } = useDataSurfaceContext()
 
-  const loaderQuery = useLoaderQuery(asyncContent, query)
+  const given = useLoaderTarget(null, asyncContent, query)
 
   if (!asyncContent) {
     return null
@@ -1176,13 +951,13 @@ function RootAsyncLoader({ query }: RootAsyncLoaderProps) {
   const Loader = asyncContent.Loader
 
   return (
-    <Loader query={loaderQuery.query} enabled={loaderQuery.enabled}>
+    <Loader query={given.query} enabled={given.enabled}>
       {(result) => (
         <AsyncLoaderResultHandler
-          kind="root"
-          config={asyncContent as AsyncNodesConfig}
-          result={loaderQuery.wrap(result)}
-          coordinator={coordinator}
+          id={null}
+          given={given}
+          answers={answerKey(asyncContent, given)}
+          result={result}
         />
       )}
     </Loader>
@@ -1230,7 +1005,8 @@ export const DataListInner = React.forwardRef<
   } = props
 
   const tree = useMenuTree()
-  const scopeId = React.useContext(LoaderScopeContext)?.id ?? null
+  const loaderScope = React.useContext(LoaderScopeContext)
+  const scopeId = loaderScope?.id ?? null
   const popupId = usePopupSurfaceId()
   const graftParent = useGraftPoint()
   const { depth: surfaceDepth } = useListboxContext()
@@ -1307,31 +1083,21 @@ export const DataListInner = React.forwardRef<
     asyncSubmenus.some((s) => shouldLoadEagerly(s.config)) ||
     (asyncContent && asyncContent.loadStrategy === 'eager')
 
-  const rootReveal = useRootAsyncSettled(
-    asyncContent,
-    normalizedSearch,
-    coordinator?.root?.result,
-    Boolean(shouldRenderAsyncLoaders),
-  )
-  const rootSettled = rootReveal.settled
-  // Each data surface has its own coordinator; its list publishes to it.
-  const publishesRootReveal = coordinator !== null
-  const setRootReveal = coordinator?.setRootReveal
+  // Whether the root loader has settled for the search: the tree's loader
+  // manager decides, from the store update that changed the search. Until
+  // the loader starts (its layout effect), it hasn't.
+  const rootLoader = tree.useState('loaders', scopeId ?? '').loaders.root
+  const rootSettled =
+    asyncContent && shouldRenderAsyncLoaders
+      ? (rootLoader?.settled ?? false)
+      : true
+  // Published once the rows are (the List's layout effects run first), so a
+  // reader of the reveal never sees a settle before the rows it brings.
+  const settledOnce = rootLoader?.settledOnce ?? false
+  const block = asyncContentReveal === 'block' && asyncContent !== undefined
   React.useLayoutEffect(() => {
-    if (!publishesRootReveal || !setRootReveal) return
-    setRootReveal({
-      settled: rootReveal.settled,
-      settledOnce: rootReveal.settledOnce,
-      block: asyncContentReveal === 'block' && asyncContent !== undefined,
-    })
-  }, [
-    publishesRootReveal,
-    setRootReveal,
-    rootReveal.settled,
-    rootReveal.settledOnce,
-    asyncContentReveal,
-    asyncContent,
-  ])
+    loaderScope?.setReveal({ settled: rootSettled, settledOnce, block })
+  }, [loaderScope, rootSettled, settledOnce, block])
   // The last list shown while the root loader was settled; `'block'` keeps it
   // up while the current search's rows are still loading.
   const lastSettledDisplayRef = React.useRef<DisplayNode[] | null>(null)
