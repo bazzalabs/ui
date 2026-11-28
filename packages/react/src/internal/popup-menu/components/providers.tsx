@@ -27,8 +27,8 @@ import {
   SurfaceTierContext,
   useMaybeMenuSurfaceTier,
 } from '../contexts/surface-tier-context.js'
+import { createAimGuard } from '../hooks/use-aim-guard.js'
 import type { MenuTreeResolver } from '../menu-tree/resolver.js'
-import { AimGuardStore } from '../store/AimGuardStore.js'
 import type { FocusOwnerStore } from '../store/FocusOwnerStore.js'
 import { FocusZoneRegistry } from '../store/FocusZoneRegistry.js'
 import { getElementRegistry, MenuTreeStore } from '../store/MenuTreeStore.js'
@@ -202,9 +202,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
     () => new MenuTreeSettings({ debug: debugValue }),
   )
   settings.useSyncedValue('debug', debugValue)
-  const [aimGuard] = React.useState(
-    () => new AimGuardStore(() => settings.state.debug.logAimGuardEvents),
-  )
+  const [aimGuard] = React.useState(() => createAimGuard(settings))
   const [focusZones] = React.useState(() => new FocusZoneRegistry())
   React.useEffect(() => () => aimGuard.dispose(), [aimGuard])
   const treeTier = React.useMemo(

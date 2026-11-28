@@ -8,7 +8,7 @@ Where it lives:
 - `packages/menu-core/src/data/` — the pipeline over defs: browse, flatten, filtering/deep search, scoring, sorting, display, async helpers, with no React
 - `packages/menu-core/src/collection/` — the Collection snapshot, its positions, the adapters' framework-free parts (the Data adapter's input, the filtering the DOM and Virtual adapters share, the merge by document position), with no React
 - `packages/menu-core/src/elements/` — the Element Registry, with no React
-- `packages/menu-core/src/controllers/` and `platform/` — the Controllers (the Submenu Controller) and the Clock they run on, with no React
+- `packages/menu-core/src/controllers/` and `platform/` — the Controllers (the Submenu Controller, the Aim Guard Controller) and the Clock they run on, with no React
 - `packages/react/src/internal/popup-menu/menu-tree/` and `data-first/` — the React layer over those: React-typed defs and nodes, the list and subpages, async loaders; their pure modules re-export from `@bazza-ui/menu-core`
 - `packages/react/src/internal/popup-menu/components/`, `contexts/`, `hooks/` — the JSX parts and their plumbing
 
@@ -125,6 +125,10 @@ _Avoid_: manager, machine (bare), hook (the binding is a hook; the Controller is
 **Submenu Controller** (`SubmenuController`):
 When a submenu opens and closes, one per submenu trigger. States: `idle`, `open-pending` (the hover or keyboard delay is running), `open`, `guarded` (the pointer left the trigger aiming at the popup; the aim guard holds its menu's highlight while the exit's moves are tracked), `close-pending` (the close delay is running; a move that aims at the popup again keeps it open). Events: the pointer entering, moving over and leaving the trigger, entering the popup, a press, a key that opens it, the trigger's highlight changing, a sibling's highlight, the trigger's menu closing, its open state changing elsewhere, the trigger hiding. It decides `onOpenChange(open, reason)` and `onHighlight()`; the trigger applies them, and `onOpenChange` returns whether the submenu is open afterwards, so a change a disabled or controlled submenu refuses leaves the controller where the submenu is. The aim guard it takes reads geometry only (no popup, inside it, or outside it with a hit and whether the pointer moved back); the controller decides what that means in each state, and tells the guard what to show on its debug overlay. Pressing the trigger to open or close it stays the popover trigger's; a press on the open trigger only stops the next highlight reopening it.
 _Avoid_: submenu timer, hover intent
+
+**Aim Guard Controller** (`AimGuardController`):
+A menu tree's aim guard (K7), one per root, on its tree tier: while the pointer leaves a submenu trigger heading for the submenu's popup, the trigger **holds** the guard, and the other rows of its menu, at that depth only, don't take the pointer; it times out by itself and is released when the pointer reaches the popup. Each submenu trigger reads the pointer through its own **Aim Guard Trigger** (`AimGuardTrigger`, from `trigger()`), the aim guard its Submenu Controller takes: the geometry of the pointer leaving the trigger and moving on, against the rects the binding reads; the pointer's **trail** (its last four positions), recorded only while the trigger is hovered or tracking an exit, through one pointer listener for the tree; and the safe-triangle debug overlay, worked out only while something subscribes to it. A popup tells the guard when the pointer is over it (`pointerInPopup`), which releases a guard on the way there and tells the trigger that opens it.
+_Avoid_: safe polygon (the geometry, not the guard), aim guard store
 
 **Listbox**:
 The state layer beneath the engine: rows register into a `ListboxStore`, which owns highlight state and keyboard navigation. Implements the WAI-ARIA listbox pattern; shared by every menu family.

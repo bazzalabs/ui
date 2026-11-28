@@ -171,7 +171,6 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
       triggerStoreId: item.storeId,
       parentDepth,
       childSurfaceId,
-      open,
       contentRef,
       triggerRef,
     })
@@ -354,12 +353,15 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
         config={safeTriangle.config}
         contentRef={contentRef}
         triggerRef={triggerRef}
-        tone={safeTriangle.tone}
-        contentRectOverride={safeTriangle.snapshot?.contentRect}
-        triggerRectOverride={safeTriangle.snapshot?.triggerRect}
+        tone={safeTriangle.snapshot.tone}
+        contentRectOverride={safeTriangle.snapshot.frozen?.popupRect}
+        triggerRectOverride={safeTriangle.snapshot.frozen?.triggerRect}
         mousePointOverride={
-          safeTriangle.snapshot
-            ? [safeTriangle.snapshot.pointerX, safeTriangle.snapshot.pointerY]
+          safeTriangle.snapshot.frozen
+            ? [
+                safeTriangle.snapshot.frozen.point.x,
+                safeTriangle.snapshot.frozen.point.y,
+              ]
             : null
         }
       />

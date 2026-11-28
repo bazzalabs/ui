@@ -13,7 +13,7 @@ import {
   useListboxItem,
 } from '../../listbox/index.js'
 import { useMaybePopupMenuContext } from '../contexts/popup-menu-context.js'
-import { useAimGuard } from './use-aim-guard.js'
+import { useAimGuardRefs } from './use-aim-guard.js'
 
 export interface UsePopupMenuItemParams
   extends Omit<UseListboxItemParams, 'aimGuard' | 'onAfterSelect'> {
@@ -45,21 +45,12 @@ export function usePopupMenuItem(
     activatable = true,
     ...rest
   } = params
-  const { aimGuardActiveRef, guardedDepthRef } = useAimGuard()
+  const aimGuard = useAimGuardRefs()
   const { closeAll } = useListboxContext()
   const popupMenuContext = useMaybePopupMenuContext()
 
   const menuDisabled = popupMenuContext?.disabled ?? false
   const effectiveDisabled = disabled || menuDisabled
-
-  // Create aim guard refs object for the listbox hook
-  const aimGuard = React.useMemo(
-    () => ({
-      aimGuardActiveRef,
-      guardedDepthRef,
-    }),
-    [aimGuardActiveRef, guardedDepthRef],
-  )
 
   // Handle after-select behavior (close menu if closeOnClick is true)
   const handleAfterSelect = React.useCallback(

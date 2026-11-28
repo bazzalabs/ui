@@ -292,14 +292,17 @@ export class SubmenuController {
       aimGuard.release()
       return this.#missed()
     }
+    // Shown once the guard is held or released, so the overlay reads it
     if (aim.type === 'inside') {
-      aimGuard.show('hit')
       aimGuard.release()
+      aimGuard.show('hit')
       return this.#settle()
     }
     if (aim.hit) {
-      aimGuard.show('hit')
-      if (this.#guard()) this.#startTracking(GUARD_MS)
+      // A refused open leaves nothing guarded to show
+      const opened = this.#guard()
+      aimGuard.show(opened ? 'hit' : 'none')
+      if (opened) this.#startTracking(GUARD_MS)
       return
     }
     aimGuard.show('miss')
@@ -326,12 +329,19 @@ export class SubmenuController {
       if (aim.hit && !aim.movedAway) return
       aimGuard.show('miss')
       aimGuard.release()
-      return this.#missed()
+      this.#missed()
+      // Tracked for as long as the close delay it now waits out
+      if (this.#state === 'close-pending') {
+        this.#timeTracking(this.#settings.closeDelay)
+      }
+      return
     }
-    // Waiting out the close delay: a heading that hits the popup keeps it.
+    // Waiting out the close delay: a heading that hits the popup keeps it,
+    // tracked for as long as the guard it now holds.
     if (!aim.hit) return
-    aimGuard.show('hit')
-    this.#guard()
+    const opened = this.#guard()
+    aimGuard.show(opened ? 'hit' : 'none')
+    if (opened) this.#timeTracking(GUARD_MS)
   }
 
   #highlight(highlighted: boolean, keyboard: boolean) {
@@ -455,6 +465,12 @@ export class SubmenuController {
     this.#unwatch = this.#options.aimGuard.watch((point) =>
       this.#run(() => this.#track(point)),
     )
+    this.#timeTracking(ms)
+  }
+
+  /** Tracking the exit ends `ms` from now. */
+  #timeTracking(ms: number) {
+    if (this.#trackTimer !== null) this.#clock.clearTimeout(this.#trackTimer)
     this.#trackTimer = this.#clock.setTimeout(() => {
       this.#trackTimer = null
       this.#run(() => {
