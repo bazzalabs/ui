@@ -9,6 +9,7 @@ import {
   useMaybeAsyncMenuCoordinator,
   useMaybeDataSurfaceContext,
 } from '../../internal/popup-menu/index.js'
+import { useLoadersSettled } from '../../internal/popup-menu/members.js'
 import { useSuggestionMenuRootContext } from '../root/root-context.js'
 
 /**
@@ -49,17 +50,23 @@ function rowLabel(
 
 /**
  * Tells the Root what the settled results are, so its status region can
- * announce them. Lives inside the Surface, where the settle state is known.
+ * announce them. Lives inside the Surface, after its List: the results have
+ * settled once the menu's loaders have for the search (`isTreeSettled`), and
+ * the List has published their rows by the time this reads them. A reveal
+ * held back (`rootReveal.settled`, which `setRootReveal` can hold) holds the
+ * summary back too.
  */
 export function SuggestionMenuResultsReporter() {
   const { store } = useListboxContext()
-  const coordinator = useMaybeAsyncMenuCoordinator()
   const dataFirst = useMaybeDataSurfaceContext() !== null
   const { query, reportResults } = useSuggestionMenuRootContext()
   const open = store.useState('open')
   const highlightedId = store.useState('highlightedId')
   const highlightSource = store.useState('highlightSource')
-  const settled = coordinator?.rootReveal.settled ?? true
+  const search = store.useState('normalizedSearch')
+  const coordinator = useMaybeAsyncMenuCoordinator()
+  const settled =
+    useLoadersSettled(search) && (coordinator?.rootReveal.settled ?? true)
 
   // Re-run when the menu itself moves the highlight (e.g. to the first row
   // once rows land). Moves by keyboard or pointer are voiced through
@@ -72,9 +79,10 @@ export function SuggestionMenuResultsReporter() {
 
   React.useLayoutEffect(() => {
     if (!open || !settled) return undefined
-    // Read the rows once this update has finished, still before paint: a
-    // settle published from a layout effect re-renders first, and cancels
-    // this if the results turned out not to be settled after all.
+    // Read the rows once this update has finished, still before paint: the
+    // List's layout effects, which run before this one, have published the
+    // rows and the highlight, and a re-render a layout effect causes runs
+    // first, and cancels this if the results turned out not to be settled.
     let cancelled = false
     queueMicrotask(() => {
       if (cancelled) return

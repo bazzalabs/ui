@@ -11,6 +11,8 @@ export {
   DataPopupProvider,
   DataSubpagesContent,
 } from './data-first/data-subpages.js'
+export type { LoaderState, QueryToken } from './data-first/types.js'
+export { useLoader, useLoadersSettled } from './data-first/use-loader.js'
 export type { PopupMenuOpenChangeReason } from './events.js'
 export { useMenuElement, usePressClaim } from './hooks/use-menu-element.js'
 export {

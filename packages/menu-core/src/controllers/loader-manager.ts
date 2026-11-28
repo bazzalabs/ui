@@ -288,13 +288,7 @@ export class LoaderManager<
    */
   isTreeSettled(query: string): boolean {
     for (const record of this.#scopes.values()) {
-      for (const slot of record.slots.values()) {
-        const target = loaderTarget(slot.config, query)
-        if (!target.enabled) continue
-        if (!isSettled(slot.entry.state, tokenQuery(slot.config, target))) {
-          return false
-        }
-      }
+      if (!isScopeSettled(record.snapshot, query)) return false
     }
     return true
   }
@@ -438,6 +432,30 @@ export class LoaderManager<
   #notify(scope: string) {
     for (const listener of this.#listeners) listener(scope)
   }
+}
+
+/**
+ * Whether every loader of a scope's snapshot has settled for `query`: its
+ * state is final for what `query` asks of it, or `query` asks nothing of it.
+ * A loader that hasn't reported yet hasn't settled. Reads the snapshot only,
+ * so a store that holds the snapshots can decide it from its own state.
+ */
+export function isScopeSettled<T, R, C extends AsyncNodesConfigBase>(
+  snapshot: LoaderScopeSnapshot<T, R, C>,
+  query: string,
+): boolean {
+  const settled = (entry: LoaderEntry<T, R, C>) => {
+    const target = loaderTarget(entry.config, query)
+    return (
+      !target.enabled ||
+      isSettled(entry.state, tokenQuery(entry.config, target))
+    )
+  }
+  if (snapshot.root && !settled(snapshot.root)) return false
+  for (const entry of snapshot.branches.values()) {
+    if (!settled(entry)) return false
+  }
+  return true
 }
 
 function stateOf<T, R extends LoaderResultLike<T>, C>(

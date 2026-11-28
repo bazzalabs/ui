@@ -30,6 +30,7 @@ export {
   useAsyncMenuCoordinator,
   useDataList,
 } from '../internal/popup-menu/index.js'
+export { useLoader } from '../internal/popup-menu/members.js'
 export {
   createSuggestionMenuHandle as createHandle,
   SuggestionMenuHandle as Handle,

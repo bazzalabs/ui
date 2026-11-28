@@ -68,6 +68,7 @@ export {
   useMaybeAsyncMenuCoordinator,
   useMaybeDataList,
 } from '../internal/popup-menu/index.js'
+export { useLoader } from '../internal/popup-menu/members.js'
 // Context-menu specific components
 export { ContextMenuRoot as Root } from './root/root.js'
 export { ContextMenuTrigger as Trigger } from './trigger/trigger.js'
