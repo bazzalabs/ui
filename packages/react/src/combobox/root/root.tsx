@@ -16,6 +16,7 @@ import {
   askRootOpen,
   mirrorToBaseUI,
   type PopupMenuOpenChangeReason,
+  popupActionsOf,
 } from '../../internal/popup-menu/members.js'
 import { REASONS } from '../../utils/events/index.js'
 import {
@@ -438,7 +439,9 @@ export function ComboboxRoot<
     disabled: disabledProp,
   })
 
-  const popoverActionsRef = React.useRef<Popover.Root.Actions | null>(null)
+  // The Base UI root's actions, which the popup also uses to complete a close
+  // in the frame it closes when nothing animates (`useCloseInOneFrame`).
+  const popoverActionsRef = popupActionsOf(store)
 
   React.useImperativeHandle(
     actionsRef,
@@ -451,7 +454,7 @@ export function ComboboxRoot<
       },
       setDisabled,
     }),
-    [setDisabled],
+    [setDisabled, popoverActionsRef],
   )
 
   // Sync controlled open prop to store
@@ -833,7 +836,7 @@ export function ComboboxRoot<
           onOpenChange={handlePopoverOpenChange}
           onOpenChangeComplete={handleOpenChangeComplete}
           modal={modal}
-          actionsRef={actionsRef ? popoverActionsRef : undefined}
+          actionsRef={popoverActionsRef}
         >
           {children}
         </Popover.Root>

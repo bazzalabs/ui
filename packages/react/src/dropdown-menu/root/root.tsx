@@ -1,7 +1,7 @@
 'use client'
 
 import { Popover, type PopoverRootProps } from '@base-ui/react/popover'
-import { useCallback, useImperativeHandle, useRef } from 'react'
+import { useCallback, useImperativeHandle } from 'react'
 import type { VirtualItem } from '../../internal/listbox/index.js'
 import {
   type GetResolvedIdFn,
@@ -13,7 +13,10 @@ import {
   type UsePopupMenuRootParams,
   usePopupMenuRoot,
 } from '../../internal/popup-menu/index.js'
-import { askFromBaseUI } from '../../internal/popup-menu/members.js'
+import {
+  askFromBaseUI,
+  popupActionsOf,
+} from '../../internal/popup-menu/members.js'
 import type {
   DropdownMenuHighlightChangeEventDetails,
   DropdownMenuOpenChangeEventDetails,
@@ -209,7 +212,9 @@ export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
     idScope,
   })
 
-  const popoverActionsRef = useRef<Popover.Root.Actions | null>(null)
+  // The Base UI root's actions, which the popup also uses to complete a close
+  // in the frame it closes when nothing animates (`useCloseInOneFrame`).
+  const popoverActionsRef = popupActionsOf(store)
 
   useImperativeHandle(
     actionsRef,
@@ -222,7 +227,7 @@ export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
       },
       setDisabled,
     }),
-    [setDisabled],
+    [setDisabled, popoverActionsRef],
   )
 
   // Sync controlled open prop to store
@@ -287,7 +292,7 @@ export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
         onOpenChange={handlePopoverOpenChange}
         onOpenChangeComplete={handleOpenChangeComplete}
         modal={modal}
-        actionsRef={actionsRef ? popoverActionsRef : undefined}
+        actionsRef={popoverActionsRef}
       >
         {children}
       </Popover.Root>

@@ -14,7 +14,10 @@ import {
   usePopupMenuRoot,
   type VirtualAnchor,
 } from '../../internal/popup-menu/index.js'
-import { askFromBaseUI } from '../../internal/popup-menu/members.js'
+import {
+  askFromBaseUI,
+  popupActionsOf,
+} from '../../internal/popup-menu/members.js'
 import { REASONS } from '../../utils/events/index.js'
 import type {
   ContextMenuHighlightChangeEventDetails,
@@ -260,7 +263,9 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
     idScope,
   })
 
-  const popoverActionsRef = React.useRef<Popover.Root.Actions | null>(null)
+  // The Base UI root's actions, which the popup also uses to complete a close
+  // in the frame it closes when nothing animates (`useCloseInOneFrame`).
+  const popoverActionsRef = popupActionsOf(store)
 
   React.useImperativeHandle(
     actionsRef,
@@ -273,7 +278,7 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
       },
       setDisabled,
     }),
-    [setDisabled],
+    [setDisabled, popoverActionsRef],
   )
 
   // Sync controlled open prop to store
@@ -372,7 +377,7 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
           onOpenChange={handlePopoverOpenChange}
           onOpenChangeComplete={handleOpenChangeComplete}
           modal={modal}
-          actionsRef={actionsRef ? popoverActionsRef : undefined}
+          actionsRef={popoverActionsRef}
         >
           {children}
         </Popover.Root>

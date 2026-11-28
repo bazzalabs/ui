@@ -19,6 +19,7 @@ import {
   askFromBaseUI,
   getRequestReason,
   type PopupMenuOpenChangeReason,
+  popupActionsOf,
 } from '../../internal/popup-menu/members.js'
 import { REASONS } from '../../utils/events/index.js'
 import type {
@@ -517,6 +518,9 @@ export function SuggestionMenuRoot<Payload = unknown>(
           onOpenChange={handlePopoverOpenChange}
           onOpenChangeComplete={handleOpenChangeComplete}
           modal={false}
+          // The popup completes a close with nothing to animate in the frame
+          // it closes through these (`useCloseInOneFrame`).
+          actionsRef={popupActionsOf(store)}
         >
           {typeof children === 'function'
             ? children({ payload, query })

@@ -11,7 +11,10 @@ import {
   type UsePopupMenuRootParams,
   usePopupMenuRoot,
 } from '../../internal/popup-menu/index.js'
-import { askFromBaseUI } from '../../internal/popup-menu/members.js'
+import {
+  askFromBaseUI,
+  popupActionsOf,
+} from '../../internal/popup-menu/members.js'
 import {
   defaultItemEquality,
   type ItemEqualityComparer,
@@ -380,7 +383,9 @@ export function SelectRoot<
     disabled: disabledProp,
   })
 
-  const popoverActionsRef = React.useRef<Popover.Root.Actions | null>(null)
+  // The Base UI root's actions, which the popup also uses to complete a close
+  // in the frame it closes when nothing animates (`useCloseInOneFrame`).
+  const popoverActionsRef = popupActionsOf(store)
 
   React.useImperativeHandle(
     actionsRef,
@@ -393,7 +398,7 @@ export function SelectRoot<
       },
       setDisabled,
     }),
-    [setDisabled],
+    [setDisabled, popoverActionsRef],
   )
 
   // Sync controlled open prop to store
@@ -610,7 +615,7 @@ export function SelectRoot<
           onOpenChange={handlePopoverOpenChange}
           onOpenChangeComplete={handleOpenChangeComplete}
           modal={modal}
-          actionsRef={actionsRef ? popoverActionsRef : undefined}
+          actionsRef={popoverActionsRef}
         >
           {children}
         </Popover.Root>
