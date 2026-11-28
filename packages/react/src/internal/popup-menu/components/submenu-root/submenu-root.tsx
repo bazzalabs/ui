@@ -15,6 +15,7 @@ import {
 } from '../../../listbox/index.js'
 import {
   getCloseCause,
+  popupActionsOf,
   requestStoreOpen,
 } from '../../../listbox/store/ListboxStore.js'
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
@@ -351,7 +352,9 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
     return parentRegisterSurface(depth, setOpen)
   }, [parentRegisterSurface, depth, setOpen])
 
-  const popoverActionsRef = React.useRef<Popover.Root.Actions | null>(null)
+  // The Base UI root's actions, which the popup also uses to complete a close
+  // in the frame it closes when nothing animates (`useCloseInOneFrame`).
+  const popoverActionsRef = popupActionsOf(store)
 
   React.useImperativeHandle(
     actionsRef,
@@ -364,7 +367,7 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
       },
       setDisabled,
     }),
-    [setDisabled],
+    [setDisabled, popoverActionsRef],
   )
 
   // The submenu surface's tier, which its trigger, positioner, popup and
@@ -518,7 +521,7 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
             open={open}
             onOpenChange={handlePopoverOpenChange}
             onOpenChangeComplete={handleOpenChangeComplete}
-            actionsRef={actionsRef ? popoverActionsRef : undefined}
+            actionsRef={popoverActionsRef}
           >
             {children}
           </Popover.Root>

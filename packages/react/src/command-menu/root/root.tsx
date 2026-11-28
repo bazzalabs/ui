@@ -8,7 +8,10 @@ import {
   PopupMenuProviders,
   usePopupMenuRoot,
 } from '../../internal/popup-menu/index.js'
-import { askFromBaseUI } from '../../internal/popup-menu/members.js'
+import {
+  askFromBaseUI,
+  popupActionsOf,
+} from '../../internal/popup-menu/members.js'
 import { REASONS } from '../../utils/events/index.js'
 import { useHotkey } from '../../utils/keybinding/use-hotkey.js'
 import type { CommandMenuOpenChangeEventDetails } from '../events.js'
@@ -203,6 +206,9 @@ export function CommandMenuRoot(props: CommandMenuRoot.Props) {
         onOpenChange={handleDialogOpenChange}
         onOpenChangeComplete={handleDialogOpenChangeComplete}
         modal={modal}
+        // The popup completes a close with nothing to animate in the frame it
+        // closes through these (`useCloseInOneFrame`).
+        actionsRef={popupActionsOf(store)}
       >
         {children}
       </Dialog.Root>

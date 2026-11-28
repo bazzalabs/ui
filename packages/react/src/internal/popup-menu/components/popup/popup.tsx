@@ -21,6 +21,7 @@ import {
   DataPopupProvider,
   DataSubpagesContent,
 } from '../../data-first/data-subpages.js'
+import { useCloseInOneFrame } from '../../hooks/use-close-in-one-frame.js'
 import { useMenuElement, usePressClaim } from '../../hooks/use-menu-element.js'
 import { useSubpageStackState } from '../../hooks/use-subpage-stack-state.js'
 import { getElementRegistry } from '../../store/MenuTreeStore.js'
@@ -147,6 +148,8 @@ export const PopupMenuPopup = React.forwardRef<
 
   // Local ref for the popup element
   const popupRef = React.useRef<HTMLDivElement>(null)
+  // With nothing to animate, the close completes in the frame it closes.
+  const observeClose = useCloseInOneFrame(popupMenuContext?.store, depth)
 
   const registerPopup = useMenuElement('popup', surfaceId)
   const claimPress = usePressClaim(rest.onPointerDownCapture)
@@ -157,6 +160,7 @@ export const PopupMenuPopup = React.forwardRef<
       // Update local ref
       popupRef.current = node
       registerPopup(node)
+      observeClose(node)
 
       // Update forwarded ref
       if (typeof forwardedRef === 'function') {
@@ -172,7 +176,7 @@ export const PopupMenuPopup = React.forwardRef<
         ).current = node
       }
     },
-    [forwardedRef, submenuContext, registerPopup],
+    [forwardedRef, submenuContext, registerPopup, observeClose],
   )
 
   // Register the root popup element with the store so popup-layer features

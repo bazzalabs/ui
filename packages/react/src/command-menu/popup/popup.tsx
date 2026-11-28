@@ -12,6 +12,7 @@ import {
 import {
   DataPopupProvider,
   DataSubpagesContent,
+  useCloseInOneFrame,
   useMenuElement,
   usePressClaim,
 } from '../../internal/popup-menu/members.js'
@@ -69,6 +70,8 @@ export const CommandMenuPopup = React.forwardRef<
   const popupRef = useMergedRefs(
     forwardedRef,
     useMenuElement('popup', surfaceId),
+    // With nothing to animate, the close completes in the frame it closes.
+    useCloseInOneFrame(popupMenuContext.store, popupMenuContext.depth),
   )
   const claimPress = usePressClaim(rest.onPointerDownCapture)
 

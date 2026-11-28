@@ -1171,6 +1171,33 @@ export function reapplyAutoHighlight(
   return typeof autoHighlightFirst === 'string'
 }
 
+/**
+ * What the Base UI root that shows a store's popup (`Popover.Root`,
+ * `Dialog.Root`) does when asked, through its `actionsRef`.
+ */
+export interface PopupActions {
+  /** Unmounts the closed popup now and reports the close complete. */
+  unmount: () => void
+  /** Closes the popup. */
+  close: () => void
+}
+
+let popupActionsAccess: (store: ListboxStore) => {
+  current: PopupActions | null
+}
+
+/**
+ * The `actionsRef` of the Base UI root whose popup shows `store`'s surface,
+ * made with the store: a root (or `SubmenuRoot`) passes it to its
+ * `Popover.Root` or `Dialog.Root`, and the popup part reads it to complete a
+ * close in the frame it closes when nothing animates (`useCloseInOneFrame`).
+ */
+export function popupActionsOf(store: ListboxStore): {
+  current: PopupActions | null
+} {
+  return popupActionsAccess(store)
+}
+
 // ============================================================================
 // Store
 // ============================================================================
@@ -1216,6 +1243,7 @@ export class ListboxStore extends ReactStore<
           cause,
         ),
     }
+    popupActionsAccess = (store) => store.#popupActions
   }
 
   constructor(
@@ -1349,6 +1377,10 @@ export class ListboxStore extends ReactStore<
   // Set when another store keeps the open cell (`attachOpenOwner`): the
   // `open` cell above isn't read then, and the owner writes the mirrors.
   #openOwner: OpenOwner | undefined
+
+  // The actions of the Base UI root that shows this store's popup
+  // (`popupActionsOf`).
+  readonly #popupActions: { current: PopupActions | null } = { current: null }
 
   /**
    * Syncs a controlled prop into the store. `openProp` and `searchProp` go
