@@ -27,7 +27,7 @@ import type {
 } from '../../events.js'
 import { useMaybeStore } from '../../hooks/use-maybe-store.js'
 import { usePopupMenuItem } from '../../hooks/use-popup-menu-item.js'
-import { isChecked } from '../../store/CheckboxGroupStore.js'
+import { groupChecked, isChecked } from '../../store/CheckboxGroupStore.js'
 import { useMaybeCheckboxGroupContext } from '../checkbox-group/checkbox-group-context.js'
 import { PopupMenuCheckboxItemDataAttributes } from './checkbox-item.data-attrs.js'
 import {
@@ -120,7 +120,7 @@ export const PopupMenuCheckboxItem = React.forwardRef<
 
   const group = useMaybeCheckboxGroupContext()
   const registerItemValue = group?.registerItemValue
-  // In a group, the group's store has the checked state, read by this item's
+  // In a group, the group's store keeps its own value, read by this item's
   // value (a key selector), so a change re-renders only the items it checks
   // or unchecks.
   const groupStore = group?.store ?? null
@@ -130,8 +130,12 @@ export const PopupMenuCheckboxItem = React.forwardRef<
     React.useState<boolean>(defaultChecked)
   const isControlled = checkedProp !== undefined
   const ownChecked = isControlled ? checkedProp : internalChecked
-  const groupChecked = useMaybeStore(groupStore, isChecked, false, value)
-  const checked = groupStore ? groupChecked : ownChecked
+  // In a group: in the prop while one controls it (from the context, as fresh
+  // as this render's props), else in the group's own value.
+  const ownGroupChecked = useMaybeStore(groupStore, isChecked, false, value)
+  const checked = group
+    ? groupChecked(group.controlledValue, ownGroupChecked, value)
+    : ownChecked
 
   const toggleChecked = React.useCallback(
     (reason: CheckedChangeReason = REASONS.itemPress, event?: Event) => {
@@ -246,10 +250,11 @@ export const PopupMenuCheckboxItem = React.forwardRef<
       id: item.storeId,
       value: value ?? item.storeId,
       owner,
-      // A group's committed value is its store's; a standalone item's is
-      // its own state, as it last rendered.
+      // A group's committed value is its store's (the prop's, while one
+      // controls it); a standalone item's is its own state, as it last
+      // rendered.
       getChecked: groupStore
-        ? () => isChecked(groupStore.state, value)
+        ? () => value !== undefined && groupStore.getValue().includes(value)
         : () => checkedRef.current,
       commit: commitOwn,
     })

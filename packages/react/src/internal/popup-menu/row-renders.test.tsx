@@ -807,6 +807,20 @@ describe('popup menu row re-renders', () => {
 
 const CHECKBOX_VALUES = Array.from({ length: 8 }, (_, index) => `cb-${index}`)
 
+/**
+ * What each checkbox or radio row renders, by its value: one entry per
+ * render. A `<Profiler>` misses renders a context change makes in a subtree
+ * whose elements didn't change, so the pins on them count these.
+ */
+const rowRenders = new Map<string, boolean[]>()
+const recordRender = (value: string) => (state: { checked: boolean }) => {
+  rowRenders.set(value, [...(rowRenders.get(value) ?? []), state.checked])
+  return ''
+}
+/** Each of `values` rendered once, checked when it's in `checked`. */
+const renderedOnce = (values: readonly string[], checked: readonly string[]) =>
+  Object.fromEntries(values.map((value) => [value, [checked.includes(value)]]))
+
 type CheckboxGrouping = 'standalone' | 'group' | 'controlled group'
 
 let setControlledGroupValue: React.Dispatch<
@@ -836,7 +850,11 @@ function CheckboxMenu({
 }) {
   const rows = CHECKBOX_VALUES.map((value) => (
     <React.Profiler key={value} id={value} onRender={counter.onRender}>
-      <DropdownMenu.CheckboxItem value={value} data-testid={value}>
+      <DropdownMenu.CheckboxItem
+        value={value}
+        data-testid={value}
+        className={recordRender(value)}
+      >
         <DropdownMenu.CheckboxItemIndicator keepMounted />
         {value}
       </DropdownMenu.CheckboxItem>
@@ -889,7 +907,6 @@ describe('checkbox row re-renders', () => {
   it.each([
     'standalone',
     'group',
-    'controlled group',
   ] as const)('a press re-renders only the row it toggles (%s)', async (grouping) => {
     const counter = await renderCheckboxMenu(grouping)
     const before = counter.snapshot()
@@ -901,15 +918,33 @@ describe('checkbox row re-renders', () => {
     expect(counter.since(before)).toEqual({ 'cb-2': 1 })
   })
 
-  it('a group value set from outside re-renders only the rows it checks or unchecks', async () => {
-    const counter = await renderCheckboxMenu('controlled group')
+  // A controlled group's value reaches its rows through its context, in the
+  // render that brings it, so no row renders an older value than its props:
+  // every row commits once, as before the group had a store.
+  it('a controlled group re-renders every row once for a press', async () => {
+    await renderCheckboxMenu('controlled group')
+    rowRenders.clear()
+    act(() => {
+      fireEvent.click(screen.getByTestId('cb-2'))
+    })
+    await act(async () => {})
+    expect(checkedRows()).toEqual(['cb-2'])
+    expect(Object.fromEntries(rowRenders)).toEqual(
+      renderedOnce(CHECKBOX_VALUES, ['cb-2']),
+    )
+  })
+
+  it('a controlled group re-renders every row once for a value set from outside', async () => {
+    await renderCheckboxMenu('controlled group')
     act(() => setControlledGroupValue(['cb-1', 'cb-3']))
     await act(async () => {})
-    const before = counter.snapshot()
+    rowRenders.clear()
     act(() => setControlledGroupValue(['cb-3', 'cb-6']))
     await act(async () => {})
     expect(checkedRows()).toEqual(['cb-3', 'cb-6'])
-    expect(counter.since(before)).toEqual({ 'cb-1': 1, 'cb-6': 1 })
+    expect(Object.fromEntries(rowRenders)).toEqual(
+      renderedOnce(CHECKBOX_VALUES, ['cb-3', 'cb-6']),
+    )
   })
 
   it.each([
@@ -1034,5 +1069,240 @@ describe('checkbox row re-renders', () => {
       'true,true,false',
       'false,true,false',
     ])
+  })
+})
+
+const RADIO_VALUES = Array.from({ length: 8 }, (_, index) => `radio-${index}`)
+
+type RadioGrouping = 'group' | 'controlled group' | 'headless value'
+
+let setControlledRadioValue: (value: string) => void = () => {}
+
+function ControlledRadioGroup({
+  children,
+  headless,
+}: {
+  children: React.ReactNode
+  headless: boolean
+}) {
+  const [value, setValue] = React.useState('radio-0')
+  setControlledRadioValue = setValue
+  return headless ? (
+    <DropdownMenu.RadioGroupValue value={value} onValueChange={setValue}>
+      {children}
+    </DropdownMenu.RadioGroupValue>
+  ) : (
+    <DropdownMenu.RadioGroup value={value} onValueChange={setValue}>
+      {children}
+    </DropdownMenu.RadioGroup>
+  )
+}
+
+/**
+ * Eight radio items in a group, rendered once by a parent that never
+ * re-renders: what re-renders an item is its own state.
+ */
+function RadioMenu({
+  counter,
+  grouping,
+}: {
+  counter: RenderCounter
+  grouping: RadioGrouping
+}) {
+  const rows = RADIO_VALUES.map((value) => (
+    <React.Profiler key={value} id={value} onRender={counter.onRender}>
+      <DropdownMenu.RadioItem
+        value={value}
+        data-testid={value}
+        className={recordRender(value)}
+      >
+        <DropdownMenu.RadioItemIndicator />
+        {value}
+      </DropdownMenu.RadioItem>
+    </React.Profiler>
+  ))
+  return (
+    <DropdownMenu.Root defaultOpen>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Surface>
+              <DropdownMenu.List>
+                {grouping === 'group' ? (
+                  <DropdownMenu.RadioGroup defaultValue="radio-0">
+                    {rows}
+                  </DropdownMenu.RadioGroup>
+                ) : (
+                  <ControlledRadioGroup
+                    headless={grouping === 'headless value'}
+                  >
+                    {rows}
+                  </ControlledRadioGroup>
+                )}
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
+const selectedRadio = () =>
+  RADIO_VALUES.filter(
+    (value) =>
+      screen.getByTestId(value).getAttribute('aria-checked') === 'true',
+  )
+
+describe('radio item re-renders', () => {
+  it('a press re-renders only the item that loses the selection and the one that takes it (uncontrolled)', async () => {
+    const counter = createRenderCounter()
+    render(<RadioMenu counter={counter} grouping="group" />)
+    await act(async () => {})
+    const before = counter.snapshot()
+    act(() => {
+      fireEvent.click(screen.getByTestId('radio-3'))
+    })
+    await act(async () => {})
+    expect(selectedRadio()).toEqual(['radio-3'])
+    expect(counter.since(before)).toEqual({ 'radio-0': 1, 'radio-3': 1 })
+  })
+
+  // A controlled group's value reaches its items through its context, in the
+  // render that brings it, so no item renders an older value than its props:
+  // every item commits once, as before the group had a store.
+  it.each([
+    'controlled group',
+    'headless value',
+  ] as const)('a controlled group re-renders every item once for a press (%s)', async (grouping) => {
+    render(<RadioMenu counter={createRenderCounter()} grouping={grouping} />)
+    await act(async () => {})
+    rowRenders.clear()
+    act(() => {
+      fireEvent.click(screen.getByTestId('radio-3'))
+    })
+    await act(async () => {})
+    expect(selectedRadio()).toEqual(['radio-3'])
+    expect(Object.fromEntries(rowRenders)).toEqual(
+      renderedOnce(RADIO_VALUES, ['radio-3']),
+    )
+  })
+
+  it.each([
+    'controlled group',
+    'headless value',
+  ] as const)('a controlled group re-renders every item once for a value set from outside (%s)', async (grouping) => {
+    render(<RadioMenu counter={createRenderCounter()} grouping={grouping} />)
+    await act(async () => {})
+    rowRenders.clear()
+    act(() => setControlledRadioValue('radio-6'))
+    await act(async () => {})
+    expect(selectedRadio()).toEqual(['radio-6'])
+    expect(Object.fromEntries(rowRenders)).toEqual(
+      renderedOnce(RADIO_VALUES, ['radio-6']),
+    )
+  })
+})
+
+/**
+ * A controlled group written the usual way: its items inline in the
+ * component that owns its value, so a press re-renders them with the new
+ * value. Records what each row renders.
+ */
+function InlineControlledMenu({
+  kind,
+  rendered,
+}: {
+  kind: 'checkbox' | 'radio'
+  rendered: Map<string, boolean[]>
+}) {
+  const [checkboxValue, setCheckboxValue] = React.useState<string[]>([])
+  const [radioValue, setRadioValue] = React.useState('radio-0')
+  const record = (value: string) => (state: { checked: boolean }) => {
+    rendered.set(value, [...(rendered.get(value) ?? []), state.checked])
+    return ''
+  }
+  return (
+    <DropdownMenu.Root defaultOpen>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Surface>
+              <DropdownMenu.List>
+                {kind === 'checkbox' ? (
+                  <DropdownMenu.CheckboxGroup
+                    value={checkboxValue}
+                    onValueChange={setCheckboxValue}
+                  >
+                    {CHECKBOX_VALUES.map((value) => (
+                      <DropdownMenu.CheckboxItem
+                        key={value}
+                        value={value}
+                        data-testid={value}
+                        className={record(value)}
+                      >
+                        <DropdownMenu.CheckboxItemIndicator />
+                        {value}
+                      </DropdownMenu.CheckboxItem>
+                    ))}
+                  </DropdownMenu.CheckboxGroup>
+                ) : (
+                  <DropdownMenu.RadioGroup
+                    value={radioValue}
+                    onValueChange={setRadioValue}
+                  >
+                    {RADIO_VALUES.map((value) => (
+                      <DropdownMenu.RadioItem
+                        key={value}
+                        value={value}
+                        data-testid={value}
+                        className={record(value)}
+                      >
+                        <DropdownMenu.RadioItemIndicator />
+                        {value}
+                      </DropdownMenu.RadioItem>
+                    ))}
+                  </DropdownMenu.RadioGroup>
+                )}
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
+describe('inline controlled group renders', () => {
+  it.each([
+    {
+      kind: 'checkbox',
+      press: 'cb-3',
+      values: CHECKBOX_VALUES,
+      after: ['cb-3'],
+    },
+    {
+      kind: 'radio',
+      press: 'radio-3',
+      values: RADIO_VALUES,
+      after: ['radio-3'],
+    },
+  ] as const)('a press renders each $kind row once, with the new value', async ({
+    kind,
+    press,
+    values,
+    after,
+  }) => {
+    const rendered = new Map<string, boolean[]>()
+    render(<InlineControlledMenu kind={kind} rendered={rendered} />)
+    await act(async () => {})
+    rendered.clear()
+    act(() => {
+      fireEvent.click(screen.getByTestId(press))
+    })
+    await act(async () => {})
+    // One render per row, as before the group had a store, each with the
+    // value its props bring: no row renders the old value first.
+    expect(Object.fromEntries(rendered)).toEqual(renderedOnce(values, after))
   })
 })

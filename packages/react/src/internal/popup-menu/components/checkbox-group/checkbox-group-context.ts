@@ -1,22 +1,26 @@
 'use client'
 
-import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect'
-import { useRefWithInit } from '@base-ui/utils/useRefWithInit'
 import { useStableCallback } from '@base-ui/utils/useStableCallback'
 import * as React from 'react'
 import type { CheckboxValueChangeEventDetails } from '../../events.js'
+import { useGroupValueStore } from '../../hooks/use-group-value-store.js'
 import { CheckboxGroupStore } from '../../store/CheckboxGroupStore.js'
 
 /**
- * A checkbox group, for its items. Made once with the group: it changes
- * only with `disabled` (or a `groupId` prop), never with the group's value,
- * which items read from `store` by their own value (`isChecked`).
+ * A checkbox group, for its items. It changes with `disabled` (or a
+ * `groupId` prop) and, while a prop controls the group, with its value: an
+ * uncontrolled group's items read its own value from `store` by their own
+ * value (`isChecked`), so a change re-renders only the items it changes; a
+ * controlled group's items read `controlledValue`, so they never render a
+ * value older than the props they're rendered with.
  */
 export interface CheckboxGroupContextValue {
   /** Stable identifier of the group (rows sharing it commit together). */
   groupId: string
-  /** The group's value, and its only writer (`setValue`). */
+  /** The group's own value, and the group's only writer (`setValue`). */
   store: CheckboxGroupStore
+  /** The `value` prop, `undefined` while uncontrolled. */
+  controlledValue: string[] | undefined
   /** Whether all items in the group are disabled */
   disabled: boolean
   /**
@@ -67,7 +71,8 @@ export function createRegisterItemValue(
 /**
  * A provider's `CheckboxGroupStore`, made with its first props: `value`
  * syncs into it from a layout effect, and it calls the latest
- * `onValueChange`.
+ * `onValueChange`. `ownsValue` is false for the headless
+ * `CheckboxGroupValue`, which keeps no value of its own.
  */
 export function useCheckboxGroupStore(
   value: string[] | undefined,
@@ -75,20 +80,19 @@ export function useCheckboxGroupStore(
   onValueChange:
     | ((value: string[], eventDetails: CheckboxValueChangeEventDetails) => void)
     | undefined,
+  ownsValue: boolean,
 ): CheckboxGroupStore {
   const handleValueChange = useStableCallback(onValueChange)
-  const store = useRefWithInit(
+  return useGroupValueStore(
+    value,
     () =>
       new CheckboxGroupStore({
         value,
         defaultValue: defaultValue ?? [],
         onValueChange: handleValueChange,
+        ownsValue,
       }),
-  ).current
-  useIsoLayoutEffect(() => {
-    store.control(value)
-  }, [store, value])
-  return store
+  )
 }
 
 export { CheckboxGroupContext }

@@ -1,17 +1,11 @@
 'use client'
 
 import * as React from 'react'
-import {
-  createChangeEventDetails,
-  REASONS,
-} from '../../../../utils/events/index.js'
-import type {
-  RadioValueChangeEventDetails,
-  RadioValueChangeReason,
-} from '../../events.js'
+import type { RadioValueChangeEventDetails } from '../../events.js'
 import {
   RadioGroupContext,
   type RadioGroupContextValue,
+  useRadioGroupStore,
 } from './radio-group-context.js'
 
 export interface PopupMenuRadioGroupValueProps {
@@ -60,21 +54,13 @@ export interface PopupMenuRadioGroupValueProps {
 export function PopupMenuRadioGroupValue(props: PopupMenuRadioGroupValueProps) {
   const { value, onValueChange, disabled = false, children } = props
 
-  const setValue = React.useCallback(
-    (
-      newValue: string,
-      reason: RadioValueChangeReason = REASONS.itemPress,
-      event?: Event,
-    ) => {
-      const eventDetails = createChangeEventDetails(reason, event)
-      onValueChange?.(newValue, eventDetails)
-    },
-    [onValueChange],
-  )
+  // Controlled while `value` is set: its items read it from the context, and
+  // it syncs into the group's store for the events that read it.
+  const store = useRadioGroupStore(value, undefined, onValueChange, false)
 
   const contextValue: RadioGroupContextValue = React.useMemo(
-    () => ({ value, setValue, disabled }),
-    [value, setValue, disabled],
+    () => ({ store, controlledValue: value, disabled }),
+    [store, value, disabled],
   )
 
   return (
