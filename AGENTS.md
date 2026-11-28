@@ -34,6 +34,17 @@ trunk worktree serves at `https://bazza-ui.localhost`). The URL follows the
 checked-out branch, so it changes when gh stack switches branches in a
 worktree — run `portless list` for live routes or `wt list` for expected URLs.
 
+To open the web app from another device, run `bun run dev:tailnet` instead of
+`bun run dev`: it runs everything `bun run dev` does (the package watchers too),
+and also shares `apps/web` on the tailnet over HTTPS at
+`https://<machine>.<tailnet>.ts.net:<port>` with devdoor, an internal bazzalabs
+tool installed once per machine. The port belongs to the worktree for good, so
+the URL is the same after every restart: devdoor prints it when the server
+starts, and `devdoor url web` prints it any time. It is the same session as
+`bun run dev` with sharing on, so it replaces a running `bun run dev` in that
+worktree (stop that one first) and never runs beside it. Without devdoor, use
+`bun run dev`.
+
 Project hooks in `.config/wt.toml` run `wt step copy-ignored` (copying the
 gitignored env files whitelisted in the root `.worktreeinclude`) and
 `bun install` when a worktree is created. On first use, approve

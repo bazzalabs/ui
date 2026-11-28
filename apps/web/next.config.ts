@@ -4,18 +4,14 @@ import type { NextConfig } from 'next'
 const portlessHost = process.env.PORTLESS_URL
   ? new URL(process.env.PORTLESS_URL).host
   : undefined
-const tailscaleHost = process.env.PORTLESS_TAILSCALE_URL
-  ? new URL(process.env.PORTLESS_TAILSCALE_URL).hostname
-  : undefined
+// `bun run dev:tailnet` shares the dev server on the tailnet through devdoor, which sets this.
+const tailnetHost = process.env.DEVDOOR_HOST || undefined
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: portlessHost
-    ? [
-        portlessHost,
-        '*.bazza-ui.localhost',
-        ...(tailscaleHost ? [tailscaleHost] : []),
-      ]
-    : [],
+  allowedDevOrigins: [
+    ...(portlessHost ? [portlessHost, '*.bazza-ui.localhost'] : []),
+    ...(tailnetHost ? [tailnetHost] : []),
+  ],
   devIndicators: {
     position: 'bottom-right',
   },

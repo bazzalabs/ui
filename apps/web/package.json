@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "portless run",
-    "dev:app": "sh -c 'if [ -n \"$PORTLESS_URL\" ]; then NEXT_PUBLIC_APP_URL=\"$PORTLESS_URL\" exec next dev --turbopack; else exec next dev --turbopack; fi'",
+    "dev:app": "sh scripts/dev-app.sh",
     "gen-types": "tsx scripts/build-types-meta.ts --out .types/types-meta.json --tsconfig tsconfig.json --pkg @bazza-ui/filters=../../packages/filters/src/index.ts --pkg @bazza-ui/react=../../packages/react/src/docs-types-entry.ts --pkg @registry/filter=registry/ui/filter/index.ts --pkg @html-element-props=types/html-element-props.ts",
     "build": "next build --turbopack",
     "type-check": "bun --check",
