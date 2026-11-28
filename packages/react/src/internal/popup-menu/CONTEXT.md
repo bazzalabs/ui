@@ -8,7 +8,7 @@ Where it lives:
 - `packages/menu-core/src/data/` — the pipeline over defs: browse, flatten, filtering/deep search, scoring, sorting, display, async helpers, with no React
 - `packages/menu-core/src/collection/` — the Collection snapshot, its positions, the adapters' framework-free parts (the Data adapter's input, the filtering the DOM and Virtual adapters share, the merge by document position), with no React
 - `packages/menu-core/src/elements/` — the Element Registry, with no React
-- `packages/menu-core/src/controllers/` and `platform/` — the Controllers (the Submenu Controller, the Aim Guard Controller, the Loader Manager) and the Clock they run on, with no React
+- `packages/menu-core/src/controllers/` and `platform/` — the Controllers (the Submenu Controller, the Aim Guard Controller, the Loader Manager, the Selection Gesture Controller) and the Clock they run on, with no React
 - `packages/react/src/internal/popup-menu/menu-tree/` and `data-first/` — the React layer over those: React-typed defs and nodes, the list and subpages, async loaders; their pure modules re-export from `@bazza-ui/menu-core`
 - `packages/react/src/internal/popup-menu/components/`, `contexts/`, `hooks/` — the JSX parts and their plumbing
 
@@ -144,6 +144,10 @@ _Avoid_: dismiss logic, close handler
 **Aim Guard Controller** (`AimGuardController`):
 A menu tree's aim guard (K7), one per root, on its tree tier: while the pointer leaves a submenu trigger heading for the submenu's popup, the trigger **holds** the guard, and the other rows of its menu, at that depth only, don't take the pointer; it times out by itself and is released when the pointer reaches the popup. Each submenu trigger reads the pointer through its own **Aim Guard Trigger** (`AimGuardTrigger`, from `trigger()`), the aim guard its Submenu Controller takes: the geometry of the pointer leaving the trigger and moving on, against the rects the binding reads; the pointer's **trail** (its last four positions), recorded only while the trigger is hovered or tracking an exit, through one pointer listener for the tree; and the safe-triangle debug overlay, worked out only while something subscribes to it. A popup tells the guard when the pointer is over it (`pointerInPopup`), which releases a guard on the way there and tells the trigger that opens it.
 _Avoid_: safe polygon (the geometry, not the guard), aim guard store
+
+**Selection Gesture Controller** (`SelectionGestureController`):
+A surface's range and drag selection over its checkbox rows, one per surface (its surface tier's checkbox selection binds it): the registered rows, the anchor, the active gesture (a pointer drag, `keep` or `rubber-band`, or a keyboard span) and its preview, the commit that applies it (one `setValue` per checkbox group, one `commit` per standalone row, in navigation order) and its announcement, the click a drag's release fires, and auto-scroll while a drag holds the pointer past an edge, a frame at a time on its clock. Spans follow the surface's navigation order (`getVisibleItemIds()`), not the DOM; a row in it that isn't mounted (a virtualized one) is skipped, with a dev warning. Layout reaches it through the `SelectionGestureLayout` its binding supplies (row tops, the scroll area, scrolling), and the binding owns the press's pointer listeners and capture.
+_Avoid_: selection store (the binding), drag handler
 
 **Listbox**:
 The state layer beneath the engine: rows register into a `ListboxStore`, which owns highlight state and keyboard navigation. Implements the WAI-ARIA listbox pattern; shared by every menu family.
