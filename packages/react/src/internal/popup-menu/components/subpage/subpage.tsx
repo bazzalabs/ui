@@ -131,8 +131,8 @@ export function PopupMenuSubpage(props: PopupMenuSubpageProps) {
   const surfaceTier = React.useMemo(
     () =>
       // Its settings and its `disabled` are its popup's: none of its own.
-      new MenuSurfaceTier(store, parentTier, parentTier.depth),
-    [store, parentTier],
+      new MenuSurfaceTier(store, parentTier, parentTier.depth, surfaceId),
+    [store, parentTier, surfaceId],
   )
 
   const shouldRenderChildren = isActive

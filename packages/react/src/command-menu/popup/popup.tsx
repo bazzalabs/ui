@@ -65,8 +65,9 @@ export const CommandMenuPopup = React.forwardRef<
     ...rest
   } = props
 
-  const surfaceId = React.useId()
   const tier = useMenuSurfaceTier()
+  // The popup's surface id: its root level's, which its Surface has too.
+  const { surfaceId } = tier
   const popupRef = useMergedRefs(
     forwardedRef,
     useMenuElement('popup', surfaceId),

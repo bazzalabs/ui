@@ -283,13 +283,17 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
   React.useInsertionEffect(() => {
     disabledRef.current = disabled
   }, [disabled])
+  // The root surface's id, its popup's and its Surface's: a root nested in
+  // a submenu's content takes that submenu's, as its popup did.
+  const generatedSurfaceId = React.useId()
+  const surfaceId = outerTier?.submenu?.childSurfaceId ?? generatedSurfaceId
   const surfaceTier = React.useMemo(
     () =>
-      new MenuSurfaceTier(store, outerTier, depth, {
+      new MenuSurfaceTier(store, outerTier, depth, surfaceId, {
         isOwnDisabled: () => disabledRef.current,
         isRoot: true,
       }),
-    [store, outerTier, depth],
+    [store, outerTier, depth, surfaceId],
   )
 
   // PopupMenu context value (published; the engine's parts read the tier)

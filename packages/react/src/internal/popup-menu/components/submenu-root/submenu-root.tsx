@@ -9,7 +9,6 @@ import { REASONS } from '../../../../utils/events/index.js'
 import {
   ListboxContextProvider,
   ListboxStore,
-  useSurfaceContext,
   type VirtualItem,
 } from '../../../listbox/index.js'
 import {
@@ -35,6 +34,7 @@ import {
   MenuSurfaceTier,
   SurfaceTierContext,
   useMaybeMenuSurfaceTier,
+  useMenuEnclosingSurface,
 } from '../../contexts/surface-tier-context.js'
 import type {
   HighlightChangeEventDetails,
@@ -179,8 +179,9 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
     [menuTreeResolver, onHighlightChange],
   )
 
-  // Get parent surface ID for keyboard navigation back
-  const { surfaceId: parentSurfaceId } = useSurfaceContext()
+  // The parent surface's id, for keyboard navigation back: the Surface the
+  // submenu is mounted in, which its trigger is a row of.
+  const { surfaceId: parentSurfaceId } = useMenuEnclosingSurface()
 
   // Generate unique surface ID for this submenu
   const childSurfaceId = React.useId()
@@ -513,11 +514,11 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
   // The submenu surface's tier.
   const surfaceTier = React.useMemo(
     () =>
-      new MenuSurfaceTier(store, parentTier, depth, {
+      new MenuSurfaceTier(store, parentTier, depth, childSurfaceId, {
         submenu,
         isOwnDisabled: () => ownDisabledRef.current,
       }),
-    [store, parentTier, depth, submenu],
+    [store, parentTier, depth, childSurfaceId, submenu],
   )
 
   // The published contexts, built from the same settings, in the same

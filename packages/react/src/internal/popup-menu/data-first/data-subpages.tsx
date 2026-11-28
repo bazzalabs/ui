@@ -7,7 +7,6 @@ import {
   useGraftPoint,
 } from '../contexts/graft-point-context.js'
 import { useMenuTree } from '../contexts/menu-tree-context.js'
-import { usePopupSurfaceId } from '../contexts/popup-surface-id-context.js'
 import { useMaybeMenuSurfaceTier } from '../contexts/surface-tier-context.js'
 import { staticChildrenOf } from '../menu-tree/resolve.js'
 import type { PopupMenuNode } from '../menu-tree/types.js'
@@ -144,7 +143,7 @@ const EMPTY_NODES: readonly PopupMenuNode[] = []
  */
 export function DataPopupProvider({ children }: { children: React.ReactNode }) {
   const tree = useMenuTree()
-  const popupId = usePopupSurfaceId() ?? ''
+  const popupId = useMaybeMenuSurfaceTier()?.surfaceId ?? ''
   const data = tree.useState('popup', popupId)
   const version = tree.useState('version')
   const getNodes = usePopupNodes()
@@ -230,7 +229,7 @@ export function DataSubpagesContent(props: DataSubpagesContentProps) {
   const dataSurfaceContext = dataPopup?.dataSurfaceContext
   const resolvedNodes = dataPopup?.resolvedNodes
   const tree = useMenuTree()
-  const popupId = usePopupSurfaceId() ?? ''
+  const popupId = useMaybeMenuSurfaceTier()?.surfaceId ?? ''
   const getNodes = usePopupNodes()
   // A retained slot is only valid while the root surface still supplies the
   // content it was published for (the root list unmounts while a subpage is

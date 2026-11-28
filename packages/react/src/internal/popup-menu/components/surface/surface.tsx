@@ -32,12 +32,14 @@ import { useFocusOwner } from '../../contexts/focus-owner-context.js'
 import { useMaybeFocusZoneRegistry } from '../../contexts/focus-zone-context.js'
 import { useGraftPoint } from '../../contexts/graft-point-context.js'
 import { useMenuTree } from '../../contexts/menu-tree-context.js'
-import { usePopupSurfaceId } from '../../contexts/popup-surface-id-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
 import { useMaybeSubpageContext } from '../../contexts/subpage-context.js'
 import { useMaybeSubpageStack } from '../../contexts/subpage-stack-context.js'
 import { useMenuSurfaceSettings } from '../../contexts/surface-settings-context.js'
-import { useMaybeMenuSurfaceTier } from '../../contexts/surface-tier-context.js'
+import {
+  EnclosingSurfaceContext,
+  useMaybeMenuSurfaceTier,
+} from '../../contexts/surface-tier-context.js'
 import {
   LoaderScopeContext,
   useLoaderScope,
@@ -248,15 +250,8 @@ export const PopupMenuSurface = React.forwardRef<
   // Generate stable IDs
   const listId = React.useId()
   const inputId = React.useId()
-  const generatedSurfaceId = React.useId()
-
-  // Get surfaceId from Popup context (if available) to ensure Popup and Surface share the same ID
-  const popupSurfaceId = usePopupSurfaceId()
-
-  // Priority: PopupSurfaceIdContext > SubmenuContext > generated
-  // This ensures Popup and Surface share the same ID for data attribute tracking
-  const surfaceId =
-    popupSurfaceId ?? submenuContext?.childSurfaceId ?? generatedSurfaceId
+  // The surface's id is its tier's, which its popup has too.
+  const { surfaceId } = tier
 
   const focusZoneRegistry = useMaybeFocusZoneRegistry()
 
@@ -407,7 +402,7 @@ export const PopupMenuSurface = React.forwardRef<
   const loaderScope = useLoaderScope(tree, store, isDataMode && isSurfaceActive)
   useInactiveRootResolution(
     tree,
-    popupSurfaceId,
+    surfaceId,
     dataSurfaceContextValue,
     graftPoint,
     depth,
@@ -774,13 +769,15 @@ export const PopupMenuSurface = React.forwardRef<
   // search-hidden state, and its label setter.
   return (
     <SurfaceContext.Provider value={contextValue}>
-      <SurfaceConfigSync
-        store={store}
-        settings={settings}
-        orderedItems={orderedItems}
-        orderedItemsChangedRef={orderedItemsChangedRef}
-      />
-      <GroupContext.Provider value={null}>{element}</GroupContext.Provider>
+      <EnclosingSurfaceContext.Provider value={tier}>
+        <SurfaceConfigSync
+          store={store}
+          settings={settings}
+          orderedItems={orderedItems}
+          orderedItemsChangedRef={orderedItemsChangedRef}
+        />
+        <GroupContext.Provider value={null}>{element}</GroupContext.Provider>
+      </EnclosingSurfaceContext.Provider>
     </SurfaceContext.Provider>
   )
 })

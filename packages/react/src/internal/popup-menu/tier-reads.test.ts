@@ -44,16 +44,19 @@ const PUBLISHED: Record<string, Published> = {
     names: ['SurfaceContext'],
     hooks: ['useSurfaceContext', 'useMaybeSurfaceContext'],
     module: 'internal/listbox/contexts/surface-context.ts',
+    members: true,
   },
   PopupSurfaceIdContext: {
     names: ['PopupSurfaceIdContext'],
     hooks: ['usePopupSurfaceId'],
     module: 'internal/popup-menu/contexts/popup-surface-id-context.ts',
+    members: true,
   },
   RowWidthContext: {
     names: ['RowWidthContext'],
     hooks: ['useRowWidthContext', 'useMaybeRowWidthContext'],
     module: 'internal/listbox/contexts/row-width-context.ts',
+    members: true,
   },
   SubpageStackContext: {
     names: ['SubpageStackContext'],
@@ -94,53 +97,13 @@ const PUBLISHED: Record<string, Published> = {
 
 /** The reads that remain: who removes them, why they're there, and where. */
 interface Allowed {
-  removedBy: 'UI-755' | 'UI-690' | 'permanent'
+  removedBy: 'UI-690' | 'permanent'
   reason: string
   /** Each engine file's direct reads, by its path from `src`. */
   reads: Record<string, number>
 }
 
 const ALLOWED: Record<string, Allowed> = {
-  SurfaceContext: {
-    removedBy: 'UI-755',
-    reason:
-      "The surface's store and id, until the surface tier carries its identity.",
-    reads: {
-      'internal/listbox/hooks/use-listbox-item.ts': 1,
-      'internal/popup-menu/components/checkbox-group/checkbox-group.tsx': 1,
-      'internal/popup-menu/components/checkbox-item/checkbox-item.tsx': 1,
-      'internal/popup-menu/components/checkbox-item/checkbox-selection.ts': 1,
-      'internal/popup-menu/components/empty/empty.tsx': 1,
-      'internal/popup-menu/components/focus-zone/use-focus-zone-registration.ts': 1,
-      'internal/popup-menu/components/group-label/group-label.tsx': 1,
-      'internal/popup-menu/components/group/group.tsx': 1,
-      'internal/popup-menu/components/input/input.tsx': 1,
-      'internal/popup-menu/components/list/list.tsx': 2,
-      'internal/popup-menu/components/loading/loading.tsx': 1,
-      'internal/popup-menu/components/radio-group/radio-group.tsx': 1,
-      'internal/popup-menu/components/scroll-arrow/scroll-arrow.tsx': 1,
-      'internal/popup-menu/components/separator/separator.tsx': 1,
-      'internal/popup-menu/components/submenu-root/submenu-root.tsx': 1,
-      'internal/popup-menu/components/submenu-trigger/submenu-trigger.tsx': 1,
-      'internal/popup-menu/contexts/checkbox-selection-context.ts': 1,
-    },
-  },
-  PopupSurfaceIdContext: {
-    removedBy: 'UI-755',
-    reason: "The popup's surface id, until the surface tier carries it.",
-    reads: {
-      'internal/popup-menu/components/surface/surface.tsx': 1,
-      'internal/popup-menu/data-first/data-list.tsx': 1,
-      'internal/popup-menu/data-first/data-subpages.tsx': 2,
-    },
-  },
-  RowWidthContext: {
-    removedBy: 'UI-755',
-    reason: "The row-width measurement queue, until it's on the surface tier.",
-    reads: {
-      'internal/listbox/hooks/use-listbox-item.ts': 1,
-    },
-  },
   SubpageStackContext: {
     removedBy: 'UI-690',
     reason: 'The subpage stack, until it lives in a store.',

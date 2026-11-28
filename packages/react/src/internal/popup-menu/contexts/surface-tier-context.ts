@@ -3,6 +3,7 @@
 import { Store } from '@base-ui/utils/store'
 import * as React from 'react'
 import {
+  EnclosingSurfaceContext,
   ListboxSurfaceTier,
   SurfaceTierContext,
 } from '../../listbox/contexts/surface-tier-context.js'
@@ -19,16 +20,20 @@ import type { SubmenuHandle } from './submenu-context.js'
  * from its published contexts (see "Tier contexts" in packages/react/AGENTS.md).
  * One per surface store, made where the store is (`PopupMenuProviders` for a
  * root, `PopupMenu.SubmenuRoot`, `PopupMenu.Subpage`) and provided above the
- * level's trigger, positioner and popup, so they read it as its surface
- * does. Every field is set when it's made and never changes; what
+ * level's trigger, positioner and popup (`SurfaceTierContext`), and again
+ * by its Surface around its content (`EnclosingSurfaceContext`). Every
+ * field is set when it's made and never changes; what
  * changes is read through store selectors (the checkbox selection, made
  * later, through its own small store). The level's settings, which change
  * with its props, aren't on the tier: they ride a context of their own
  * (`SurfaceSettingsContext`), rendered with the level.
  *
- * A part finds the tier of the surface it renders in with
- * `findSurfaceTier(tier, store)`, by its Surface's store: a submenu trigger
- * sits under its submenu's tier, and its row belongs to the tier above.
+ * A part reads its level's tier for what the level shares (its depth, its
+ * submenu, whether it's disabled), and the tier of the Surface it's mounted
+ * in for what the surface shares (its store, its id, its rows' width
+ * queue, its checkbox selection). The two differ for a submenu's trigger
+ * and anything beside it in its `Submenu`: they're in the submenu's level,
+ * and mounted in the surface above.
  */
 export class MenuSurfaceTier extends ListboxSurfaceTier {
   /** The tier around this one: the parent surface's, or an outer menu's. */
@@ -69,13 +74,14 @@ export class MenuSurfaceTier extends ListboxSurfaceTier {
     store: ListboxStore,
     parent: MenuSurfaceTier | null,
     depth: number,
+    surfaceId: string,
     options: {
       submenu?: SubmenuHandle
       isOwnDisabled?: () => boolean
       isRoot?: boolean
     } = {},
   ) {
-    super(store, parent, depth)
+    super(store, parent, depth, surfaceId)
     this.submenu = options.submenu ?? parent?.submenu ?? null
     this.isOwnDisabled = options.isOwnDisabled ?? (() => false)
     this.isRoot = options.isRoot ?? false
@@ -101,7 +107,7 @@ export type CheckboxSelectionSlot = Store<{
   current: CheckboxSelectionStore | null
 }>
 
-export { SurfaceTierContext }
+export { EnclosingSurfaceContext, SurfaceTierContext }
 
 export function useMaybeMenuSurfaceTier(): MenuSurfaceTier | null {
   const tier = React.useContext(SurfaceTierContext)
@@ -114,7 +120,7 @@ const OUTSIDE_A_MENU = {
 }
 
 /**
- * The menu tier of the surface a part renders in. Throws outside a menu,
+ * The menu tier of the level a part renders in. Throws outside a menu,
  * with the message of the published context the part read before (`menu`
  * for `PopupMenuContext`, `listbox` for `ListboxContext`).
  */
@@ -126,14 +132,20 @@ export function useMenuSurfaceTier(
   return tier
 }
 
-/** The tier whose store is `store`: `tier` or one around it. */
-export function findSurfaceTier(
-  tier: MenuSurfaceTier | null,
-  store: ListboxStore | null | undefined,
-): MenuSurfaceTier | null {
-  if (!store) return null
-  for (let current = tier; current; current = current.parent) {
-    if (current.store === store) return current
+/**
+ * The menu tier of the `Surface` a part is mounted in: `null` outside a
+ * Surface.
+ */
+export function useMaybeMenuEnclosingSurface(): MenuSurfaceTier | null {
+  const tier = React.useContext(EnclosingSurfaceContext)
+  return tier instanceof MenuSurfaceTier ? tier : null
+}
+
+/** The menu tier of the `Surface` a part is mounted in. Throws outside one. */
+export function useMenuEnclosingSurface(): MenuSurfaceTier {
+  const tier = useMaybeMenuEnclosingSurface()
+  if (!tier) {
+    throw new Error('Listbox components must be used within a Surface provider')
   }
-  return null
+  return tier
 }

@@ -8,11 +8,12 @@ import {
 } from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { useRowPosition } from '../../../listbox/hooks/use-row-position.js'
-import { useGroupContext, useSurfaceContext } from '../../../listbox/index.js'
+import { useGroupContext } from '../../../listbox/index.js'
 import {
   getSlotAttribute,
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
+import { useMenuEnclosingSurface } from '../../contexts/surface-tier-context.js'
 import { PopupMenuGroupLabelDataAttributes } from './group-label.data-attrs.js'
 
 export interface PopupMenuGroupLabelState extends Record<string, unknown> {
@@ -66,7 +67,7 @@ export const PopupMenuGroupLabel = React.forwardRef<
   PopupMenuGroupLabel.Props
 >(function PopupMenuGroupLabel(props, forwardedRef) {
   const { render, className, style, children, ...rest } = props
-  const { store } = useSurfaceContext()
+  const { store } = useMenuEnclosingSurface()
   const groupContext = useGroupContext()
   const groupId = groupContext?.groupId ?? ''
 

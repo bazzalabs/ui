@@ -7,7 +7,10 @@ import { GraftPointContext } from './contexts/graft-point-context.js'
 import { MenuTreeContext } from './contexts/menu-tree-context.js'
 import { SubpageContext } from './contexts/subpage-context.js'
 import { SurfaceSettingsContext } from './contexts/surface-settings-context.js'
-import { SurfaceTierContext } from './contexts/surface-tier-context.js'
+import {
+  EnclosingSurfaceContext,
+  SurfaceTierContext,
+} from './contexts/surface-tier-context.js'
 import { LoaderScopeContext } from './data-first/async-coordinator.js'
 import * as PopupMenu from './index.js'
 
@@ -20,6 +23,7 @@ import * as PopupMenu from './index.js'
 const ENGINE_CONTEXTS = new Map<unknown, string>([
   [MenuTreeContext, 'MenuTree'],
   [SurfaceTierContext, 'SurfaceTier'],
+  [EnclosingSurfaceContext, 'EnclosingSurface'],
   [SurfaceSettingsContext, 'SurfaceSettings'],
   [SubpageContext, 'Subpage'],
   [GraftPointContext, 'GraftPoint'],
@@ -195,7 +199,14 @@ function DataMenu() {
 // Each level's settings ride a context of their own (`SurfaceSettings`,
 // UI-754), the one tier context whose value changes: one more provider per
 // level (a JSX root row 10 -> 11, an open JSX submenu 9 -> 10, a data-first
-// root row 14 -> 15, an open data-first submenu 12 -> 13).
+// root row 14 -> 15, an open data-first submenu 12 -> 13). Each Surface
+// provides its tier again (`EnclosingSurface`, UI-755), for what a part reads
+// from the Surface it's mounted in (its store, its id, its rows' width
+// queue): a submenu's trigger, and anything beside it, is in the submenu's
+// level and mounted in the surface above. Its value never changes; one more
+// provider per Surface (a JSX root row 11 -> 12, an open JSX submenu
+// 10 -> 11, a data-first root row 15 -> 16, an open data-first submenu
+// 13 -> 14).
 describe('popup menu provider nest', () => {
   it('a JSX root row sits under the tree tier, the root surface tier and the published contexts', async () => {
     render(<JsxMenu />)
@@ -210,6 +221,7 @@ describe('popup menu provider nest', () => {
       'SubpageStack',
       'DataPopup',
       'Surface',
+      'EnclosingSurface',
       'Group',
       'RowWidth',
     ])
@@ -230,11 +242,12 @@ describe('popup menu provider nest', () => {
       'SubpageStack',
       'DataPopup',
       'Surface',
+      'EnclosingSurface',
       'Group',
       'RowWidth',
     ])
     // Base UI's popover adds its own six.
-    expect(level).toHaveLength(16)
+    expect(level).toHaveLength(17)
   })
 
   // A data-first Surface keeps one provider for its loader scope, and its
@@ -251,6 +264,7 @@ describe('popup menu provider nest', () => {
       'SubpageStack',
       'DataPopup',
       'Surface',
+      'EnclosingSurface',
       'Group',
       'DataSurface',
       'LoaderScope',
@@ -276,6 +290,7 @@ describe('popup menu provider nest', () => {
       'SubpageStack',
       'DataPopup',
       'Surface',
+      'EnclosingSurface',
       'Group',
       'DataList',
       'CollectionRows',

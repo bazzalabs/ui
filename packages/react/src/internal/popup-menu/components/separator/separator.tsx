@@ -8,11 +8,12 @@ import {
 } from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { useRowPosition } from '../../../listbox/hooks/use-row-position.js'
-import { useGroupContext, useSurfaceContext } from '../../../listbox/index.js'
+import { useGroupContext } from '../../../listbox/index.js'
 import {
   getSlotAttribute,
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
+import { useMenuEnclosingSurface } from '../../contexts/surface-tier-context.js'
 import { PopupMenuSeparatorDataAttributes } from './separator.data-attrs.js'
 
 // Separator doesn't have any state - using an empty object type
@@ -49,7 +50,7 @@ export const PopupMenuSeparator = React.forwardRef<
 >(function PopupMenuSeparator(props, forwardedRef) {
   const { alwaysRender = false, render, className, style, ...rest } = props
 
-  const { store } = useSurfaceContext()
+  const { store } = useMenuEnclosingSurface()
   const rowId = React.useId()
   const [rowElement, setRowElement] = React.useState<HTMLElement | null>(null)
 

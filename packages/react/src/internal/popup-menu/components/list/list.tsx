@@ -7,11 +7,8 @@ import {
   resolveStyle,
 } from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
-import {
-  RowWidthContext,
-  useStickyRowWidth,
-  useSurfaceContext,
-} from '../../../listbox/index.js'
+import type { MeasureRow } from '../../../listbox/contexts/surface-tier-context.js'
+import { RowWidthContext, useStickyRowWidth } from '../../../listbox/index.js'
 import {
   getSlotAttribute,
   useMaybeComponentName,
@@ -21,7 +18,10 @@ import { useMenuTree } from '../../contexts/menu-tree-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
 import { useMaybeSubpageContext } from '../../contexts/subpage-context.js'
 import { useMenuSurfaceSettings } from '../../contexts/surface-settings-context.js'
-import { useMenuSurfaceTier } from '../../contexts/surface-tier-context.js'
+import {
+  useMenuEnclosingSurface,
+  useMenuSurfaceTier,
+} from '../../contexts/surface-tier-context.js'
 import { useMaybeDataSurfaceContext } from '../../data-first/context.js'
 import { DataListInner } from '../../data-first/data-list.js'
 import { usePopupMenuKeyboard } from '../../hooks/use-popup-menu-keyboard.js'
@@ -118,9 +118,8 @@ export const PopupMenuListPrimitive = React.forwardRef<
     ...rest
   } = props
 
-  const { store, surfaceId } = useSurfaceContext()
-  const tier = useMenuSurfaceTier('listbox')
-  const { depth } = tier
+  const { store, surfaceId, rowWidth } = useMenuEnclosingSurface()
+  const { depth } = useMenuSurfaceTier('listbox')
   const settings = useMenuSurfaceSettings('listbox')
   const { closeAll } = settings
   const submenuContext = useMaybeSubmenuContext()
@@ -170,7 +169,7 @@ export const PopupMenuListPrimitive = React.forwardRef<
   // content can change for the same registration IDs (browse label ↔
   // breadcrumb row). Clear measured IDs and re-queue every currently
   // registered row. Items alone won't re-queue: their measurement effect is
-  // keyed on [rowWidthContext, registrationId], which doesn't change here.
+  // keyed on [their surface's row width queue, registrationId], which doesn't change here.
   // Deps are compared manually (runs every render) so callers can pass an
   // array of any length without violating the rules of hooks.
   const prevRemeasureDepsRef = React.useRef<React.DependencyList | null>(null)
@@ -218,7 +217,38 @@ export const PopupMenuListPrimitive = React.forwardRef<
     store.flushPendingRegistrations()
   })
 
-  // Row width context value
+  // The surface's rows queue their measurements with its tier, from their
+  // layout effects, which run before this one: the List takes the ones
+  // inside it (or drops them, when it doesn't measure). Turning measuring on
+  // remounts the rows (the published `RowWidthContext` goes around them),
+  // which queue again. It attaches again whenever its element changes (a
+  // `render` prop that swaps it remounts the rows inside, which wait for the
+  // new element): checked after every render, since the element is read
+  // from a ref.
+  const rowWidthAttachment = React.useRef<{
+    list: HTMLElement
+    measure: MeasureRow | null
+    detach: () => void
+  } | null>(null)
+  React.useLayoutEffect(() => {
+    const list = internalRef.current
+    const measure = measureRowWidth ? queueMeasurement : null
+    const current = rowWidthAttachment.current
+    if (current?.list === list && current.measure === measure) return
+    current?.detach()
+    rowWidthAttachment.current = list
+      ? { list, measure, detach: rowWidth.attach(list, measure) }
+      : null
+  })
+  React.useLayoutEffect(
+    () => () => {
+      rowWidthAttachment.current?.detach()
+      rowWidthAttachment.current = null
+    },
+    [],
+  )
+
+  // The published row width context, for consumer code
   const rowWidthContextValue = React.useMemo(
     () => (measureRowWidth ? { queueMeasurement } : null),
     [measureRowWidth, queueMeasurement],
@@ -317,7 +347,7 @@ export const PopupMenuList = React.forwardRef<
   PopupMenuList.Props
 >(function PopupMenuList(props, forwardedRef) {
   const dataSurfaceCtx = useMaybeDataSurfaceContext()
-  const { store } = useSurfaceContext()
+  const { store } = useMenuEnclosingSurface()
   const search = store.useState('search')
   const normalizedSearch = store.useState('normalizedSearch')
 

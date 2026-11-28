@@ -17,11 +17,11 @@ import {
   CollectionRowsContext,
   type CollectionRowsContextValue,
 } from '../../listbox/contexts/collection-row-context.js'
-import type {
-  OrderedItemsUpdateReason,
-  useSurfaceContext,
-} from '../../listbox/index.js'
-import { publishDataRows } from '../../listbox/store/ListboxStore.js'
+import type { OrderedItemsUpdateReason } from '../../listbox/index.js'
+import {
+  type ListboxStore,
+  publishDataRows,
+} from '../../listbox/store/ListboxStore.js'
 import { PopupMenuCheckboxGroupValue } from '../components/checkbox-group/checkbox-group-value.js'
 import { PopupMenuGroupLabel } from '../components/group-label/group-label.js'
 import {
@@ -34,7 +34,6 @@ import {
   useGraftPoint,
 } from '../contexts/graft-point-context.js'
 import { useMenuTree } from '../contexts/menu-tree-context.js'
-import { usePopupSurfaceId } from '../contexts/popup-surface-id-context.js'
 import { useMaybeSubpageContext } from '../contexts/subpage-context.js'
 import { useMaybeSubpageStack } from '../contexts/subpage-stack-context.js'
 import { useMenuSurfaceTier } from '../contexts/surface-tier-context.js'
@@ -980,7 +979,7 @@ export interface DataListInnerProps extends PopupMenuListProps {
   filter: ReturnType<typeof useDataSurfaceContext>['filter']
   search: string
   normalizedSearch: string
-  store: ReturnType<typeof useSurfaceContext>['store']
+  store: ListboxStore
 }
 
 export const DataListInner = React.forwardRef<
@@ -1007,9 +1006,10 @@ export const DataListInner = React.forwardRef<
   const tree = useMenuTree()
   const loaderScope = React.useContext(LoaderScopeContext)
   const scopeId = loaderScope?.id ?? null
-  const popupId = usePopupSurfaceId()
   const graftParent = useGraftPoint()
-  const { depth: surfaceDepth } = useMenuSurfaceTier('listbox')
+  // The popup's id is its level's surface id.
+  const { depth: surfaceDepth, surfaceId: popupId } =
+    useMenuSurfaceTier('listbox')
   const resolverSubpageContext = useMaybeSubpageContext()
   const resolverSubpageStack = useMaybeSubpageStack()
   // Mirrors surface.tsx's isSubpageSurfaceInThisPopup: a data surface
