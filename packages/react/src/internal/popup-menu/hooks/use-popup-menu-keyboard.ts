@@ -14,9 +14,9 @@ import {
   useCheckboxSelectionSlot,
 } from '../contexts/checkbox-selection-context.js'
 import { useMaybeMenuTree } from '../contexts/menu-tree-context.js'
-import { usePopupMenuContext } from '../contexts/popup-menu-context.js'
 import type { SubmenuContextValue } from '../contexts/submenu-context.js'
 import type { SubpageContextValue } from '../contexts/subpage-context.js'
+import { useMenuSurfaceSettings } from '../contexts/surface-settings-context.js'
 import type { PopupMenuOpenChangeReason } from '../events.js'
 import type { FocusOwnerStore } from '../store/FocusOwnerStore.js'
 
@@ -104,7 +104,7 @@ export function usePopupMenuKeyboard(
   // The surface's checkbox selection, null until its first checkbox row
   // makes it: read in handlers and effects, so making it re-renders nothing.
   const selectionSlot = useCheckboxSelectionSlot()
-  const { rangeSelection } = usePopupMenuContext()
+  const { rangeSelection } = useMenuSurfaceSettings()
   const focusOwnerIsOwner = focusOwnerStore.useState('isOwner', surfaceId)
   const isOwner = skipFocusOwnerCheck ? true : focusOwnerIsOwner
   const gestureKind = useCheckboxGestureKind(selectionSlot)

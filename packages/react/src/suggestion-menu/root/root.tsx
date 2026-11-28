@@ -12,7 +12,6 @@ import {
   type UsePopupMenuRootParams,
   useFocusOwner,
   useForwardedKeyDown,
-  usePopupMenuContext,
   usePopupMenuRoot,
 } from '../../internal/popup-menu/index.js'
 import {
@@ -20,6 +19,8 @@ import {
   getRequestReason,
   type PopupMenuOpenChangeReason,
   popupActionsOf,
+  useMenuSurfaceSettings,
+  useMenuSurfaceTier,
 } from '../../internal/popup-menu/members.js'
 import { REASONS } from '../../utils/events/index.js'
 import type {
@@ -137,7 +138,9 @@ export interface SuggestionMenuRootProps<Payload = unknown>
 function KeyboardBridge(props: {
   forwardKeyDownRef: React.MutableRefObject<ForwardKeyDown | null>
 }) {
-  const { store, closeAll } = usePopupMenuContext()
+  const tier = useMenuSurfaceTier()
+  const { store } = tier
+  const { closeAll } = useMenuSurfaceSettings()
   const focusOwnerStore = useFocusOwner()
   const open = store.useState('open')
   const forward = useForwardedKeyDown({

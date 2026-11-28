@@ -14,7 +14,7 @@ import {
   getSlotAttribute,
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
-import { usePopupMenuContext } from '../../contexts/popup-menu-context.js'
+import { useMenuSurfaceSettings } from '../../contexts/surface-settings-context.js'
 import { useGroupVisibility } from '../group/use-group-visibility.js'
 import { PopupMenuCheckboxGroupDataAttributes } from './checkbox-group.data-attrs.js'
 import {
@@ -97,12 +97,12 @@ export const PopupMenuCheckboxGroup = React.forwardRef(
     } = props
 
     const { store } = useSurfaceContext()
-    const popupMenuContext = usePopupMenuContext()
+    const menuDisabled = useMenuSurfaceSettings().disabled
     const groupId = React.useId()
     const internalRef = React.useRef<HTMLDivElement>(null)
     const [rowElement, setRowElement] = React.useState<HTMLElement | null>(null)
 
-    const disabled = disabledProp || popupMenuContext.disabled
+    const disabled = disabledProp || menuDisabled
 
     // The group's value lives in its own store, which its items read.
     const groupStore = useCheckboxGroupStore(

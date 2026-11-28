@@ -17,10 +17,9 @@ import {
   CollectionRowsContext,
   type CollectionRowsContextValue,
 } from '../../listbox/contexts/collection-row-context.js'
-import {
-  type OrderedItemsUpdateReason,
-  useListboxContext,
-  type useSurfaceContext,
+import type {
+  OrderedItemsUpdateReason,
+  useSurfaceContext,
 } from '../../listbox/index.js'
 import { publishDataRows } from '../../listbox/store/ListboxStore.js'
 import { PopupMenuCheckboxGroupValue } from '../components/checkbox-group/checkbox-group-value.js'
@@ -38,6 +37,7 @@ import { useMenuTree } from '../contexts/menu-tree-context.js'
 import { usePopupSurfaceId } from '../contexts/popup-surface-id-context.js'
 import { useMaybeSubpageContext } from '../contexts/subpage-context.js'
 import { useMaybeSubpageStack } from '../contexts/subpage-stack-context.js'
+import { useMenuSurfaceTier } from '../contexts/surface-tier-context.js'
 import { useResolution } from '../hooks/use-resolution.js'
 import { staticChildrenOf } from '../menu-tree/resolve.js'
 import type { PopupMenuNode } from '../menu-tree/types.js'
@@ -1009,7 +1009,7 @@ export const DataListInner = React.forwardRef<
   const scopeId = loaderScope?.id ?? null
   const popupId = usePopupSurfaceId()
   const graftParent = useGraftPoint()
-  const { depth: surfaceDepth } = useListboxContext()
+  const { depth: surfaceDepth } = useMenuSurfaceTier('listbox')
   const resolverSubpageContext = useMaybeSubpageContext()
   const resolverSubpageStack = useMaybeSubpageStack()
   // Mirrors surface.tsx's isSubpageSurfaceInThisPopup: a data surface

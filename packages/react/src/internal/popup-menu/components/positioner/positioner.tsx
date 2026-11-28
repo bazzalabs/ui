@@ -8,8 +8,9 @@ import {
   getSlotAttribute,
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
-import { usePopupMenuContext } from '../../contexts/popup-menu-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
+import { useMenuSurfaceSettings } from '../../contexts/surface-settings-context.js'
+import { useMenuSurfaceTier } from '../../contexts/surface-tier-context.js'
 import { useMenuElement } from '../../hooks/use-menu-element.js'
 
 // ============================================================================
@@ -120,12 +121,10 @@ export const PopupMenuPositioner = React.forwardRef<
     ...rest
   } = props
 
-  const {
-    store,
-    depth,
-    virtualAnchor: contextVirtualAnchor,
-    menuType,
-  } = usePopupMenuContext()
+  const tier = useMenuSurfaceTier()
+  const { store, depth } = tier
+  const { virtualAnchor: contextVirtualAnchor, menuType } =
+    useMenuSurfaceSettings()
 
   // Get submenu context to access contentRef for list-start measurement
   const submenuContext = useMaybeSubmenuContext()

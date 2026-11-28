@@ -2,8 +2,10 @@
 
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
-import { usePopupMenuContext } from '../../internal/popup-menu/index.js'
-import { useMenuElement } from '../../internal/popup-menu/members.js'
+import {
+  useMenuElement,
+  useMenuSurfaceTier,
+} from '../../internal/popup-menu/members.js'
 import {
   resolveClassName,
   resolveStyle,
@@ -43,7 +45,7 @@ export const ComboboxInputWrapper = React.forwardRef<
 >(function ComboboxInputWrapper(props, forwardedRef) {
   const { render, className, style, children, ...rest } = props
 
-  const { store } = usePopupMenuContext()
+  const { store } = useMenuSurfaceTier()
   const comboboxContext = useComboboxContext()
   const open = store.useState('open')
 

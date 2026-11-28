@@ -19,7 +19,7 @@ import {
   getSlotAttribute,
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
-import { usePopupMenuContext } from '../../contexts/popup-menu-context.js'
+import { useMenuSurfaceSettings } from '../../contexts/surface-settings-context.js'
 import type {
   CheckedChangeReason,
   SelectionCommitReason,
@@ -214,7 +214,7 @@ export const PopupMenuCheckboxItem = React.forwardRef<
   // The surface's checkbox selection: made the first time this row changes
   // it (in an effect or a handler), only read otherwise.
   const selection = useCheckboxRowSelection()
-  const { rangeSelection, dragSelection } = usePopupMenuContext()
+  const { rangeSelection, dragSelection } = useMenuSurfaceSettings()
   // A range or drag selection previews the opposite of the committed state
   // for each item it would change, in the surface's store.
   const { store } = useSurfaceContext()

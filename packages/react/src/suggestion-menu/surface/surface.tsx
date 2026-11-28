@@ -1,13 +1,13 @@
 'use client'
 
 import * as React from 'react'
-import { useListboxContext } from '../../internal/listbox/index.js'
 import {
   isPopupMenuNode,
   type NodeDef,
   PopupMenuSurface,
   type PopupMenuSurfaceProps,
 } from '../../internal/popup-menu/index.js'
+import { useMenuSurfaceTier } from '../../internal/popup-menu/members.js'
 import { useSuggestionMenuRootContext } from '../root/root-context.js'
 import { SuggestionMenuResultsReporter } from './results-reporter.js'
 
@@ -81,7 +81,7 @@ export const SuggestionMenuSurface = React.forwardRef<
 >(function SuggestionMenuSurface(props, forwardedRef) {
   const { content, asyncContentMode = 'append', children, ...rest } = props
   const { query } = useSuggestionMenuRootContext()
-  const { store } = useListboxContext()
+  const { store } = useMenuSurfaceTier('listbox')
 
   // The host input plays the role of the surface's input: the list neither
   // takes focus nor handles keys itself.

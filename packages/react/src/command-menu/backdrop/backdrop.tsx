@@ -3,8 +3,12 @@
 import { Dialog } from '@base-ui/react/dialog'
 import { useMergedRefs } from '@base-ui/utils/useMergedRefs'
 import * as React from 'react'
-import { useMaybePopupMenuContext } from '../../internal/popup-menu/index.js'
-import { useMenuElement } from '../../internal/popup-menu/members.js'
+import {
+  isLevelDisabled,
+  useMaybeMenuSurfaceSettings,
+  useMaybeMenuSurfaceTier,
+  useMenuElement,
+} from '../../internal/popup-menu/members.js'
 import { REASONS } from '../../utils/events/index.js'
 import { useComposedHandler } from '../../utils/use-part.js'
 
@@ -24,7 +28,8 @@ export const CommandMenuBackdrop = React.forwardRef<
   CommandMenuBackdrop.Props
 >(function CommandMenuBackdrop(props, forwardedRef) {
   const { onPointerDown, ...rest } = props
-  const popupMenuContext = useMaybePopupMenuContext()
+  const tier = useMaybeMenuSurfaceTier()
+  const closeAll = useMaybeMenuSurfaceSettings()?.closeAll
   // A press here is the backdrop's to handle (it closes on pointerdown unless
   // the consumer prevents it), not an outside press.
   const backdropRef = useMergedRefs(forwardedRef, useMenuElement('backdrop'))
@@ -39,11 +44,13 @@ export const CommandMenuBackdrop = React.forwardRef<
         return
       }
 
-      if (popupMenuContext && !popupMenuContext.disabled) {
-        popupMenuContext.closeAll(REASONS.outsidePress, event.nativeEvent)
+      // Whether the menu is disabled as last committed (`isLevelDisabled`);
+      // `closeAll` is the committed render's, as the handler is.
+      if (tier && closeAll && !isLevelDisabled(tier)) {
+        closeAll(REASONS.outsidePress, event.nativeEvent)
       }
     },
-    [popupMenuContext],
+    [tier, closeAll],
   )
   const handlePointerDown = useComposedHandler(
     onPointerDown,

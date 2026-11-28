@@ -25,6 +25,10 @@ import {
   resolvePopupMenuSafeTriangleAreaDebugConfig,
 } from '../contexts/popup-menu-debug-context.js'
 import {
+  type MenuSurfaceSettings,
+  SurfaceSettingsContext,
+} from '../contexts/surface-settings-context.js'
+import {
   MenuSurfaceTier,
   SurfaceTierContext,
   useMaybeMenuSurfaceTier,
@@ -230,20 +234,13 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
     aimGuard.latest = treeTier
   }, [aimGuard, treeTier])
 
-  // The root surface's tier. A root nested in another menu's content keeps
-  // that menu's submenu around it, as its parts read it.
-  const outerTier = useMaybeMenuSurfaceTier()
-  const surfaceTier = React.useMemo(
-    () => new MenuSurfaceTier(store, outerTier),
-    [store, outerTier],
-  )
-
-  // PopupMenu context value
-  const popupMenuContextValue: PopupMenuContextValue = React.useMemo(
+  // The root level's settings: what the published `PopupMenuContext`
+  // carries, but the store and depth, which are the tier's own. Provided
+  // with `SurfaceSettingsContext`, memoised on them: its value changes only
+  // when one of them does.
+  const settings: MenuSurfaceSettings = React.useMemo(
     () => ({
-      store,
       disabled,
-      depth,
       closeAll,
       explicitTabBehavior,
       tabWithoutZones,
@@ -259,9 +256,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
       getAriaSelectionText,
     }),
     [
-      store,
       disabled,
-      depth,
       closeAll,
       explicitTabBehavior,
       tabWithoutZones,
@@ -276,6 +271,31 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
       dragSelection,
       getAriaSelectionText,
     ],
+  )
+
+  // The root surface's tier. A root nested in another menu's content keeps
+  // that menu's submenu around it, as its parts read it.
+  const outerTier = useMaybeMenuSurfaceTier()
+  // The root's `disabled` as last committed, for its submenus' gates
+  // (`isLevelDisabled`): written as the render commits, never for a render
+  // that doesn't.
+  const disabledRef = React.useRef(disabled)
+  React.useInsertionEffect(() => {
+    disabledRef.current = disabled
+  }, [disabled])
+  const surfaceTier = React.useMemo(
+    () =>
+      new MenuSurfaceTier(store, outerTier, depth, {
+        isOwnDisabled: () => disabledRef.current,
+        isRoot: true,
+      }),
+    [store, outerTier, depth],
+  )
+
+  // PopupMenu context value (published; the engine's parts read the tier)
+  const popupMenuContextValue: PopupMenuContextValue = React.useMemo(
+    () => ({ store, depth, ...settings }),
+    [store, depth, settings],
   )
 
   // Listbox context value (for compatibility with dropdown-menu components)
@@ -295,7 +315,9 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
       <ListboxContextProvider.Provider value={listboxContextValue}>
         <MenuTreeContext.Provider value={treeTier}>
           <SurfaceTierContext.Provider value={surfaceTier}>
-            {children}
+            <SurfaceSettingsContext.Provider value={settings}>
+              {children}
+            </SurfaceSettingsContext.Provider>
           </SurfaceTierContext.Provider>
         </MenuTreeContext.Provider>
       </ListboxContextProvider.Provider>

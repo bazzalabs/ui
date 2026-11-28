@@ -8,15 +8,16 @@ import {
 } from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { useComposedHandler } from '../../../../utils/use-part.js'
-import { useListboxContext, useSurfaceContext } from '../../../listbox/index.js'
+import { useSurfaceContext } from '../../../listbox/index.js'
 import {
   getSlotAttribute,
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
-import { usePopupMenuContext } from '../../contexts/popup-menu-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
 import { useMaybeSubpageContext } from '../../contexts/subpage-context.js'
+import { useMenuSurfaceSettings } from '../../contexts/surface-settings-context.js'
+import { useMenuSurfaceTier } from '../../contexts/surface-tier-context.js'
 import { usePopupMenuKeyboard } from '../../hooks/use-popup-menu-keyboard.js'
 
 export interface PopupMenuInputState extends Record<string, unknown> {
@@ -82,10 +83,13 @@ export const PopupMenuInput = React.forwardRef<
   } = props
 
   const { store, surfaceId } = useSurfaceContext()
-  const { depth, closeAll } = useListboxContext()
+  const tier = useMenuSurfaceTier('listbox')
+  const { depth } = tier
+  const settings = useMenuSurfaceSettings('listbox')
+  const { closeAll } = settings
   const submenuContext = useMaybeSubmenuContext()
   const subpageContext = useMaybeSubpageContext()
-  const { disabled: popupMenuDisabled } = usePopupMenuContext()
+  const popupMenuDisabled = settings.disabled
   const disabled = popupMenuDisabled || disabledProp
   const focusOwnerStore = useFocusOwner()
   const internalRef = React.useRef<HTMLInputElement>(null)

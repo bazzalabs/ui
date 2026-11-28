@@ -4,10 +4,10 @@ import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect'
 import { type ElementRegistry, REASONS } from '@bazza-ui/menu-core'
 import * as React from 'react'
 import { flushSync } from 'react-dom'
+import type { ListboxSurfaceTier } from '../../listbox/contexts/surface-tier-context.js'
 import {
   type CloseCause,
   getCloseCause,
-  type ListboxStore,
   popupActionsOf,
 } from '../../listbox/store/ListboxStore.js'
 import { useMenuTree } from '../contexts/menu-tree-context.js'
@@ -173,15 +173,16 @@ function playsExit(popup: Element): boolean {
  *   its animations turned off), the close is Base UI's: its unmount reports
  *   the close each time it's called.
  *
- * The unmount runs in `flushSync`, as Base UI's own completion does. `store`
- * is the surface store of the popup's level (the root's or a submenu's), and
- * `depth` its menu depth; a popup with no store has no Base UI root of ours
+ * The unmount runs in `flushSync`, as Base UI's own completion does. `tier`
+ * is the surface tier of the popup's level (the root's or a submenu's): its
+ * store and its menu depth. A popup with no tier has no Base UI root of ours
  * to ask.
  */
 export function useCloseInOneFrame(
-  store: ListboxStore | null | undefined,
-  depth: number,
+  tier: ListboxSurfaceTier | null,
 ): (element: Element | null) => void {
+  const store = tier?.store
+  const depth = tier?.depth ?? 0
   // Whether a press closed it, read as `open` goes false: the open cell
   // keeps the close's cause only while the change is being written, and the
   // press is being dispatched only then.

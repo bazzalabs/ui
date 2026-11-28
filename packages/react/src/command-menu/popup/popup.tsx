@@ -6,7 +6,6 @@ import * as React from 'react'
 import {
   PopupSurfaceIdContext,
   SubpageStackContext,
-  usePopupMenuContext,
   useSubpageStackState,
 } from '../../internal/popup-menu/index.js'
 import {
@@ -14,6 +13,7 @@ import {
   DataSubpagesContent,
   useCloseInOneFrame,
   useMenuElement,
+  useMenuSurfaceTier,
   usePressClaim,
 } from '../../internal/popup-menu/members.js'
 import type { ComponentRenderFn } from '../../utils/types.js'
@@ -66,12 +66,12 @@ export const CommandMenuPopup = React.forwardRef<
   } = props
 
   const surfaceId = React.useId()
-  const popupMenuContext = usePopupMenuContext()
+  const tier = useMenuSurfaceTier()
   const popupRef = useMergedRefs(
     forwardedRef,
     useMenuElement('popup', surfaceId),
     // With nothing to animate, the close completes in the frame it closes.
-    useCloseInOneFrame(popupMenuContext.store, popupMenuContext.depth),
+    useCloseInOneFrame(tier),
   )
   const claimPress = usePressClaim(rest.onPointerDownCapture)
 
@@ -82,7 +82,7 @@ export const CommandMenuPopup = React.forwardRef<
     subpageId,
   } = useSubpageStackState({
     surfaceId,
-    store: popupMenuContext.store,
+    store: tier.store,
   })
 
   const toPopupState = React.useCallback(

@@ -10,17 +10,14 @@ import {
 } from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { composeHandlers } from '../../../../utils/use-part.js'
-import {
-  ItemContext,
-  useListboxContext,
-  useSurfaceContext,
-} from '../../../listbox/index.js'
+import { ItemContext, useSurfaceContext } from '../../../listbox/index.js'
 import {
   getSlotAttribute,
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
 import { useSubmenuContext } from '../../contexts/submenu-context.js'
+import { useMenuSurfaceTier } from '../../contexts/surface-tier-context.js'
 import { usePopupMenuItem } from '../../hooks/use-popup-menu-item.js'
 import { isMouseLikePointerType } from '../../utils/is-mouse-like-pointer.js'
 import { PopupMenuSubmenuSafeTriangleArea } from './submenu-safe-triangle-area.js'
@@ -130,8 +127,9 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
   // Get parent menu's store (from Surface context)
   const { store: parentStore } = useSurfaceContext()
 
-  // Get depth from listbox context (this is the submenu's depth, parent is depth - 1)
-  const { depth } = useListboxContext()
+  // The submenu's depth, from its tier (the trigger sits under it); its
+  // parent's is one less.
+  const { depth } = useMenuSurfaceTier('listbox')
   const parentDepth = depth - 1
 
   // Get submenu context for open state and refs

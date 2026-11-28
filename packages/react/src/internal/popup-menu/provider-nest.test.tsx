@@ -6,6 +6,7 @@ import * as Listbox from '../listbox/index.js'
 import { GraftPointContext } from './contexts/graft-point-context.js'
 import { MenuTreeContext } from './contexts/menu-tree-context.js'
 import { SubpageContext } from './contexts/subpage-context.js'
+import { SurfaceSettingsContext } from './contexts/surface-settings-context.js'
 import { SurfaceTierContext } from './contexts/surface-tier-context.js'
 import { LoaderScopeContext } from './data-first/async-coordinator.js'
 import * as PopupMenu from './index.js'
@@ -19,6 +20,7 @@ import * as PopupMenu from './index.js'
 const ENGINE_CONTEXTS = new Map<unknown, string>([
   [MenuTreeContext, 'MenuTree'],
   [SurfaceTierContext, 'SurfaceTier'],
+  [SurfaceSettingsContext, 'SurfaceSettings'],
   [SubpageContext, 'Subpage'],
   [GraftPointContext, 'GraftPoint'],
   [LoaderScopeContext, 'LoaderScope'],
@@ -190,6 +192,10 @@ function DataMenu() {
 // 13. The published context objects
 // (PopupMenu, Listbox, PopupSurfaceId, SubpageStack, DataPopup, Surface,
 // Group, RowWidth, DataSurface, DataList) are still provided where they were.
+// Each level's settings ride a context of their own (`SurfaceSettings`,
+// UI-754), the one tier context whose value changes: one more provider per
+// level (a JSX root row 10 -> 11, an open JSX submenu 9 -> 10, a data-first
+// root row 14 -> 15, an open data-first submenu 12 -> 13).
 describe('popup menu provider nest', () => {
   it('a JSX root row sits under the tree tier, the root surface tier and the published contexts', async () => {
     render(<JsxMenu />)
@@ -199,6 +205,7 @@ describe('popup menu provider nest', () => {
       'Listbox',
       'MenuTree',
       'SurfaceTier',
+      'SurfaceSettings',
       'PopupSurfaceId',
       'SubpageStack',
       'DataPopup',
@@ -208,7 +215,7 @@ describe('popup menu provider nest', () => {
     ])
   })
 
-  it('an open JSX submenu adds one surface tier and the published contexts over its rows', async () => {
+  it('an open JSX submenu adds one surface tier, its settings and the published contexts over its rows', async () => {
     render(<JsxMenu />)
     const level = submenuLevel(
       screen.getByTestId('top'),
@@ -216,6 +223,7 @@ describe('popup menu provider nest', () => {
     )
     expect(engine(level)).toEqual([
       'SurfaceTier',
+      'SurfaceSettings',
       'PopupMenu',
       'Listbox',
       'PopupSurfaceId',
@@ -226,7 +234,7 @@ describe('popup menu provider nest', () => {
       'RowWidth',
     ])
     // Base UI's popover adds its own six.
-    expect(level).toHaveLength(15)
+    expect(level).toHaveLength(16)
   })
 
   // A data-first Surface keeps one provider for its loader scope, and its
@@ -238,6 +246,7 @@ describe('popup menu provider nest', () => {
       'Listbox',
       'MenuTree',
       'SurfaceTier',
+      'SurfaceSettings',
       'PopupSurfaceId',
       'SubpageStack',
       'DataPopup',
@@ -251,7 +260,7 @@ describe('popup menu provider nest', () => {
     ])
   })
 
-  it('an open data-first submenu adds one surface tier and the published contexts over its rows', async () => {
+  it('an open data-first submenu adds one surface tier, its settings and the published contexts over its rows', async () => {
     render(<DataMenu />)
     const level = submenuLevel(
       await screen.findByTestId('top'),
@@ -260,6 +269,7 @@ describe('popup menu provider nest', () => {
     expect(engine(level)).toEqual([
       'GraftPoint',
       'SurfaceTier',
+      'SurfaceSettings',
       'PopupMenu',
       'Listbox',
       'PopupSurfaceId',

@@ -1,15 +1,15 @@
 'use client'
 
 import * as React from 'react'
-import {
-  type ListboxStore,
-  useListboxContext,
-} from '../../internal/listbox/index.js'
+import type { ListboxStore } from '../../internal/listbox/index.js'
 import {
   useMaybeAsyncMenuCoordinator,
   useMaybeDataSurfaceContext,
 } from '../../internal/popup-menu/index.js'
-import { useLoadersSettled } from '../../internal/popup-menu/members.js'
+import {
+  useLoadersSettled,
+  useMenuSurfaceTier,
+} from '../../internal/popup-menu/members.js'
 import { useSuggestionMenuRootContext } from '../root/root-context.js'
 
 /**
@@ -57,7 +57,7 @@ function rowLabel(
  * summary back too.
  */
 export function SuggestionMenuResultsReporter() {
-  const { store } = useListboxContext()
+  const { store } = useMenuSurfaceTier('listbox')
   const dataFirst = useMaybeDataSurfaceContext() !== null
   const { query, reportResults } = useSuggestionMenuRootContext()
   const open = store.useState('open')

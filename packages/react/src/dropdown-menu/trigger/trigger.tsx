@@ -3,8 +3,11 @@
 import { Popover } from '@base-ui/react/popover'
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
-import { usePopupMenuContext } from '../../internal/popup-menu/index.js'
-import { useMenuElement } from '../../internal/popup-menu/members.js'
+import {
+  useMenuElement,
+  useMenuSurfaceSettings,
+  useMenuSurfaceTier,
+} from '../../internal/popup-menu/members.js'
 import { REASONS } from '../../utils/events/index.js'
 import { mergeElementProps } from '../../utils/merge-element-props.js'
 import {
@@ -125,12 +128,15 @@ export const DropdownMenuTrigger = React.forwardRef<
 >(function DropdownMenuTrigger(props, forwardedRef) {
   const { disabled, openOnHover, delay = 100, closeDelay, ...rest } = props
 
+  const tier = useMenuSurfaceTier()
+  const { store } = tier
+  // The root level's settings, rendered with the root: the trigger has the
+  // root's `disabled` in the commit that changes it.
   const {
-    store,
     closeAll,
     closeOnOutsidePress,
     disabled: rootDisabled,
-  } = usePopupMenuContext()
+  } = useMenuSurfaceSettings()
   const isOpen = store.useState('open')
   const isDisabled = disabled || rootDisabled
 

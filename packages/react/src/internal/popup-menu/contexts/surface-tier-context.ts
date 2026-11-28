@@ -2,6 +2,10 @@
 
 import { Store } from '@base-ui/utils/store'
 import * as React from 'react'
+import {
+  ListboxSurfaceTier,
+  SurfaceTierContext,
+} from '../../listbox/contexts/surface-tier-context.js'
 import type { ListboxStore } from '../../listbox/store/ListboxStore.js'
 import type { CheckboxSelectionStore } from '../store/CheckboxSelectionStore.js'
 import type { SubmenuHandle } from './submenu-context.js'
@@ -14,21 +18,21 @@ import type { SubmenuHandle } from './submenu-context.js'
  * What one surface's store shares with the parts that render for it, apart
  * from its published contexts (see "Tier contexts" in packages/react/AGENTS.md).
  * One per surface store, made where the store is (`PopupMenuProviders` for a
- * root, `PopupMenu.SubmenuRoot`, `PopupMenu.Subpage`), or by a Surface whose
- * store has none, so a submenu's trigger, positioner and popup read it as its
- * surface does. Every field is set when it's made and never changes; what
+ * root, `PopupMenu.SubmenuRoot`, `PopupMenu.Subpage`) and provided above the
+ * level's trigger, positioner and popup, so they read it as its surface
+ * does. Every field is set when it's made and never changes; what
  * changes is read through store selectors (the checkbox selection, made
- * later, is read through its own small store).
+ * later, through its own small store). The level's settings, which change
+ * with its props, aren't on the tier: they ride a context of their own
+ * (`SurfaceSettingsContext`), rendered with the level.
  *
  * A part finds the tier of the surface it renders in with
  * `findSurfaceTier(tier, store)`, by its Surface's store: a submenu trigger
  * sits under its submenu's tier, and its row belongs to the tier above.
  */
-export class MenuSurfaceTier {
-  /** The surface's store. */
-  readonly store: ListboxStore
+export class MenuSurfaceTier extends ListboxSurfaceTier {
   /** The tier around this one: the parent surface's, or an outer menu's. */
-  readonly parent: MenuSurfaceTier | null
+  declare readonly parent: MenuSurfaceTier | null
   /**
    * The submenu the surface opens in: its own, or the one around it (a
    * subpage of a submenu shares its submenu, as the root of a menu nested
@@ -52,15 +56,44 @@ export class MenuSurfaceTier {
     current: null as CheckboxSelectionStore | null,
   })
 
+  /**
+   * Whether the level itself is disabled, as last committed (read from a ref
+   * an insertion effect writes): the root's `disabled`, or a submenu's own
+   * (its prop or its actions'). A subpage has none of its own.
+   */
+  readonly isOwnDisabled: () => boolean
+  /** Whether this is a menu root's tier, where a level's `disabled` ends. */
+  readonly isRoot: boolean
+
   constructor(
     store: ListboxStore,
     parent: MenuSurfaceTier | null,
-    submenu?: SubmenuHandle,
+    depth: number,
+    options: {
+      submenu?: SubmenuHandle
+      isOwnDisabled?: () => boolean
+      isRoot?: boolean
+    } = {},
   ) {
-    this.store = store
-    this.parent = parent
-    this.submenu = submenu ?? parent?.submenu ?? null
+    super(store, parent, depth)
+    this.submenu = options.submenu ?? parent?.submenu ?? null
+    this.isOwnDisabled = options.isOwnDisabled ?? (() => false)
+    this.isRoot = options.isRoot ?? false
   }
+}
+
+/**
+ * Whether the level `tier` is in is disabled, as last committed: its own or
+ * any level's above it in the same menu tree, up to its root (a root nested
+ * in another menu's content doesn't read the outer one's). What a gate reads
+ * when a change is asked, at any depth, in the commit that changes it too.
+ */
+export function isLevelDisabled(tier: MenuSurfaceTier | null): boolean {
+  for (let current = tier; current; current = current.parent) {
+    if (current.isOwnDisabled()) return true
+    if (current.isRoot) return false
+  }
+  return false
 }
 
 /** Where a surface tier holds its checkbox selection, once it's made. */
@@ -68,12 +101,29 @@ export type CheckboxSelectionSlot = Store<{
   current: CheckboxSelectionStore | null
 }>
 
-export const SurfaceTierContext = React.createContext<MenuSurfaceTier | null>(
-  null,
-)
+export { SurfaceTierContext }
 
 export function useMaybeMenuSurfaceTier(): MenuSurfaceTier | null {
-  return React.useContext(SurfaceTierContext)
+  const tier = React.useContext(SurfaceTierContext)
+  return tier instanceof MenuSurfaceTier ? tier : null
+}
+
+const OUTSIDE_A_MENU = {
+  menu: 'PopupMenu components must be used within a PopupMenu.Root or ContextMenu.Root',
+  listbox: 'Listbox components must be used within a Listbox provider',
+}
+
+/**
+ * The menu tier of the surface a part renders in. Throws outside a menu,
+ * with the message of the published context the part read before (`menu`
+ * for `PopupMenuContext`, `listbox` for `ListboxContext`).
+ */
+export function useMenuSurfaceTier(
+  outside: keyof typeof OUTSIDE_A_MENU = 'menu',
+): MenuSurfaceTier {
+  const tier = useMaybeMenuSurfaceTier()
+  if (!tier) throw new Error(OUTSIDE_A_MENU[outside])
+  return tier
 }
 
 /** The tier whose store is `store`: `tier` or one around it. */

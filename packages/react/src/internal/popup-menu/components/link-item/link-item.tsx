@@ -8,11 +8,12 @@ import {
 } from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { useComposedHandler, usePart } from '../../../../utils/use-part.js'
-import { ItemContext, useListboxContext } from '../../../listbox/index.js'
+import { ItemContext } from '../../../listbox/index.js'
 import {
   getSlotAttribute,
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
+import { useMenuSurfaceSettings } from '../../contexts/surface-settings-context.js'
 import { usePopupMenuItem } from '../../hooks/use-popup-menu-item.js'
 import { PopupMenuLinkItemDataAttributes } from './link-item.data-attrs.js'
 
@@ -70,7 +71,7 @@ export const PopupMenuLinkItem = React.forwardRef<
     'aria-describedby': ariaDescribedBy,
     ...rest
   } = props
-  const { closeAll } = useListboxContext()
+  const { closeAll } = useMenuSurfaceSettings('listbox')
   const anchorRef = React.useRef<HTMLAnchorElement>(null)
   const item = usePopupMenuItem({
     id,

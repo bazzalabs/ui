@@ -3,8 +3,11 @@
 import { Popover } from '@base-ui/react/popover'
 import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
-import { usePopupMenuContext } from '../../internal/popup-menu/index.js'
-import { useMenuElement } from '../../internal/popup-menu/members.js'
+import {
+  useMenuElement,
+  useMenuSurfaceSettings,
+  useMenuSurfaceTier,
+} from '../../internal/popup-menu/members.js'
 import { REASONS } from '../../utils/events/index.js'
 import { mergeElementProps } from '../../utils/merge-element-props.js'
 import {
@@ -156,10 +159,11 @@ export const SelectTrigger = React.forwardRef<
     ...rest
   } = props
   const selectContext = useSelectContext()
-  const popupMenuContext = usePopupMenuContext()
-  const { store, closeAll, closeOnOutsidePress } = popupMenuContext
-  const disabled =
-    (disabledProp ?? selectContext.disabled) || popupMenuContext.disabled
+  const tier = useMenuSurfaceTier()
+  const { store } = tier
+  const settings = useMenuSurfaceSettings()
+  const { closeAll, closeOnOutsidePress } = settings
+  const disabled = (disabledProp ?? selectContext.disabled) || settings.disabled
   const isOpen = store.useState('open')
 
   // We need to intercept pointerdown before it reaches Popover.Trigger.
