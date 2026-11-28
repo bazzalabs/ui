@@ -189,14 +189,19 @@ export const defaultPopupMenuDebugContextValue: PopupMenuDebugContextValue = {
   logAimGuardEvents: false,
 }
 
-/** The root's debug flags, from its tree tier's settings. */
+/**
+ * The root's debug flags, from its tree (`MenuTreeStore`), or the tree
+ * tier's first ones until the root's providers sync them.
+ */
 export function usePopupMenuDebug(): PopupMenuDebugContextValue {
-  return useMaybeStore(
-    useMaybeMenuTreeTier()?.settings,
-    selectDebug,
-    defaultPopupMenuDebugContextValue,
-  )
+  const tier = useMaybeMenuTreeTier()
+  const initial = tier?.initialDebug ?? defaultPopupMenuDebugContextValue
+  // The first sync writes the flags the tier was made with, which this
+  // already returns, so it renders no one.
+  return useMaybeStore(tier?.tree, selectDebug, initial, initial)
 }
 
-const selectDebug = (state: { debug: PopupMenuDebugContextValue }) =>
-  state.debug
+const selectDebug = (
+  state: { debug: PopupMenuDebugContextValue | null },
+  initial: PopupMenuDebugContextValue,
+) => state.debug ?? initial

@@ -3,7 +3,6 @@
 import type { ElementRole } from '@bazza-ui/menu-core'
 import * as React from 'react'
 import { useMaybeMenuTree } from '../contexts/menu-tree-context.js'
-import { getElementRegistry } from '../store/MenuTreeStore.js'
 
 /**
  * A ref callback that registers the element it receives with the menu tree's
@@ -21,7 +20,7 @@ export function useMenuElement(
       removeRef.current?.()
       removeRef.current =
         element && tree
-          ? getElementRegistry(tree).add(role, element, surfaceId)
+          ? tree.elements.add(role, element, surfaceId)
           : undefined
     },
     [tree, role, surfaceId],
@@ -39,7 +38,7 @@ export function usePressClaim<E extends Element>(
 ): React.PointerEventHandler<E> {
   const tree = useMaybeMenuTree()
   return (event) => {
-    if (tree) getElementRegistry(tree).claim(event.nativeEvent)
+    if (tree) tree.elements.claim(event.nativeEvent)
     handler?.(event)
   }
 }

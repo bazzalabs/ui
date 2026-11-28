@@ -41,10 +41,7 @@ import type {
   PopupMenuOpenChangeReason,
 } from '../../events.js'
 import type { PopupMenuRootActions } from '../../hooks/use-popup-menu-root.js'
-import {
-  getElementRegistry,
-  mirrorToBaseUI,
-} from '../../store/MenuTreeStore.js'
+import { mirrorToBaseUI } from '../../store/MenuTreeStore.js'
 
 export interface PopupMenuSubmenuRootProps
   extends Omit<
@@ -280,7 +277,7 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
   // dismissal from outside the tree's popups is the root's to decide when
   // the root hears it too (an outside press, or the focus-out one causes):
   // when the root closes, so does the submenu.
-  const elements = getElementRegistry(menuTree)
+  const elements = menuTree.elements
   const handlePopoverOpenChange = React.useCallback(
     (newOpen: boolean, eventDetails: Popover.Root.ChangeEventDetails) => {
       const { reason, event } = eventDetails

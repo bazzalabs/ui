@@ -1,5 +1,6 @@
 'use client'
 
+import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect'
 import * as React from 'react'
 import type { ListboxContextValue } from '../../listbox/contexts/listbox-context.js'
 import { ListboxContext as ListboxContextProvider } from '../../listbox/contexts/listbox-context.js'
@@ -9,7 +10,6 @@ import type { ComponentName } from '../contexts/component-name-context.js'
 import {
   type AimGuardHolder,
   MenuTreeContext,
-  MenuTreeSettings,
   MenuTreeTier,
 } from '../contexts/menu-tree-context.js'
 import {
@@ -33,7 +33,7 @@ import type { PopupMenuOpenChangeReason } from '../events.js'
 import type { MenuTreeResolver } from '../menu-tree/resolver.js'
 import type { FocusOwnerStore } from '../store/FocusOwnerStore.js'
 import { FocusZoneRegistry } from '../store/FocusZoneRegistry.js'
-import { getElementRegistry, MenuTreeStore } from '../store/MenuTreeStore.js'
+import { MenuTreeStore } from '../store/MenuTreeStore.js'
 import type { OpenChainStore } from '../store/OpenChainStore.js'
 
 // ============================================================================
@@ -184,7 +184,7 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
       resolver: menuTreeResolver,
       openChain: openChainStore,
       focusOwner: focusOwnerStore,
-      elements: rootTree && getElementRegistry(rootTree),
+      elements: rootTree?.elements,
     })
   }, [store, openChainStore, focusOwnerStore, menuTreeResolver])
 
@@ -207,22 +207,28 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
       debug?.logAimGuardEvents,
     ],
   )
-  // The tree tier. Its parts live as long as this root does, made with its
-  // first props; later debug flags are synced into its settings.
-  const [settings] = React.useState(
-    () => new MenuTreeSettings({ debug: debugValue }),
-  )
-  settings.useSyncedValue('debug', debugValue)
+  // The root's debug flags live in its tree, synced from a layout effect;
+  // the tree tier is made with the ones it has then, which parts read until
+  // that first sync (`usePopupMenuDebug`).
+  tree.useSyncedValue('debug', debugValue)
   const [focusZones] = React.useState(() => new FocusZoneRegistry())
   // The root's aim guard, made by its first submenu trigger. It lives as
   // long as the root: a tier made again (a new tree) shares the guard the
   // mounted triggers hold, and it's disposed only when the root unmounts.
-  const [aimGuard] = React.useState<AimGuardHolder>(() => ({ current: null }))
+  const [aimGuard] = React.useState<AimGuardHolder>(() => ({
+    current: null,
+    latest: null,
+  }))
   React.useEffect(() => () => aimGuard.current?.dispose(), [aimGuard])
+  // biome-ignore lint/correctness/useExhaustiveDependencies(debugValue): it seeds the tier; later values are synced into the tree above
   const treeTier = React.useMemo(
-    () => new MenuTreeTier(tree, componentName, settings, focusZones, aimGuard),
-    [tree, componentName, settings, focusZones, aimGuard],
+    () =>
+      new MenuTreeTier(tree, componentName, debugValue, focusZones, aimGuard),
+    [tree, componentName, focusZones, aimGuard],
   )
+  useIsoLayoutEffect(() => {
+    aimGuard.latest = treeTier
+  }, [aimGuard, treeTier])
 
   // The root surface's tier. A root nested in another menu's content keeps
   // that menu's submenu around it, as its parts read it.

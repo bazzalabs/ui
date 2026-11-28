@@ -3,7 +3,7 @@ import {
   type AimGuardPointer,
   createAimGuardOverlay,
 } from '@bazza-ui/menu-core'
-import type { MenuTreeSettings } from '../../contexts/menu-tree-context.js'
+import type { PopupMenuDebugContextValue } from '../../contexts/popup-menu-debug-context.js'
 import { isMouseLikePointerType } from '../../utils/is-mouse-like-pointer.js'
 
 /** The window's pointer moves, listened to only while asked. */
@@ -28,7 +28,9 @@ const windowPointer: AimGuardPointer = {
  * draws its overlay. A production build has neither, and drops the overlay
  * and the log lines.
  */
-export function createAimGuard(settings: MenuTreeSettings): AimGuardController {
+export function createAimGuard(
+  debug: () => PopupMenuDebugContextValue,
+): AimGuardController {
   return new AimGuardController(
     process.env.NODE_ENV === 'production'
       ? { pointer: windowPointer }
@@ -36,12 +38,12 @@ export function createAimGuard(settings: MenuTreeSettings): AimGuardController {
           pointer: windowPointer,
           log: (scope, event, details) => {
             if (typeof window === 'undefined') return
-            if (!settings.state.debug.logAimGuardEvents) return
+            if (!debug().logAimGuardEvents) return
             const prefix = scope === 'tree' ? 'AimGuardProvider' : 'AimGuard'
             console.log(`[PopupMenu][${prefix}] ${event}`, details())
           },
           getDebugSettings: () => {
-            const overlay = settings.state.debug.showSafeTriangleArea
+            const overlay = debug().showSafeTriangleArea
             return overlay.enabled ? overlay : null
           },
           overlay: createAimGuardOverlay,

@@ -19,6 +19,7 @@ import {
   type OpenRequest,
   requestStoreOpen,
 } from '../../listbox/store/ListboxStore.js'
+import type { PopupMenuDebugContextValue } from '../contexts/popup-menu-debug-context.js'
 import type { RootRevealState } from '../data-first/async-coordinator.js'
 import type {
   DataSurfaceContextValue,
@@ -113,6 +114,16 @@ export function patch<T extends object>(object: T, changes: Partial<T>): T {
 }
 
 export interface MenuTreeState {
+  /**
+   * The root's debug flags (development tools), synced from its `debug`
+   * prop; `null` until its providers first sync them, which the tree tier's
+   * `initialDebug` stands for until then (`usePopupMenuDebug`).
+   */
+  debug: PopupMenuDebugContextValue | null
+  /** The root's `disabled` prop. */
+  disabledProp: boolean
+  /** Whether the root's actions disabled it (`setDisabled`). */
+  disabledByActions: boolean
   /** Each data surface's loaders, by its scope id. */
   loaders: Readonly<Record<string, LoaderScope>>
   /** Each popup's data, by the popup's surface id. */
@@ -130,7 +141,15 @@ export const selectLoaders = (
   scopeId: string,
 ): LoaderScope => state.loaders[scopeId] ?? EMPTY_LOADER_SCOPE
 
+/** Whether the root ignores user interaction: its prop, or its actions. */
+export const selectDisabled = (
+  state: Pick<MenuTreeState, 'disabledProp' | 'disabledByActions'>,
+) => state.disabledProp || state.disabledByActions
+
 const selectors = {
+  debug: (state: MenuTreeState) => state.debug,
+  disabled: selectDisabled,
+  disabledByActions: (state: MenuTreeState) => state.disabledByActions,
   loaders: selectLoaders,
   popup: (state: MenuTreeState, popupId: string) =>
     state.popups[popupId] ?? EMPTY_POPUP,
@@ -148,6 +167,10 @@ export interface MenuTreeOptions {
   elements?: ElementRegistry
   /** Whether the root starts open. */
   open?: boolean
+  /** The root's first `disabled` prop. */
+  disabled?: boolean
+  /** Whether the root starts disabled by its actions (`defaultDisabled`). */
+  defaultDisabled?: boolean
   /** The consumer's root `onOpenChange`; it may cancel the change. */
   onOpenChange?: (
     open: boolean,
@@ -171,23 +194,21 @@ export interface RootAskOptions {
   readonly cause?: CloseCause
 }
 
+/** How a surface the root closes with it is closed (`registerSurface`). */
+export type TreeSurfaceSetOpen = (
+  open: boolean,
+  reason?: PopupMenuOpenChangeReason,
+  event?: Event,
+) => void
+
 // ============================================================================
 // Store
 // ============================================================================
 
-let elementsOf: (tree: MenuTreeStore) => ElementRegistry
-
-/**
- * The elements the menu tree renders (see "Tree membership" in
- * packages/react/AGENTS.md). Its root sets the exempt elements.
- */
-export function getElementRegistry(tree: MenuTreeStore): ElementRegistry {
-  return elementsOf(tree)
-}
-
 /**
  * What one menu tree shares: the root's open cell, its open submenu chain and
- * focus owner, the elements it renders, its resolver and its loaders' results.
+ * focus owner, the elements it renders, its resolver and its loaders' results,
+ * and the root's settings (its debug flags and `disabled`) and own surfaces.
  * One per root, shared by its submenus. The open cell's mirrors (`open`,
  * `openProp`, `openMethod`) are the root surface's `ListboxStore` state
  * (`createRootStore`); each surface keeps the rest in its own store.
@@ -201,18 +222,21 @@ export class MenuTreeStore extends ReactStore<
   Record<string, never>,
   typeof selectors
 > {
-  static {
-    elementsOf = (tree) => tree.#elements
-  }
-
   /** The open submenu surfaces, outermost first. */
   readonly openChain: OpenChainStore
   /** The surface that owns focus. */
   readonly focusOwner: FocusOwnerStore
   /** The single resolved node tree of this root. */
   readonly resolver: MenuTreeResolver
+  /**
+   * The elements the menu tree renders (see "Tree membership" in
+   * packages/react/AGENTS.md). Its root sets the exempt elements.
+   */
+  readonly elements: ElementRegistry
 
-  readonly #elements: ElementRegistry
+  // The root's own submenus and subpages, closed when it closes
+  // (`closeSurfaces`); each submenu closes its own.
+  readonly #surfaces = new Set<{ depth: number; setOpen: TreeSurfaceSetOpen }>()
   readonly #onOpenChange: MenuTreeOptions['onOpenChange']
   readonly #grafters = new Map<string, Grafter>()
   #loaderManager: TreeLoaderManager | undefined
@@ -224,11 +248,22 @@ export class MenuTreeStore extends ReactStore<
   #root: ListboxStore | undefined
 
   constructor(options: MenuTreeOptions) {
-    super({ loaders: {}, popups: {}, version: 0 }, {}, selectors)
+    super(
+      {
+        debug: null,
+        disabledProp: options.disabled ?? false,
+        disabledByActions: options.defaultDisabled ?? false,
+        loaders: {},
+        popups: {},
+        version: 0,
+      },
+      {},
+      selectors,
+    )
     this.resolver = options.resolver
     this.openChain = options.openChain ?? new OpenChainStore()
     this.focusOwner = options.focusOwner ?? new FocusOwnerStore()
-    this.#elements = options.elements ?? new ElementRegistry()
+    this.elements = options.elements ?? new ElementRegistry()
     this.#onOpenChange = options.onOpenChange
     this.ask = options.ask
     this.#cells = {
@@ -308,6 +343,34 @@ export class MenuTreeStore extends ReactStore<
   clear() {
     this.focusOwner.clearOwner()
     this.openChain.clear()
+  }
+
+  /** Disables or enables the root, as its actions' `setDisabled` does. */
+  setDisabled(disabled: boolean) {
+    this.set('disabledByActions', disabled)
+  }
+
+  /**
+   * Registers one of the root's own submenus or subpages, which close when
+   * the root does (`closeSurfaces`). Returns its removal. Stable: it's handed
+   * on as the root's `registerSurface`.
+   */
+  readonly registerSurface = (
+    depth: number,
+    setOpen: TreeSurfaceSetOpen,
+  ): (() => void) => {
+    const surface = { depth, setOpen }
+    this.#surfaces.add(surface)
+    return () => {
+      this.#surfaces.delete(surface)
+    }
+  }
+
+  /** Closes the root's own surfaces: the root closed, with `reason`. */
+  closeSurfaces(reason: PopupMenuOpenChangeReason, event?: Event) {
+    for (const surface of [...this.#surfaces]) {
+      surface.setOpen(false, reason, event)
+    }
   }
 
   /**

@@ -25,7 +25,6 @@ import { useMaybeSubpageContext } from '../../contexts/subpage-context.js'
 import { useMaybeDataSurfaceContext } from '../../data-first/context.js'
 import { DataListInner } from '../../data-first/data-list.js'
 import { usePopupMenuKeyboard } from '../../hooks/use-popup-menu-keyboard.js'
-import { getElementRegistry } from '../../store/MenuTreeStore.js'
 import { PopupMenuListCssVars } from './list.css-vars.js'
 import { PopupMenuListDataAttributes } from './list.data-attrs.js'
 
@@ -133,7 +132,7 @@ export const PopupMenuListPrimitive = React.forwardRef<
   // Read on each use: the popup registers in its ref, after the list's
   // layout effects run, so the first read falls back to the list.
   const popupRef = React.useMemo(() => {
-    const elements = getElementRegistry(tree)
+    const elements = tree.elements
     return {
       get current() {
         return elements.popupFor(internalRef.current) as HTMLElement | null
