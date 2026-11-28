@@ -1,7 +1,11 @@
 'use client'
 
 import * as React from 'react'
-import type { ListboxStore } from '../../listbox/store/ListboxStore.js'
+import {
+  getPendingRows,
+  type ListboxStore,
+  setPendingRows,
+} from '../../listbox/store/ListboxStore.js'
 import { CheckboxSelectionStore } from '../store/CheckboxSelectionStore.js'
 import type { SubmenuHandle } from './submenu-context.js'
 
@@ -80,6 +84,8 @@ function createSelection(
     },
     setHighlightedId: (id) => store.setHighlightedId(id, 'pointer'),
     observeOpen: (listener) => store.observe('open', (open) => listener(open)),
+    getPreview: () => getPendingRows(store),
+    setPreview: (preview) => setPendingRows(store, preview),
   })
 }
 

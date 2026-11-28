@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
@@ -802,5 +802,237 @@ describe('popup menu row re-renders', () => {
         commits: {},
       })
     }
+  })
+})
+
+const CHECKBOX_VALUES = Array.from({ length: 8 }, (_, index) => `cb-${index}`)
+
+type CheckboxGrouping = 'standalone' | 'group' | 'controlled group'
+
+let setControlledGroupValue: React.Dispatch<
+  React.SetStateAction<string[]>
+> = () => {}
+
+function ControlledCheckboxGroup({ children }: { children: React.ReactNode }) {
+  const [value, setValue] = React.useState<string[]>([])
+  setControlledGroupValue = setValue
+  return (
+    <DropdownMenu.CheckboxGroup value={value} onValueChange={setValue}>
+      {children}
+    </DropdownMenu.CheckboxGroup>
+  )
+}
+
+/**
+ * Eight checkbox rows, standalone or in a group, rendered once by a parent
+ * that never re-renders: what re-renders a row is its own state.
+ */
+function CheckboxMenu({
+  counter,
+  grouping,
+}: {
+  counter: RenderCounter
+  grouping: CheckboxGrouping
+}) {
+  const rows = CHECKBOX_VALUES.map((value) => (
+    <React.Profiler key={value} id={value} onRender={counter.onRender}>
+      <DropdownMenu.CheckboxItem value={value} data-testid={value}>
+        <DropdownMenu.CheckboxItemIndicator keepMounted />
+        {value}
+      </DropdownMenu.CheckboxItem>
+    </React.Profiler>
+  ))
+  return (
+    <DropdownMenu.Root defaultOpen dragSelection="keep">
+      <DropdownMenu.Portal>
+        <DropdownMenu.Positioner>
+          <DropdownMenu.Popup>
+            <DropdownMenu.Surface>
+              <DropdownMenu.List>
+                {grouping === 'group' ? (
+                  <DropdownMenu.CheckboxGroup defaultValue={[]}>
+                    {rows}
+                  </DropdownMenu.CheckboxGroup>
+                ) : grouping === 'controlled group' ? (
+                  <ControlledCheckboxGroup>{rows}</ControlledCheckboxGroup>
+                ) : (
+                  rows
+                )}
+              </DropdownMenu.List>
+            </DropdownMenu.Surface>
+          </DropdownMenu.Popup>
+        </DropdownMenu.Positioner>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
+
+async function renderCheckboxMenu(grouping: CheckboxGrouping) {
+  const counter = createRenderCounter()
+  render(<CheckboxMenu counter={counter} grouping={grouping} />)
+  await act(async () => {})
+  // Rows 32px apart, for a drag.
+  CHECKBOX_VALUES.forEach((value, index) => {
+    screen.getByTestId(value).getBoundingClientRect = () =>
+      DOMRect.fromRect({ x: 0, y: index * 32, width: 100, height: 32 })
+  })
+  return counter
+}
+
+const checkedRows = () =>
+  CHECKBOX_VALUES.filter(
+    (value) =>
+      screen.getByTestId(value).getAttribute('aria-checked') === 'true',
+  )
+
+describe('checkbox row re-renders', () => {
+  it.each([
+    'standalone',
+    'group',
+    'controlled group',
+  ] as const)('a press re-renders only the row it toggles (%s)', async (grouping) => {
+    const counter = await renderCheckboxMenu(grouping)
+    const before = counter.snapshot()
+    act(() => {
+      fireEvent.click(screen.getByTestId('cb-2'))
+    })
+    await act(async () => {})
+    expect(checkedRows()).toEqual(['cb-2'])
+    expect(counter.since(before)).toEqual({ 'cb-2': 1 })
+  })
+
+  it('a group value set from outside re-renders only the rows it checks or unchecks', async () => {
+    const counter = await renderCheckboxMenu('controlled group')
+    act(() => setControlledGroupValue(['cb-1', 'cb-3']))
+    await act(async () => {})
+    const before = counter.snapshot()
+    act(() => setControlledGroupValue(['cb-3', 'cb-6']))
+    await act(async () => {})
+    expect(checkedRows()).toEqual(['cb-3', 'cb-6'])
+    expect(counter.since(before)).toEqual({ 'cb-1': 1, 'cb-6': 1 })
+  })
+
+  it.each([
+    'standalone',
+    'group',
+  ] as const)('a drag re-renders only the rows it previews and commits (%s)', async (grouping) => {
+    const counter = await renderCheckboxMenu(grouping)
+    const before = counter.snapshot()
+    const y = (index: number) => index * 32 + 16
+    act(() => {
+      fireEvent.pointerDown(screen.getByTestId('cb-4'), {
+        pointerId: 1,
+        pointerType: 'mouse',
+        button: 0,
+        clientY: y(4),
+      })
+    })
+    for (const index of [5, 6, 7]) {
+      act(() => {
+        fireEvent.pointerMove(document, { pointerId: 1, clientY: y(index) })
+      })
+    }
+    act(() => {
+      fireEvent.pointerUp(document, { pointerId: 1, clientY: y(7) })
+    })
+    await act(async () => {})
+    expect(checkedRows()).toEqual(['cb-4', 'cb-5', 'cb-6', 'cb-7'])
+    // cb-0 loses the highlight to the drag. A row in the span commits when
+    // the preview reaches it (with the highlight, if the pointer is on it),
+    // when the highlight leaves it, and once for the commit.
+    expect(counter.since(before)).toEqual({
+      'cb-0': 1,
+      'cb-4': 2,
+      'cb-5': 3,
+      'cb-6': 3,
+      'cb-7': 2,
+    })
+  })
+
+  // Renders a row makes that change nothing it shows: what a preview of a
+  // row the gesture doesn't change would cost.
+  it.each([
+    'standalone',
+    'group',
+  ] as const)('a drag over rows already checked leaves them out of its preview (%s)', async (grouping) => {
+    const initial = ['cb-1', 'cb-2', 'cb-3']
+    const shown = new Map<string, string[]>()
+    const record =
+      (value: string) => (state: DropdownMenu.CheckboxItem.State) => {
+        const list = shown.get(value) ?? []
+        list.push(`${state.highlighted},${state.checked},${state.pending}`)
+        shown.set(value, list)
+        return ''
+      }
+    const rows = CHECKBOX_VALUES.map((value) => (
+      <DropdownMenu.CheckboxItem
+        key={value}
+        value={value}
+        data-testid={value}
+        defaultChecked={grouping === 'standalone' && initial.includes(value)}
+        className={record(value)}
+      >
+        {value}
+      </DropdownMenu.CheckboxItem>
+    ))
+    render(
+      <DropdownMenu.Root defaultOpen dragSelection="keep">
+        <DropdownMenu.Portal>
+          <DropdownMenu.Positioner>
+            <DropdownMenu.Popup>
+              <DropdownMenu.Surface>
+                <DropdownMenu.List>
+                  {grouping === 'group' ? (
+                    <DropdownMenu.CheckboxGroup defaultValue={initial}>
+                      {rows}
+                    </DropdownMenu.CheckboxGroup>
+                  ) : (
+                    rows
+                  )}
+                </DropdownMenu.List>
+              </DropdownMenu.Surface>
+            </DropdownMenu.Popup>
+          </DropdownMenu.Positioner>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>,
+    )
+    await act(async () => {})
+    CHECKBOX_VALUES.forEach((value, index) => {
+      screen.getByTestId(value).getBoundingClientRect = () =>
+        DOMRect.fromRect({ x: 0, y: index * 32, width: 100, height: 32 })
+    })
+    for (const list of shown.values()) list.splice(0, list.length - 1)
+    const y = (index: number) => index * 32 + 16
+    act(() => {
+      fireEvent.pointerDown(screen.getByTestId('cb-0'), {
+        pointerId: 1,
+        pointerType: 'mouse',
+        button: 0,
+        clientY: y(0),
+      })
+    })
+    for (const index of [1, 2, 3]) {
+      act(() => {
+        fireEvent.pointerMove(document, { pointerId: 1, clientY: y(index) })
+      })
+    }
+    act(() => {
+      fireEvent.pointerUp(document, { pointerId: 1, clientY: y(3) })
+    })
+    await act(async () => {})
+    expect(checkedRows()).toEqual(['cb-0', 'cb-1', 'cb-2', 'cb-3'])
+    const unchanged = (value: string) => {
+      const list = shown.get(value) ?? []
+      return list.filter(
+        (entry, index) => index > 0 && entry === list[index - 1],
+      ).length
+    }
+    // cb-1..3 re-render for the highlight passing over them, never for the
+    // preview, which leaves them out.
+    expect(['cb-1', 'cb-2', 'cb-3'].map(unchanged)).toEqual([0, 0, 0])
+    expect(shown.get('cb-1')?.slice(1)).toEqual([
+      'true,true,false',
+      'false,true,false',
+    ])
   })
 })

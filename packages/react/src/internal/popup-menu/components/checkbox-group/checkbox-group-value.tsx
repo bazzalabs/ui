@@ -1,18 +1,12 @@
 'use client'
 
 import * as React from 'react'
-import {
-  createChangeEventDetails,
-  REASONS,
-} from '../../../../utils/events/index.js'
-import type {
-  CheckboxValueChangeEventDetails,
-  CheckboxValueChangeReason,
-} from '../../events.js'
+import type { CheckboxValueChangeEventDetails } from '../../events.js'
 import {
   CheckboxGroupContext,
   type CheckboxGroupContextValue,
   createRegisterItemValue,
+  useCheckboxGroupStore,
 } from './checkbox-group-context.js'
 
 export interface PopupMenuCheckboxGroupValueProps {
@@ -81,22 +75,13 @@ export function PopupMenuCheckboxGroupValue(
     [],
   )
 
-  const setValue = React.useCallback(
-    (
-      newValue: string[],
-      reason: CheckboxValueChangeReason = REASONS.itemPress,
-      event?: Event,
-    ) => {
-      const eventDetails = createChangeEventDetails(reason, event)
-      onValueChange?.(newValue, eventDetails)
-      return !eventDetails.isCanceled
-    },
-    [onValueChange],
-  )
+  // Always controlled: `value` syncs into the group's store, which its
+  // items read.
+  const store = useCheckboxGroupStore(value, undefined, onValueChange)
 
   const contextValue: CheckboxGroupContextValue = React.useMemo(
-    () => ({ groupId, value, setValue, disabled, registerItemValue }),
-    [groupId, value, setValue, disabled, registerItemValue],
+    () => ({ groupId, store, disabled, registerItemValue }),
+    [groupId, store, disabled, registerItemValue],
   )
 
   return (

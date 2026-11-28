@@ -4,10 +4,6 @@ import { useRender } from '@base-ui/react/use-render'
 import type { CheckboxGroupFields } from '@bazza-ui/menu-core'
 import * as React from 'react'
 import {
-  createChangeEventDetails,
-  REASONS,
-} from '../../../../utils/events/index.js'
-import {
   resolveClassName,
   resolveStyle,
 } from '../../../../utils/resolve-state-props.js'
@@ -19,13 +15,13 @@ import {
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
 import { usePopupMenuContext } from '../../contexts/popup-menu-context.js'
-import type { CheckboxValueChangeReason } from '../../events.js'
 import { useGroupVisibility } from '../group/use-group-visibility.js'
 import { PopupMenuCheckboxGroupDataAttributes } from './checkbox-group.data-attrs.js'
 import {
   CheckboxGroupContext,
   type CheckboxGroupContextValue,
   createRegisterItemValue,
+  useCheckboxGroupStore,
 } from './checkbox-group-context.js'
 
 export { PopupMenuCheckboxGroupDataAttributes }
@@ -108,33 +104,11 @@ export const PopupMenuCheckboxGroup = React.forwardRef(
 
     const disabled = disabledProp || popupMenuContext.disabled
 
-    // Controlled/uncontrolled state management
-    const [internalValue, setInternalValue] = React.useState<string[]>(
-      () => defaultValue ?? [],
-    )
-    const isControlled = valueProp !== undefined
-    const value = isControlled ? valueProp : internalValue
-
-    const setValue = React.useCallback(
-      (
-        newValue: string[],
-        reason: CheckboxValueChangeReason = REASONS.itemPress,
-        event?: Event,
-      ) => {
-        const eventDetails = createChangeEventDetails(reason, event)
-
-        // Call user's callback first
-        onValueChange?.(newValue, eventDetails)
-
-        // If canceled, don't update internal state
-        if (eventDetails.isCanceled) return false
-
-        if (!isControlled) {
-          setInternalValue(newValue)
-        }
-        return true
-      },
-      [isControlled, onValueChange],
+    // The group's value lives in its own store, which its items read.
+    const groupStore = useCheckboxGroupStore(
+      valueProp,
+      defaultValue,
+      onValueChange,
     )
 
     const valueCountsRef = React.useRef<Map<string, number>>(new Map())
@@ -161,8 +135,8 @@ export const PopupMenuCheckboxGroup = React.forwardRef(
 
     // Context values
     const checkboxGroupContextValue: CheckboxGroupContextValue = React.useMemo(
-      () => ({ groupId, value, setValue, disabled, registerItemValue }),
-      [groupId, value, setValue, disabled, registerItemValue],
+      () => ({ groupId, store: groupStore, disabled, registerItemValue }),
+      [groupId, groupStore, disabled, registerItemValue],
     )
 
     const state: PopupMenuCheckboxGroup.State = React.useMemo(

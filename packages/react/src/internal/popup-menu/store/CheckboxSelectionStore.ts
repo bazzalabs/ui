@@ -35,6 +35,10 @@ export interface SelectionListbox {
   setHighlightedId: (id: string) => void
   /** Subscribe to the surface's open state (controlled or not). Returns an unsubscribe function. */
   observeOpen: (listener: (open: boolean) => void) => () => void
+  /** The rows the gesture would change, where the surface's rows read it (`isPending`). */
+  getPreview: () => ReadonlySet<string>
+  /** Replace the rows the gesture would change: the controller's only write. */
+  setPreview: (preview: ReadonlySet<string>) => void
 }
 
 /** The checkbox group that owns a row's checked state. */
@@ -66,10 +70,6 @@ export interface CheckboxSelectionContext {
 const selectors = {
   anchorId: createSelector((state: CheckboxSelectionState) => state.anchorId),
   gesture: createSelector((state: CheckboxSelectionState) => state.gesture),
-  /** The preview for a row, or `undefined` when the row has no preview. */
-  getPreview: createSelector((state: CheckboxSelectionState, id: string) =>
-    state.preview.get(id),
-  ),
   announcement: createSelector(
     (state: CheckboxSelectionState) => state.announcement,
   ),
@@ -84,7 +84,10 @@ const selectors = {
  * surface's `SelectionGestureController` (`@bazza-ui/menu-core`), which owns
  * the rows, the anchor, the gestures, the preview, the commits and the
  * announcements. The store's state is the controller's snapshot, so parts
- * read the preview and the gesture through its selectors. The binding reads
+ * read the gesture and the announcement through its selectors; the preview
+ * (the rows the gesture would change) the controller writes to the
+ * surface's store (`listbox.setPreview`), where rows read it with the
+ * `isPending` key selector. The binding reads
  * the layout and scrolls for it, and listens to the pointer while a press is
  * tracked. One per surface, so a gesture never crosses a surface.
  */
@@ -112,6 +115,7 @@ export class CheckboxSelectionStore extends ReactStore<
           return element.scrollTop !== before
         },
       },
+      preview: { get: listbox.getPreview, set: listbox.setPreview },
       highlight: (id) => listbox.setHighlightedId(id),
       dragReason: REASONS.dragSelection,
     })

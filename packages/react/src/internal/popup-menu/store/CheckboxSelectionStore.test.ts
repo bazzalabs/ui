@@ -4,15 +4,28 @@ import {
   CheckboxSelectionStore,
 } from './CheckboxSelectionStore.js'
 
+/** Where the controller writes its preview: the surface's store, in a menu. */
+function previewSink() {
+  let preview: ReadonlySet<string> = new Set()
+  return {
+    getPreview: () => preview,
+    setPreview: (next: ReadonlySet<string>) => {
+      preview = next
+    },
+  }
+}
+
 function setup(initialIds: string[]) {
   let ids = [...initialIds]
   const checked = new Map<string, boolean>()
+  const sink = previewSink()
   const store = new CheckboxSelectionStore({
     getVisibleItemIds: () => ids,
     getItemElement: () => null,
     getScrollElement: () => null,
     setHighlightedId: vi.fn(),
     observeOpen: () => () => {},
+    ...sink,
   })
   function owner(id: string, initial: string[], accept = true) {
     let value = [...initial]
@@ -49,6 +62,7 @@ function setup(initialIds: string[]) {
   }
   return {
     store,
+    preview: sink.getPreview,
     row,
     owner,
     checked,
@@ -87,6 +101,7 @@ describe('CheckboxSelectionStore', () => {
           emitOpen = () => {}
         }
       },
+      ...previewSink(),
     }
     const store = new CheckboxSelectionStore(listbox)
     const commit = vi.fn(() => true)
@@ -105,7 +120,7 @@ describe('CheckboxSelectionStore', () => {
     store.extendGesture('b')
     emitOpen(false)
     expect(store.state.gesture).toBeNull()
-    expect(store.state.preview.size).toBe(0)
+    expect(listbox.getPreview().size).toBe(0)
 
     store.beginGesture('drag', 'a', 'keep')
     detach()
@@ -130,18 +145,19 @@ describe('CheckboxSelectionStore', () => {
   })
 
   it('excludes unregistered ids and counts only changed rows', () => {
-    const { store, row } = setup(['a', 'sep', 'b'])
+    const { store, row, preview } = setup(['a', 'sep', 'b'])
     row('a', { checked: true })
     row('b', { checked: false })
     store.beginGesture('drag', 'b', 'rubber-band')
     store.extendGesture('a')
-    expect(store.state.preview.has('sep')).toBe(false)
-    expect(store.state.preview.has('a')).toBe(true)
+    expect(preview().has('sep')).toBe(false)
+    // a is checked already, the gesture's target: it isn't pending.
+    expect([...preview()]).toEqual(['b'])
     expect(store.commitGesture('drag-selection').count).toBe(1)
   })
 
   it('commits groups once and standalones in list order, then clears preview', () => {
-    const { store, row, owner } = setup(['x', 'y', 's'])
+    const { store, row, owner, preview } = setup(['x', 'y', 's'])
     const group = owner('g', ['x'])
     row('x', { value: 'x', owner: group, checked: true })
     row('y', { value: 'y', owner: group, checked: false })
@@ -165,7 +181,7 @@ describe('CheckboxSelectionStore', () => {
     )
     expect(store.state.anchorId).toBe('y')
     expect(store.state.gesture).toBeNull()
-    expect(store.state.preview.size).toBe(0)
+    expect(preview().size).toBe(0)
   })
 
   it('emits commits in visible list order', () => {
@@ -276,6 +292,7 @@ describe('CheckboxSelectionStore', () => {
         id === 'mounted' ? document.createElement('div') : null,
       setHighlightedId: vi.fn(),
       observeOpen: () => () => {},
+      ...previewSink(),
     })
     for (const id of ['a', 'b'])
       store.registerRow({
@@ -294,6 +311,7 @@ describe('CheckboxSelectionStore', () => {
         id === 'mounted' ? document.createElement('div') : null,
       setHighlightedId: vi.fn(),
       observeOpen: () => () => {},
+      ...previewSink(),
     })
     for (const id of ['a', 'b'])
       mountedStore.registerRow({

@@ -169,6 +169,45 @@ export function controlledBy<T, R extends CellRequest<T>>(
 }
 
 /**
+ * Asks `cell` for `next` for a part that tells its consumer of every change
+ * (a checkbox group's `onValueChange`): the
+ * consumer's `onChange` always runs, even for the value the cell has or the
+ * same change asked again, and may cancel it. No request is kept. Returns the
+ * new cell (the same object unless an uncontrolled value changed) and what
+ * became of the change.
+ */
+export function notifyCell<T, D extends CancelableDetails>(
+  cell: ControlledCell<T>,
+  next: T,
+  details: D,
+  onChange: ((next: T, details: D) => void) | undefined,
+): {
+  readonly cell: ControlledCell<T>
+  readonly result: Exclude<CellRequestResult, 'noop'>
+} {
+  onChange?.(next, details)
+  if (details.isCanceled) return { cell, result: 'canceled' }
+  if (cell.controlled !== undefined) return { cell, result: 'controlled' }
+  return {
+    cell: Object.is(cell.internal, next) ? cell : createCell(next),
+    result: 'applied',
+  }
+}
+
+/**
+ * `cell` with its prop's value as `controlled`, `undefined` included (the
+ * prop was dropped, and the internal value applies again): the same object
+ * when that's what it has.
+ */
+export function propCell<T>(
+  cell: ControlledCell<T>,
+  controlled: T | undefined,
+): ControlledCell<T> {
+  if (Object.is(controlled, cell.controlled)) return cell
+  return createCell(cell.internal, controlled)
+}
+
+/**
  * Changes an uncontrolled value with no consumer to ask (`search`): the cell
  * is the same object when a prop controls it or the value is unchanged.
  */

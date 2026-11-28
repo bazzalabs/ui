@@ -40,6 +40,10 @@ function setup(
     return moved
   })
   const highlight = vi.fn()
+  let preview: ReadonlySet<string> = new Set()
+  const previewWrites = vi.fn((next: ReadonlySet<string>) => {
+    preview = next
+  })
   const controller = new SelectionGestureController<'range' | 'drag'>({
     getNavOrder: () => ids,
     layout: {
@@ -49,6 +53,7 @@ function setup(
         options.area === false ? null : { top: 0, bottom: 128, height: 128 },
       scrollBy,
     },
+    preview: { get: () => preview, set: previewWrites },
     highlight,
     dragReason: 'drag',
     clock,
@@ -107,6 +112,9 @@ function setup(
   const over = (index: number) => index * ROW + ROW / 2 - scrollTop
   return {
     controller,
+    /** The preview as the controller last wrote it. */
+    preview: () => preview,
+    previewWrites,
     fake,
     frames,
     scrollBy,
@@ -182,18 +190,15 @@ describe('SelectionGestureController', () => {
   })
 
   describe('keyboard gesture', () => {
-    it("previews the start row's new state over the span, then commits it once", () => {
-      const { controller, row } = setup(['a', 'b', 'c'])
+    it("previews the start row's new state on the rows of the span it would change, then commits it once", () => {
+      const { controller, row, preview } = setup(['a', 'b', 'c'])
       const a = row('a')
       const b = row('b')
       row('c', { checked: true })
       controller.beginGesture('keyboard', 'a', 'rubber-band')
       controller.extendGesture('c')
-      expect([...snapshot(controller).preview]).toEqual([
-        ['a', true],
-        ['b', true],
-        ['c', true],
-      ])
+      // c is checked already: the span doesn't change it, so it isn't pending.
+      expect([...preview()]).toEqual(['a', 'b'])
       expect(controller.commitGesture('range')).toEqual({
         count: 2,
         checked: true,
@@ -204,7 +209,7 @@ describe('SelectionGestureController', () => {
         anchorId: 'a',
         gesture: null,
       })
-      expect(snapshot(controller).preview.size).toBe(0)
+      expect(preview().size).toBe(0)
     })
 
     it('shrinks a rubber-band span, and keeps every row reached in keep mode', () => {
@@ -213,21 +218,14 @@ describe('SelectionGestureController', () => {
       rubber.controller.beginGesture('keyboard', 'a', 'rubber-band')
       rubber.controller.extendGesture('c')
       rubber.controller.extendGesture('b')
-      expect([...snapshot(rubber.controller).preview.keys()]).toEqual([
-        'a',
-        'b',
-      ])
+      expect([...rubber.preview()]).toEqual(['a', 'b'])
 
       const keep = setup(['a', 'b', 'c'])
       for (const id of ['a', 'b', 'c']) keep.row(id)
       keep.controller.beginGesture('drag', 'a', 'keep')
       keep.controller.extendGesture('c')
       keep.controller.extendGesture('a')
-      expect([...snapshot(keep.controller).preview.keys()]).toEqual([
-        'a',
-        'b',
-        'c',
-      ])
+      expect([...keep.preview()]).toEqual(['a', 'b', 'c'])
     })
 
     it("doesn't start while one is active, or on a row it can't select", () => {
@@ -244,12 +242,38 @@ describe('SelectionGestureController', () => {
       })
     })
 
+    it('commits every reached row that differs from the target when it commits, even one that changed since the preview', () => {
+      const { controller, row, preview, checked } = setup(['a', 'b', 'c'])
+      const a = row('a')
+      const b = row('b', { checked: true })
+      const c = row('c')
+      controller.beginGesture('keyboard', 'a', 'rubber-band')
+      controller.extendGesture('c')
+      expect([...preview()]).toEqual(['a', 'c'])
+      // b is unchecked from outside while Shift is held.
+      checked.set('b', false)
+      expect(controller.commitGesture('range')).toEqual({
+        count: 3,
+        checked: true,
+      })
+      for (const reached of [a, b, c]) {
+        expect(reached.commit).toHaveBeenCalledExactlyOnceWith(
+          true,
+          'range',
+          undefined,
+        )
+      }
+      expect(preview().size).toBe(0)
+    })
+
     it('drops the preview when cancelled', () => {
-      const { controller, row } = setup(['a'])
+      const { controller, row, preview } = setup(['a'])
       const a = row('a')
       controller.beginGesture('keyboard', 'a', 'keep')
+      expect(preview().size).toBe(1)
       controller.cancelGesture()
       expect(snapshot(controller).gesture).toBeNull()
+      expect(preview().size).toBe(0)
       expect(controller.commitGesture('range').count).toBe(0)
       expect(a.commit).not.toHaveBeenCalled()
     })
@@ -416,18 +440,15 @@ describe('SelectionGestureController', () => {
     })
 
     it('becomes a drag on reaching another row, follows it, and commits on release', () => {
-      const { controller, fake, row, binding, over, highlight } = setup([
-        'a',
-        'b',
-        'c',
-      ])
+      const { controller, fake, row, binding, over, highlight, preview } =
+        setup(['a', 'b', 'c'])
       for (const id of ['a', 'b', 'c']) row(id)
       const press = binding()
       controller.beginPress({ id: 'a', mode: 'keep', clientY: over(0) }, press)
       controller.movePress(over(1))
       expect(controller.isDragging()).toBe(true)
       expect(highlight).toHaveBeenLastCalledWith('b')
-      expect([...snapshot(controller).preview.keys()]).toEqual(['a', 'b'])
+      expect([...preview()]).toEqual(['a', 'b'])
       // A release on a row the pointer reached without a move counts.
       const event = new Event('pointerup')
       controller.endPress(over(2), event)
@@ -700,14 +721,17 @@ describe('SelectionGestureController', () => {
   })
 
   it('starts over on reset: no rows, gesture, press, or announcement', () => {
-    const { controller, row, binding, over } = setup(['a', 'b'])
+    const { controller, row, binding, over, preview } = setup(['a', 'b'])
     row('a')
     row('b')
     controller.applyRange('a', 'a', 'range')
     const press = binding()
     controller.beginPress({ id: 'a', mode: 'keep', clientY: over(0) }, press)
     controller.movePress(over(1))
+    // a was checked by the range, so the drag unchecks; b is unchecked already.
+    expect([...preview()]).toEqual(['a'])
     controller.reset()
+    expect(preview().size).toBe(0)
     expect(press.release).toHaveBeenCalledOnce()
     expect(controller.isPressActive()).toBe(false)
     expect(controller.isSelectableRow('a')).toBe(false)
@@ -731,6 +755,27 @@ describe('SelectionGestureController', () => {
     expect(listener).toHaveBeenCalledTimes(2)
   })
 
+  it('writes the preview only while a gesture shows one', () => {
+    const { controller, row, previewWrites, preview } = setup(['a', 'b'])
+    row('a')
+    row('b')
+    controller.cancelGesture()
+    controller.applyRange('a', 'b', 'range')
+    controller.reset()
+    expect(previewWrites).not.toHaveBeenCalled()
+    row('a')
+    row('b')
+    controller.beginGesture('keyboard', 'a', 'keep')
+    controller.extendGesture('b')
+    controller.commitGesture('range')
+    expect(previewWrites.mock.calls.map(([rows]) => [...rows])).toEqual([
+      ['a'],
+      ['a', 'b'],
+      [],
+    ])
+    expect(preview().size).toBe(0)
+  })
+
   describe('dispose', () => {
     const ids = Array.from({ length: 10 }, (_, index) => `cb-${index}`)
 
@@ -744,7 +789,9 @@ describe('SelectionGestureController', () => {
       )
       t.controller.movePress(200)
       expect(t.frames.requested).toBe(1)
+      expect(t.preview().size).toBeGreaterThan(0)
       t.controller.dispose()
+      expect(t.preview().size).toBe(0)
       expect(press.release).toHaveBeenCalledOnce()
       expect(press.awaitRelease).not.toHaveBeenCalled()
       expect(snapshot(t.controller).gesture).toBeNull()

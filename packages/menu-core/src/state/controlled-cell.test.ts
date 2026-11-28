@@ -10,6 +10,8 @@ import {
   createCell,
   isNoopRequest,
   markRequested,
+  notifyCell,
+  propCell,
   requestCell,
   settledResult,
   settleRequest,
@@ -220,6 +222,46 @@ describe('controlledBy', () => {
     const cell = createCell(false, true)
     expect(controlledBy(cell, true)).toBe(cell)
     expect(controlledBy(cell, undefined)).toBe(cell)
+  })
+})
+
+describe('notifyCell', () => {
+  const details = () => createChangeEventDetails('item-press')
+
+  it('asks the consumer for every change, the value the cell has included', () => {
+    const calls: boolean[] = []
+    const cell = createCell(false)
+    const first = notifyCell(cell, true, details(), (next) => calls.push(next))
+    expect(first.result).toBe('applied')
+    expect(cellValue(first.cell)).toBe(true)
+    const again = notifyCell(first.cell, true, details(), (next) =>
+      calls.push(next),
+    )
+    expect(again.result).toBe('applied')
+    expect(again.cell).toBe(first.cell)
+    expect(calls).toEqual([true, true])
+    expect(again.cell.request).toBe(undefined)
+  })
+
+  it('leaves the cell as it is when canceled or controlled', () => {
+    const cell = createCell(false)
+    const canceled = notifyCell(cell, true, details(), (_next, d) => d.cancel())
+    expect(canceled).toEqual({ cell, result: 'canceled' })
+    const controlled = createCell(false, false)
+    const taken = notifyCell(controlled, true, details(), undefined)
+    expect(taken).toEqual({ cell: controlled, result: 'controlled' })
+  })
+})
+
+describe('propCell', () => {
+  it('takes the prop, and drops it again', () => {
+    const cell = createCell(false)
+    const controlled = propCell(cell, true)
+    expect(cellValue(controlled)).toBe(true)
+    expect(propCell(controlled, true)).toBe(controlled)
+    const dropped = propCell(controlled, undefined)
+    expect(dropped.controlled).toBe(undefined)
+    expect(cellValue(dropped)).toBe(false)
   })
 })
 
