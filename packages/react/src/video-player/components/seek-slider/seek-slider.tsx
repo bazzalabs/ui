@@ -324,7 +324,9 @@ export const SeekSlider = React.forwardRef<
             }
             return render({ ...baseProps, ...renderProps }, state)
           }}
-        />
+        >
+          {children}
+        </Slider.Root>
       </SeekSliderContext.Provider>
     )
   }
@@ -388,7 +390,7 @@ export interface SeekSliderTrackProps
 }
 
 export interface SeekSliderTrackRenderProps {
-  ref: React.Ref<any>
+  ref?: React.Ref<any>
   style: React.CSSProperties
 }
 
@@ -411,15 +413,20 @@ export const SeekSliderTrack = React.forwardRef<
   if (render) {
     return (
       <Slider.Track
+        ref={forwardedRef}
         {...trackProps}
-        render={(baseProps, trackState) => {
-          const renderProps: SeekSliderTrackRenderProps = {
-            ref: forwardedRef,
-            style: resolveStyle(trackStyle, trackState) ?? {},
-          }
-          return render({ ...baseProps, ...renderProps }, state)
-        }}
-      />
+        render={(baseProps, trackState) =>
+          render(
+            {
+              ...baseProps,
+              style: resolveStyle(trackStyle, trackState) ?? {},
+            },
+            state,
+          )
+        }
+      >
+        {children}
+      </Slider.Track>
     )
   }
 
@@ -441,7 +448,7 @@ export interface SeekSliderProgressProps
 }
 
 export interface SeekSliderProgressRenderProps {
-  ref: React.Ref<any>
+  ref?: React.Ref<any>
   style: React.CSSProperties
 }
 
@@ -471,18 +478,23 @@ export const SeekSliderProgress = React.forwardRef<
   if (render) {
     return (
       <Slider.Indicator
+        ref={forwardedRef}
         {...indicatorProps}
-        render={(baseProps, indicatorState) => {
-          const renderProps: SeekSliderProgressRenderProps = {
-            ref: forwardedRef,
-            style: {
-              ...baseProps.style,
-              ...resolveStyle(indicatorStyle, indicatorState),
+        render={(baseProps, indicatorState) =>
+          render(
+            {
+              ...baseProps,
+              style: {
+                ...baseProps.style,
+                ...resolveStyle(indicatorStyle, indicatorState),
+              },
             },
-          }
-          return render({ ...baseProps, ...renderProps }, state)
-        }}
-      />
+            state,
+          )
+        }
+      >
+        {children}
+      </Slider.Indicator>
     )
   }
 
@@ -509,7 +521,7 @@ export interface SeekSliderThumbProps
 }
 
 export interface SeekSliderThumbRenderProps {
-  ref: React.Ref<any>
+  ref?: React.Ref<any>
   style: React.CSSProperties
 }
 
@@ -525,26 +537,20 @@ export const SeekSliderThumb = React.forwardRef<
 
   // Base UI handles positioning internally (position, insetInlineStart, top, translate)
   // We just pass through user styles
-  const renderProps: SeekSliderThumbRenderProps = {
-    ref: forwardedRef,
-    style: style ?? {},
-  }
-
   if (render) {
     return (
       <Slider.Thumb
+        ref={forwardedRef}
         {...thumbProps}
         render={(baseProps) =>
           render(
-            {
-              ...baseProps,
-              ...renderProps,
-              style: { ...baseProps.style, ...style },
-            },
+            { ...baseProps, style: { ...baseProps.style, ...style } },
             state,
           )
         }
-      />
+      >
+        {children}
+      </Slider.Thumb>
     )
   }
 
