@@ -32,7 +32,8 @@
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "passThroughEnv": ["BAZZA_UI_TAILNET", "DEVDOOR_*", "XDG_STATE_HOME"]
     },
     "test": {
       "cache": false,

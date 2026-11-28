@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "turbo run dev",
     "dev:up": "turbo run dev test:watch",
+    "dev:tailnet": "BAZZA_UI_TAILNET=1 turbo run dev",
     "test": "turbo run test",
     "test:watch": "turbo run test:watch",
     "bench": "turbo run bench",
