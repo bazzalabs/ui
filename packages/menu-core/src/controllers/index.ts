@@ -1,4 +1,5 @@
 export * from './aim-guard.js'
+export * from './aim-guard-overlay.js'
 export * from './loader-manager.js'
 export * from './open-change.js'
 export * from './selection-gesture.js'

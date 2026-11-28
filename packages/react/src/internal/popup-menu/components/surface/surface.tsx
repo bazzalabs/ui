@@ -588,25 +588,16 @@ export const PopupMenuSurface = React.forwardRef<
     [store, surfaceId],
   )
 
-  // The tier's selection. This Surface claims it as it mounts, which starts
-  // it fresh for a new Surface and keeps it for this one shown again.
-  const selectionStore = tier.selection
+  // This Surface, as the owner that claims the tier's checkbox selection
+  // (its status region ties the two once a checkbox row has made it).
   const [selectionOwner] = React.useState(() => ({}))
-  React.useLayoutEffect(
-    () => selectionStore.claim(selectionOwner),
-    [selectionStore, selectionOwner],
-  )
-  React.useEffect(() => selectionStore.attach(), [selectionStore])
+  // An inactive surface (a subpage is open) drops its announcement, so the
+  // status region, which unmounts with the surface's content, mounts empty
+  // again when the surface comes back. Read without subscribing: a
+  // selection made later has no announcement yet.
   React.useEffect(() => {
-    selectionStore.setAnnouncementFormatter(
-      popupMenuContext.getAriaSelectionText,
-    )
-  }, [selectionStore, popupMenuContext.getAriaSelectionText])
-  // An inactive surface (a subpage is open) drops its announcement so the
-  // region mounts empty again when the surface comes back.
-  React.useEffect(() => {
-    if (!isSurfaceActive) selectionStore.clearAnnouncement()
-  }, [selectionStore, isSurfaceActive])
+    if (!isSurfaceActive) tier.selection.state.current?.clearAnnouncement()
+  }, [tier, isSurfaceActive])
 
   // Prevent pointer down from stealing focus from Input.
   // A press on an input itself must keep the browser's native
@@ -785,7 +776,10 @@ export const PopupMenuSurface = React.forwardRef<
       children: (
         <>
           {/* First, so styled surfaces using `divide-y` keep the list as the last child. */}
-          <PopupMenuCheckboxSelectionStatus />
+          <PopupMenuCheckboxSelectionStatus
+            owner={selectionOwner}
+            formatAnnouncement={popupMenuContext.getAriaSelectionText}
+          />
           {renderedChildren}
         </>
       ),

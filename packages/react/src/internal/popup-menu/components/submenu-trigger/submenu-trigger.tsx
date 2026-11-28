@@ -333,11 +333,9 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
   // Don't render if not visible
   if (!item.isVisible) return null
 
-  if (!safeTriangle) {
-    return trigger
-  }
-
-  return (
+  // The overlay is a development tool: a production build has none to draw,
+  // and drops the component.
+  return process.env.NODE_ENV !== 'production' && safeTriangle ? (
     <>
       {trigger}
       <PopupMenuSubmenuSafeTriangleArea
@@ -357,6 +355,8 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
         }
       />
     </>
+  ) : (
+    trigger
   )
 })
 

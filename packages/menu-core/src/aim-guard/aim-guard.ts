@@ -1,6 +1,20 @@
 export type AnchorSide = 'left' | 'right' | 'top' | 'bottom'
 
-function resolveSideFromPoint(rect: DOMRect, x: number, y: number): AnchorSide {
+/**
+ * A rectangle's edges and size in viewport pixels, as
+ * `getBoundingClientRect()` reports them (a `Rect` is one), without
+ * tying menu-core to the DOM.
+ */
+export interface Rect {
+  readonly left: number
+  readonly right: number
+  readonly top: number
+  readonly bottom: number
+  readonly width: number
+  readonly height: number
+}
+
+function resolveSideFromPoint(rect: Rect, x: number, y: number): AnchorSide {
   const outsideCandidates: Array<{ side: AnchorSide; gap: number }> = []
 
   const leftGap = rect.left - x
@@ -44,8 +58,8 @@ function resolveSideFromPoint(rect: DOMRect, x: number, y: number): AnchorSide {
  * Used to know which direction the user should be moving toward.
  */
 export function resolveAnchorSide(
-  rect: DOMRect,
-  tRect: DOMRect | null,
+  rect: Rect,
+  tRect: Rect | null,
   mx: number,
   my?: number,
 ): AnchorSide {
@@ -80,8 +94,8 @@ export function getSmoothedHeading(
   exitX: number,
   exitY: number,
   anchor: AnchorSide,
-  tRect: DOMRect | null,
-  rect: DOMRect,
+  tRect: Rect | null,
+  rect: Rect,
 ): { dx: number; dy: number } {
   let dx = 0
   let dy = 0
@@ -121,9 +135,9 @@ export function willHitSubmenu(
   exitX: number,
   exitY: number,
   heading: { dx: number; dy: number },
-  rect: DOMRect,
+  rect: Rect,
   anchor: AnchorSide,
-  triggerRect: DOMRect | null,
+  triggerRect: Rect | null,
 ): boolean {
   const { dx, dy } = heading
 

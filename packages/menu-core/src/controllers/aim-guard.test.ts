@@ -5,6 +5,7 @@ import {
   type AimGuardDebugSettings,
   type AimGuardTriggerOptions,
 } from './aim-guard.js'
+import { createAimGuardOverlay } from './aim-guard-overlay.js'
 import { type Point, SubmenuController } from './submenu.js'
 
 function rect(left: number, top: number, width: number, height: number) {
@@ -62,6 +63,7 @@ function setup(debug: Partial<AimGuardDebugSettings> = {}) {
     clock,
     log: (scope, event, details) => logs.push([scope, event, details()]),
     getDebugSettings: () => ({ ...DEBUG, ...debug }),
+    overlay: createAimGuardOverlay,
   })
   const trigger = (options: Partial<AimGuardTriggerOptions> = {}) =>
     guard.trigger({
@@ -333,6 +335,42 @@ describe('AimGuardController pointer trail', () => {
     aim.dispose()
     expect(t.pointer.listeners).toBe(0)
     expect(leaveToward(t, aim).result).toMatchObject({ hit: true })
+  })
+})
+
+describe('AimGuardController dispose', () => {
+  it('stops the pointer listener the trails record from', () => {
+    const { guard, trigger, pointer } = setup()
+    const first = trigger()
+    const second = trigger({ triggerId: 'other' })
+    first.holdTrail('hover')
+    second.holdTrail('monitor')
+    expect(pointer.listeners).toBe(1)
+    guard.dispose()
+    expect(pointer.listeners).toBe(0)
+  })
+})
+
+describe('AimGuardController without an overlay or a log', () => {
+  it('works the guard, and its triggers draw and log nothing', () => {
+    const clock = createFakeClock()
+    const pointer = fakePointer()
+    const guard = new AimGuardController({ pointer, clock })
+    const aim = guard.trigger({
+      triggerId: 'more',
+      depth: 0,
+      submenuSurfaceId: 'more-surface',
+      getPopupRect: () => POPUP,
+      getTriggerRect: () => TRIGGER,
+    })
+    let changes = 0
+    const stop = aim.subscribeDebug(() => changes++)
+    aim.show('hover')
+    aim.hold(100)
+    expect(guard.getSnapshot().active).toBe(true)
+    expect(aim.getDebugSnapshot()).toBe(null)
+    expect(changes).toBe(0)
+    stop()
   })
 })
 

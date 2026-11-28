@@ -1,10 +1,16 @@
 import {
   type AnchorSide,
   getSmoothedHeading,
+  type Rect,
   resolveAnchorSide,
   willHitSubmenu,
 } from '../aim-guard/aim-guard.js'
 import { type Clock, type ClockHandle, realClock } from '../platform/clock.js'
+import type {
+  AimGuardLastAim,
+  AimGuardOverlay,
+  AimGuardOverlayHost,
+} from './aim-guard-overlay.js'
 import type {
   Point,
   SubmenuAim,
@@ -57,9 +63,19 @@ export interface AimGuardDebugSettings {
 export interface AimGuardControllerOptions {
   readonly pointer: AimGuardPointer
   readonly clock?: Clock
+  /**
+   * Logs the guard's and its triggers' events. Its calls are made only in
+   * development builds (`process.env.NODE_ENV !== 'production'`), so a
+   * production build carries none of the log lines.
+   */
   readonly log?: AimGuardLog
-  /** Read each time the overlay decides; omitted, it never shows. */
-  readonly getDebugSettings?: () => AimGuardDebugSettings
+  /** Read each time the overlay decides; omitted or null, it doesn't show. */
+  readonly getDebugSettings?: () => AimGuardDebugSettings | null
+  /**
+   * Makes each trigger's debug overlay (`createAimGuardOverlay`); omitted,
+   * no trigger has one and nothing of it ships. Pass it only in development.
+   */
+  readonly overlay?: (host: AimGuardOverlayHost) => AimGuardOverlay
 }
 
 /** What a trigger reads the pointer against. */
@@ -69,16 +85,16 @@ export interface AimGuardTriggerOptions {
   readonly depth: number
   /** The surface of the submenu the trigger opens. */
   readonly submenuSurfaceId: string
-  readonly getPopupRect: () => DOMRect | null
-  readonly getTriggerRect: () => DOMRect | null
+  readonly getPopupRect: () => Rect | null
+  readonly getTriggerRect: () => Rect | null
   /** More fields for the trigger's log lines. */
   readonly logDetails?: () => Record<string, unknown>
 }
 
 /** What a leave or an exit move read. */
 export interface AimGuardReading {
-  readonly popupRect: DOMRect
-  readonly triggerRect: DOMRect | null
+  readonly popupRect: Rect
+  readonly triggerRect: Rect | null
   readonly point: Point
 }
 
@@ -99,6 +115,8 @@ const IDLE: AimGuardState = {
 }
 
 const TRAIL_LENGTH = 4
+
+const noop = () => {}
 
 /**
  * The one way a trigger reaches its tree: the tree's guard, held and read
@@ -127,6 +145,7 @@ interface TreeLink {
     details: () => Record<string, unknown>,
   ): void
   debugSettings(): AimGuardDebugSettings | null
+  overlay: AimGuardControllerOptions['overlay']
   pointerListen: AimGuardPointer['listen']
   startTrail(trail: Array<[number, number]>): void
   stopTrail(trail: Array<[number, number]>): void
@@ -154,7 +173,7 @@ export class AimGuardController {
   readonly #pointer: AimGuardPointer
   readonly #clock: Clock
   readonly #log: AimGuardLog | undefined
-  readonly #getDebugSettings: (() => AimGuardDebugSettings) | undefined
+  readonly #getDebugSettings: (() => AimGuardDebugSettings | null) | undefined
   readonly #listeners = new Set<() => void>()
   readonly #trails = new Set<Array<[number, number]>>()
   readonly #popupListeners = new Set<{
@@ -188,6 +207,7 @@ export class AimGuardController {
         this.#state.triggerId !== triggerId,
       log: (scope, event, details) => this.#log?.(scope, event, details),
       debugSettings: () => this.#getDebugSettings?.() ?? null,
+      overlay: options.overlay,
       pointerListen: (onMove) => this.#pointer.listen(onMove),
       startTrail: (trail) => this.#startTrail(trail),
       stopTrail: (trail) => this.#stopTrail(trail),
@@ -233,10 +253,20 @@ export class AimGuardController {
     }
   }
 
-  /** Stops a pending timeout: the tree unmounted. */
+  /**
+   * The tree unmounted: stops a pending timeout and the pointer listener
+   * the trails record from.
+   */
   dispose() {
     this.#clearTimer()
-    this.#logTree('provider-unmount-clear')
+    for (const trail of this.#trails) trail.length = 0
+    this.#trails.clear()
+    const stop = this.#stopTrails
+    this.#stopTrails = null
+    stop?.()
+    if (process.env.NODE_ENV !== 'production') {
+      this.#logTree('provider-unmount-clear')
+    }
   }
 
   #hold(
@@ -245,24 +275,32 @@ export class AimGuardController {
     submenuSurfaceId: string,
     timeoutMs: number,
   ) {
-    this.#logTree('activate', {
-      triggerId,
-      depth,
-      submenuSurfaceId,
-      timeoutMs,
-    })
+    if (process.env.NODE_ENV !== 'production') {
+      this.#logTree('activate', {
+        triggerId,
+        depth,
+        submenuSurfaceId,
+        timeoutMs,
+      })
+    }
     this.#set({ active: true, triggerId, depth, submenuSurfaceId })
     this.#clearTimer()
     this.#timer = this.#clock.setTimeout(() => {
       this.#timer = null
-      this.#logTree('timeout-expired', { triggerId, depth, submenuSurfaceId })
+      if (process.env.NODE_ENV !== 'production') {
+        this.#logTree('timeout-expired', {
+          triggerId,
+          depth,
+          submenuSurfaceId,
+        })
+      }
       this.#set(IDLE)
     }, timeoutMs)
   }
 
   #release() {
     this.#clearTimer()
-    this.#logTree('clear')
+    if (process.env.NODE_ENV !== 'production') this.#logTree('clear')
     this.#set(IDLE)
   }
 
@@ -323,12 +361,12 @@ export type AimGuardTrailReason = 'hover' | 'monitor'
 /** Where the pointer left the trigger, for the moves that follow. */
 interface Exit {
   anchor: AnchorSide
-  triggerRect: DOMRect | null
+  triggerRect: Rect | null
   x: number
   y: number
 }
 
-const isInside = (rect: DOMRect, x: number, y: number) =>
+const isInside = (rect: Rect, x: number, y: number) =>
   x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom
 
 /** The log line for what the controller made of an aim, as it was named. */
@@ -362,19 +400,21 @@ export class AimGuardTrigger implements SubmenuAimGuard {
   readonly #trail: Array<[number, number]> = []
   readonly #holds = new Set<AimGuardTrailReason>()
   #exit: Exit | null = null
-  #last: {
-    phase: 'leave' | 'track'
-    aim: SubmenuAim
-    reading: AimGuardReading | null
-  } | null = null
-  readonly #debugListeners = new Set<() => void>()
-  #debug: AimGuardDebugSnapshot | null = null
-  #debugTimer: ClockHandle | null = null
-  #stopWatchingGuard: (() => void) | null = null
+  #last: AimGuardLastAim | null = null
+  /** The debug overlay, when the controller was given a factory for one. */
+  readonly #overlay: AimGuardOverlay | null
 
   constructor(link: TreeLink, options: AimGuardTriggerOptions) {
     this.#link = link
     this.#options = options
+    this.#overlay =
+      link.overlay?.({
+        clock: link.clock,
+        settings: () => link.debugSettings(),
+        isHeld: () =>
+          link.isHeldBy(this.#options.triggerId, this.#options.depth),
+        subscribeGuard: (listener) => link.subscribe(listener),
+      }) ?? null
   }
 
   get submenuSurfaceId(): string {
@@ -407,7 +447,7 @@ export class AimGuardTrigger implements SubmenuAimGuard {
   dispose() {
     this.#holds.clear()
     this.#link.stopTrail(this.#trail)
-    this.#hideDebug()
+    this.#overlay?.hide()
   }
 
   // SubmenuAimGuard
@@ -418,7 +458,9 @@ export class AimGuardTrigger implements SubmenuAimGuard {
 
   leave(point: Point): SubmenuAim {
     const { x: clientX, y: clientY } = point
-    this.#trace('pointerleave-submenu-trigger', () => ({ clientX, clientY }))
+    if (process.env.NODE_ENV !== 'production') {
+      this.#trace('pointerleave-submenu-trigger', () => ({ clientX, clientY }))
+    }
     const read = (
       aim: SubmenuAim,
       reading: AimGuardReading | null,
@@ -429,7 +471,9 @@ export class AimGuardTrigger implements SubmenuAimGuard {
 
     const popupRect = this.#options.getPopupRect()
     if (!popupRect) {
-      this.#trace('pointerleave-no-content-rect')
+      if (process.env.NODE_ENV !== 'production') {
+        this.#trace('pointerleave-no-content-rect')
+      }
       return read({ type: 'no-popup' }, null)
     }
 
@@ -462,13 +506,15 @@ export class AimGuardTrigger implements SubmenuAimGuard {
       trail.length > 0 &&
       willHitSubmenu(clientX, clientY, heading, popupRect, anchor, triggerRect)
 
-    this.#trace('pointerleave-hit-eval', () => ({
-      anchor,
-      hit,
-      clientX,
-      clientY,
-      heading,
-    }))
+    if (process.env.NODE_ENV !== 'production') {
+      this.#trace('pointerleave-hit-eval', () => ({
+        anchor,
+        hit,
+        clientX,
+        clientY,
+        heading,
+      }))
+    }
 
     this.#exit = { anchor, triggerRect, x: clientX, y: clientY }
     return read({ type: 'outside', hit, movedAway: false }, reading)
@@ -478,7 +524,9 @@ export class AimGuardTrigger implements SubmenuAimGuard {
     const popupRect = this.#options.getPopupRect()
     const exit = this.#exit
     if (!popupRect || !exit) {
-      this.#trace('leave-monitor-stop-no-content-rect')
+      if (process.env.NODE_ENV !== 'production') {
+        this.#trace('leave-monitor-stop-no-content-rect')
+      }
       this.#last = null
       return { type: 'no-popup' }
     }
@@ -494,7 +542,9 @@ export class AimGuardTrigger implements SubmenuAimGuard {
     const reading: AimGuardReading = { popupRect, triggerRect, point }
 
     if (isInside(popupRect, clientX, clientY)) {
-      this.#trace('leave-monitor-inside-popup', () => ({ clientX, clientY }))
+      if (process.env.NODE_ENV !== 'production') {
+        this.#trace('leave-monitor-inside-popup', () => ({ clientX, clientY }))
+      }
       this.#last = { phase: 'track', aim: { type: 'inside' }, reading }
       return { type: 'inside' }
     }
@@ -522,15 +572,17 @@ export class AimGuardTrigger implements SubmenuAimGuard {
       triggerRect,
     )
 
-    this.#trace('leave-monitor-pointermove', () => ({
-      anchor,
-      clientX,
-      clientY,
-      axisDelta,
-      movedAway,
-      hit,
-      heading,
-    }))
+    if (process.env.NODE_ENV !== 'production') {
+      this.#trace('leave-monitor-pointermove', () => ({
+        anchor,
+        clientX,
+        clientY,
+        axisDelta,
+        movedAway,
+        hit,
+        heading,
+      }))
+    }
 
     const aim: SubmenuAim = { type: 'outside', hit, movedAway }
     this.#last = { phase: 'track', aim, reading }
@@ -538,7 +590,9 @@ export class AimGuardTrigger implements SubmenuAimGuard {
   }
 
   watch(onMove: (point: Point) => void): () => void {
-    this.#trace('leave-monitor-start', () => ({ ...this.#exit }))
+    if (process.env.NODE_ENV !== 'production') {
+      this.#trace('leave-monitor-start', () => ({ ...this.#exit }))
+    }
     // Keep the trail running for the heading checks. Held before the
     // listener is added, so each move reaches the trail first.
     this.holdTrail('monitor')
@@ -546,7 +600,9 @@ export class AimGuardTrigger implements SubmenuAimGuard {
       if (mouseLike) onMove(point)
     })
     return () => {
-      this.#trace('leave-monitor-cleanup-remove-listener')
+      if (process.env.NODE_ENV !== 'production') {
+        this.#trace('leave-monitor-cleanup-remove-listener')
+      }
       stop()
       this.releaseTrail('monitor')
     }
@@ -562,108 +618,34 @@ export class AimGuardTrigger implements SubmenuAimGuard {
   }
 
   releaseOwn() {
-    // Its submenu closed: an activated triangle goes with it
-    if (this.#debug?.tone === 'activated') this.#hideDebug()
+    this.#overlay?.releaseOwn()
     this.#link.releaseFor(this.#options.triggerId, this.#options.depth)
   }
 
   show(decision: SubmenuAimDecision) {
-    if (decision === 'hover') {
-      this.#trace('pointerenter-submenu-trigger')
-      if (this.#debugSettings()) this.#setDebug({ tone: 'hover', frozen: null })
-      return
-    }
-
     const last = this.#last
-    if (decision === 'none' || !last?.reading) {
-      this.#hideDebug()
-      return
+    if (process.env.NODE_ENV !== 'production') {
+      if (decision === 'hover') this.#trace('pointerenter-submenu-trigger')
+      else if (decision !== 'none' && last?.reading) {
+        this.#trace(decisionTrace(last.phase, last.aim, decision))
+      }
     }
-    this.#trace(decisionTrace(last.phase, last.aim, decision))
-
-    const settings = this.#debugSettings()
-    if (!settings) return
-    if (decision === 'hit') {
-      this.#setDebug({
-        tone: 'activated',
-        frozen: settings.freezeOnPointerLeave ? last.reading : null,
-      })
-      // Shown after the guard was held or released for it
-      this.#checkActivated()
-      return
-    }
-    if (!settings.showMissState || settings.missFreezeDuration <= 0) {
-      this.#hideDebug()
-      return
-    }
-    this.#setDebug({ tone: 'missed', frozen: last.reading })
-    this.#debugTimer = this.#link.clock.setTimeout(() => {
-      this.#debugTimer = null
-      this.#hideDebug()
-    }, settings.missFreezeDuration)
+    this.#overlay?.show(decision, last)
   }
 
   // Debug overlay
 
   /** The triangle to draw, while something listens; null draws nothing. */
   getDebugSnapshot(): AimGuardDebugSnapshot | null {
-    return this.#debug
+    return this.#overlay?.snapshot() ?? null
   }
 
   /**
    * Listens to the overlay. The overlay is worked out only while something
-   * listens, and starts hidden.
+   * listens, and starts hidden. A trigger with no overlay never tells it.
    */
   subscribeDebug(listener: () => void): () => void {
-    this.#debugListeners.add(listener)
-    if (this.#debugListeners.size === 1) {
-      this.#stopWatchingGuard = this.#link.subscribe(() =>
-        this.#checkActivated(),
-      )
-    }
-    return () => {
-      if (!this.#debugListeners.delete(listener)) return
-      if (this.#debugListeners.size > 0) return
-      this.#stopWatchingGuard?.()
-      this.#stopWatchingGuard = null
-      this.#hideDebug()
-    }
-  }
-
-  /** An activated triangle goes once the guard isn't this trigger's. */
-  #checkActivated() {
-    if (this.#debug?.tone !== 'activated') return
-    const settings = this.#debugSettings()
-    if (settings?.persistOnSuccess) return
-    if (this.#link.isHeldBy(this.#options.triggerId, this.#options.depth)) {
-      return
-    }
-    this.#hideDebug()
-  }
-
-  #debugSettings(): AimGuardDebugSettings | null {
-    if (this.#debugListeners.size === 0) return null
-    const settings = this.#link.debugSettings()
-    return settings?.enabled ? settings : null
-  }
-
-  #setDebug(snapshot: AimGuardDebugSnapshot) {
-    this.#clearDebugTimer()
-    this.#debug = snapshot
-    for (const listener of this.#debugListeners) listener()
-  }
-
-  #hideDebug() {
-    this.#clearDebugTimer()
-    if (this.#debug === null) return
-    this.#debug = null
-    for (const listener of this.#debugListeners) listener()
-  }
-
-  #clearDebugTimer() {
-    if (this.#debugTimer === null) return
-    this.#link.clock.clearTimeout(this.#debugTimer)
-    this.#debugTimer = null
+    return this.#overlay?.subscribe(listener) ?? noop
   }
 
   #trace(event: string, details?: () => Record<string, unknown>) {

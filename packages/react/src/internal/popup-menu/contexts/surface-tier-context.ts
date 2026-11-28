@@ -1,12 +1,9 @@
 'use client'
 
+import { Store } from '@base-ui/utils/store'
 import * as React from 'react'
-import {
-  getPendingRows,
-  type ListboxStore,
-  setPendingRows,
-} from '../../listbox/store/ListboxStore.js'
-import { CheckboxSelectionStore } from '../store/CheckboxSelectionStore.js'
+import type { ListboxStore } from '../../listbox/store/ListboxStore.js'
+import type { CheckboxSelectionStore } from '../store/CheckboxSelectionStore.js'
 import type { SubmenuHandle } from './submenu-context.js'
 
 // ============================================================================
@@ -20,7 +17,8 @@ import type { SubmenuHandle } from './submenu-context.js'
  * root, `PopupMenu.SubmenuRoot`, `PopupMenu.Subpage`), or by a Surface whose
  * store has none, so a submenu's trigger, positioner and popup read it as its
  * surface does. Every field is set when it's made and never changes; what
- * changes is read through store selectors.
+ * changes is read through store selectors (the checkbox selection, made
+ * later, is read through its own small store).
  *
  * A part finds the tier of the surface it renders in with
  * `findSurfaceTier(tier, store)`, by its Surface's store: a submenu trigger
@@ -40,11 +38,19 @@ export class MenuSurfaceTier {
   /** The surface element, set by its Surface's ref. */
   readonly surfaceRef: { current: HTMLElement | null } = { current: null }
   /**
-   * Range and drag selection over the surface's checkbox rows. A Surface
-   * that mounts claims it (`claim`), which starts it fresh, as a store made
-   * per Surface did.
+   * Range and drag selection over the surface's checkbox rows, in a small
+   * store of its own: `null` until the surface's first checkbox row makes it
+   * (`ensureCheckboxSelection`, from an effect or a handler, never while
+   * rendering), so a surface with no checkbox rows never builds it and a
+   * member with no checkbox parts doesn't ship it. Parts that read it
+   * subscribe (`useMaybeCheckboxSelection`), so they hear when it's made, or
+   * read it in their handlers (`useCheckboxSelectionSlot`).
+   * The Surface claims it (`claim`) once it's there, which starts it fresh
+   * for a new Surface, as a store made per Surface did.
    */
-  readonly selection: CheckboxSelectionStore
+  readonly selection: CheckboxSelectionSlot = new Store({
+    current: null as CheckboxSelectionStore | null,
+  })
 
   constructor(
     store: ListboxStore,
@@ -54,40 +60,13 @@ export class MenuSurfaceTier {
     this.store = store
     this.parent = parent
     this.submenu = submenu ?? parent?.submenu ?? null
-    this.selection = createSelection(store, this.surfaceRef)
   }
 }
 
-function createSelection(
-  store: ListboxStore,
-  surfaceRef: { current: HTMLElement | null },
-): CheckboxSelectionStore {
-  return new CheckboxSelectionStore({
-    getVisibleItemIds: () => store.getVisibleItemIds(),
-    getItemElement: (id) =>
-      store.context.refs.itemRefs.get(id)?.current ?? null,
-    getScrollElement: () => {
-      const listElement = store.context.refs.listRef.current
-      const scrollElement =
-        store.context.refs.listScrollContainerRef.current ??
-        (listElement ? store.getScrollResetElement(listElement) : null)
-      // Never auto-scroll an ancestor outside this surface (the page or an
-      // app shell); fall back to the list element itself.
-      if (
-        scrollElement &&
-        surfaceRef.current &&
-        !surfaceRef.current.contains(scrollElement)
-      ) {
-        return listElement
-      }
-      return scrollElement
-    },
-    setHighlightedId: (id) => store.setHighlightedId(id, 'pointer'),
-    observeOpen: (listener) => store.observe('open', (open) => listener(open)),
-    getPreview: () => getPendingRows(store),
-    setPreview: (preview) => setPendingRows(store, preview),
-  })
-}
+/** Where a surface tier holds its checkbox selection, once it's made. */
+export type CheckboxSelectionSlot = Store<{
+  current: CheckboxSelectionStore | null
+}>
 
 export const SurfaceTierContext = React.createContext<MenuSurfaceTier | null>(
   null,
