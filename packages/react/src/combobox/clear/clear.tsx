@@ -1,6 +1,5 @@
 'use client'
 
-import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import {
   resolveClassName,
@@ -8,6 +7,7 @@ import {
 } from '../../utils/resolve-state-props.js'
 import { isValueEmpty } from '../../utils/resolve-value-label.js'
 import type { ComponentProps } from '../../utils/types.js'
+import { usePart } from '../../utils/use-part.js'
 import { useComboboxContext } from '../contexts/combobox-context.js'
 import { ComboboxClearDataAttributes } from './clear.data-attrs.js'
 
@@ -47,7 +47,6 @@ export const ComboboxClear = React.forwardRef<
     render,
     className,
     style,
-    onClick,
     onPointerDown,
     ...rest
   } = props
@@ -62,7 +61,6 @@ export const ComboboxClear = React.forwardRef<
 
   const handleClick = React.useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
-      onClick?.(event)
       if (event.defaultPrevented) return
 
       if (comboboxContext.multiple) {
@@ -74,7 +72,7 @@ export const ComboboxClear = React.forwardRef<
       // Also clear the input value
       comboboxContext.onInputValueChange('')
     },
-    [onClick, comboboxContext],
+    [comboboxContext],
   )
 
   // Prevent pointer down from stealing focus from the input
@@ -94,12 +92,12 @@ export const ComboboxClear = React.forwardRef<
     [hasValue, disabled],
   )
 
-  const element = useRender({
+  const element = usePart({
     render,
     ref: forwardedRef,
     state,
+    consumer: rest,
     props: {
-      ...rest,
       [ComboboxClearDataAttributes.slot]: '',
       type: 'button',
       tabIndex: -1, // Not tabbable - use keyboard shortcuts instead

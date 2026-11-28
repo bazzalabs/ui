@@ -1,6 +1,5 @@
 'use client'
 
-import { useRender } from '@base-ui/react/use-render'
 import { useStableCallback } from '@base-ui/utils/useStableCallback'
 import * as React from 'react'
 import { REASONS } from '../../../../utils/events/index.js'
@@ -9,6 +8,7 @@ import {
   resolveStyle,
 } from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
+import { usePart } from '../../../../utils/use-part.js'
 import {
   defaultFilter,
   type FilterFn,
@@ -209,10 +209,7 @@ export const PopupMenuSurface = React.forwardRef<
     render,
     className,
     style,
-    onKeyDown,
-    onFocus,
     onPointerDown,
-    onPointerMove,
     children,
     ...rest
   } = props
@@ -616,8 +613,6 @@ export const PopupMenuSurface = React.forwardRef<
   // This handles the case when moving from a submenu back to parent
   const handlePointerMove = React.useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
-      onPointerMove?.(event)
-
       // Ignore pointer events briefly after surface opens
       // This prevents focus transfer when popup appears under stationary cursor
       const timeSinceOpen = Date.now() - openTimeRef.current
@@ -639,14 +634,13 @@ export const PopupMenuSurface = React.forwardRef<
         focusOwnerStore.setOwnerId(surfaceId)
       }
     },
-    [onPointerMove, surfaceId, focusOwnerStore],
+    [surfaceId, focusOwnerStore],
   )
 
   // Explicit Tab behavior: with no focus zones, Tab closes the whole menu
   // tree (replaces Base UI's emergent focus-out close).
   const handleKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
-      onKeyDown?.(event)
       if (event.defaultPrevented) return
       if (event.key !== 'Tab') return
       if (!popupMenuContext.explicitTabBehavior) return
@@ -721,14 +715,7 @@ export const PopupMenuSurface = React.forwardRef<
           : stops[(currentIndex + delta + stops.length) % stops.length]
       next?.focus()
     },
-    [
-      onKeyDown,
-      popupMenuContext,
-      store,
-      focusZoneRegistry,
-      surfaceId,
-      focusOwnerStore,
-    ],
+    [popupMenuContext, store, focusZoneRegistry, surfaceId, focusOwnerStore],
   )
 
   // Sync DOM focus into FocusOwnerStore: focus landing inside this surface
@@ -736,7 +723,6 @@ export const PopupMenuSurface = React.forwardRef<
   // portal re-bubbling from child surfaces, same as handlePointerMove).
   const handleFocus = React.useCallback(
     (event: React.FocusEvent<HTMLDivElement>) => {
-      onFocus?.(event)
       if (!popupMenuContext.explicitTabBehavior) return
       const target = event.target as Node
       if (!surfaceRef.current?.contains(target)) return
@@ -744,7 +730,7 @@ export const PopupMenuSurface = React.forwardRef<
         focusOwnerStore.setOwnerId(surfaceId)
       }
     },
-    [onFocus, popupMenuContext, focusOwnerStore, surfaceId],
+    [popupMenuContext, focusOwnerStore, surfaceId],
   )
 
   // Get component name for slot attribute
@@ -761,11 +747,14 @@ export const PopupMenuSurface = React.forwardRef<
     children
   )
 
-  const element = useRender({
+  // The consumer's `onPointerMove`, `onKeyDown` and `onFocus` run first
+  // (`usePart`); the Surface's run after, unless `preventBaseUIHandler()`
+  // skips them (and Tab handling skips a `preventDefault()`ed key too).
+  const element = usePart({
     render,
     ref: [surfaceRef, tier.surfaceRef, forwardedRef, elementRef],
+    consumer: rest,
     props: {
-      ...rest,
       ...(slotAttr ? { [slotAttr]: '' } : {}),
       className: resolveClassName(className, {}),
       style: resolveStyle(style, {}),

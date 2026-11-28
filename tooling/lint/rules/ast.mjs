@@ -45,7 +45,8 @@ export function importedNames(program, source, name) {
   const names = new Set([name])
   for (const statement of program.body) {
     if (statement.type !== 'ImportDeclaration') continue
-    if (statement.source.value !== source) continue
+    const from = statement.source.value
+    if (typeof source === 'function' ? !source(from) : from !== source) continue
     for (const specifier of statement.specifiers) {
       const imported = specifier.imported?.name ?? specifier.imported?.value
       if (specifier.type === 'ImportSpecifier' && imported === name) {
@@ -204,13 +205,31 @@ export function walk(root, visit, { enterFunctions = false } = {}) {
   }
 }
 
-/** Local names that refer to Base UI's `useRender`. */
-export const useRenderNames = (program) =>
-  importedNames(program, '@base-ui/react/use-render', 'useRender')
+/** Whether an import path is the part helper's module, `utils/use-part.ts`. */
+const isUsePartModule = (source) => /(^|\/)use-part(\.js)?$/.test(source)
 
-/** A call to `useRender` under any of `names`, or `<anything>.useRender(…)`. */
+/**
+ * Local names that render a part: Base UI's `useRender`, and `usePart`
+ * (`utils/use-part.ts`), which renders through it and takes its options.
+ */
+export const useRenderNames = (program) =>
+  new Set([
+    ...importedNames(program, '@base-ui/react/use-render', 'useRender'),
+    ...importedNames(program, isUsePartModule, 'usePart'),
+  ])
+
+/**
+ * A call that renders a part, `useRender` or `usePart`, under any of `names`,
+ * or `<anything>.useRender(…)` / `<anything>.usePart(…)`.
+ */
 export const isUseRenderCall = (node, names) =>
-  isCallTo(node, 'useRender', names)
+  isCallTo(node, 'useRender', names) || isCallTo(node, 'usePart', names)
+
+/** The name a render call is made by (`useRender`, `usePart` or an alias). */
+export const renderCallName = (node) =>
+  node.callee.type === 'Identifier'
+    ? node.callee.name
+    : (node.callee.property?.name ?? 'useRender')
 
 /**
  * `name(…)` under any of `localNames`, or `<object>.name(…)`, e.g. both

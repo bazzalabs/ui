@@ -1,12 +1,12 @@
 'use client'
 
-import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import {
   resolveClassName,
   resolveStyle,
 } from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
+import { usePart } from '../../../../utils/use-part.js'
 import { ItemContext } from '../../../listbox/index.js'
 import {
   getSlotAttribute,
@@ -99,8 +99,6 @@ export const PopupMenuSubpageBackItem = React.forwardRef<
     render,
     className,
     style,
-    onClick,
-    onPointerMove,
     onPointerDown,
     children,
     'aria-describedby': ariaDescribedBy,
@@ -210,12 +208,11 @@ export const PopupMenuSubpageBackItem = React.forwardRef<
 
   const handleClick = React.useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
-      onClick?.(event)
       if (!event.defaultPrevented) {
         item.handlers.onClick(event)
       }
     },
-    [onClick, item.handlers],
+    [item.handlers],
   )
 
   const handlePointerDown = React.useCallback(
@@ -228,12 +225,11 @@ export const PopupMenuSubpageBackItem = React.forwardRef<
 
   const handlePointerMove = React.useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
-      onPointerMove?.(event)
       if (!event.defaultPrevented) {
         item.handlers.onPointerMove(event)
       }
     },
-    [onPointerMove, item.handlers],
+    [item.handlers],
   )
 
   const wrappedChildren = (
@@ -245,13 +241,13 @@ export const PopupMenuSubpageBackItem = React.forwardRef<
   const componentName = useMaybeComponentName()
   const slotAttr = getSlotAttribute(componentName, 'subpage-back-item')
 
-  return useRender({
+  return usePart({
     render,
     ref: [item.ref, item.rowRef, forwardedRef],
     state,
     stateAttributesMapping,
+    consumer: rest,
     props: {
-      ...rest,
       ...(slotAttr ? { [slotAttr]: '' } : {}),
       id: item.id,
       role: 'option',

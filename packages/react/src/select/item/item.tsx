@@ -1,6 +1,5 @@
 'use client'
 
-import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import { usePopupMenuItem } from '../../internal/popup-menu/index.js'
 import {
@@ -18,6 +17,7 @@ import {
   stringifyAsValue,
 } from '../../utils/resolve-value-label.js'
 import type { ComponentProps } from '../../utils/types.js'
+import { usePart } from '../../utils/use-part.js'
 import { useSelectContext } from '../contexts/select-context.js'
 import { SelectItemDataAttributes } from './item.data-attrs.js'
 import {
@@ -125,9 +125,7 @@ function SelectItemImpl<Value = unknown>(
     render,
     className,
     style,
-    onClick,
     onPointerDown,
-    onPointerMove,
     children,
     'aria-describedby': ariaDescribedBy,
     ...rest
@@ -297,15 +295,15 @@ function SelectItemImpl<Value = unknown>(
     [item.id, value, textValue, item.isHighlighted, disabled, selected],
   )
 
-  // Merge user-provided handlers with item handlers
+  // The item's own handlers. They run after the consumer's (`usePart`), and
+  // a consumer's `preventDefault()` or `preventBaseUIHandler()` skips them.
   const handleClick = React.useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
-      onClick?.(event)
       if (!event.defaultPrevented) {
         item.handlers.onClick(event)
       }
     },
-    [onClick, item.handlers],
+    [item.handlers],
   )
 
   const handlePointerDown = React.useCallback(
@@ -318,21 +316,20 @@ function SelectItemImpl<Value = unknown>(
 
   const handlePointerMove = React.useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
-      onPointerMove?.(event)
       if (!event.defaultPrevented) {
         item.handlers.onPointerMove(event)
       }
     },
-    [onPointerMove, item.handlers],
+    [item.handlers],
   )
 
-  const element = useRender({
+  const element = usePart({
     render,
     ref: [item.ref, item.rowRef, forwardedRef],
     state,
     stateAttributesMapping,
+    consumer: rest,
     props: {
-      ...rest,
       [SelectItemDataAttributes.slot]: '',
       id: item.id,
       role: 'option',

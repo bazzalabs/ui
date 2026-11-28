@@ -4,8 +4,10 @@
  *
  * Base UI's `useRender` resolves state-function `className` / `style` passed
  * at the top level of its options, but merges `props` as they are, so a
- * function inside `props` reaches the DOM. Inside `props`, the rule proves
- * each piece safe:
+ * function inside `props` reaches the DOM. `usePart` (`utils/use-part.ts`)
+ * renders through it, with the consumer's props (`consumer`) beside the
+ * part's: both reach the element as they are. Inside `props` and
+ * `consumer`, the rule proves each piece safe:
  * - `className` is `resolveClassName(…)` or a string;
  * - `style` is `resolveStyle(…)`, or an object built from styles that are;
  * - every spread is an object literal, a `mergeProps` / `mergeElementProps`
@@ -21,6 +23,7 @@
 import {
   isUseRenderCall,
   keyName,
+  renderCallName,
   unwrap,
   useRenderNames,
   variableOf,
@@ -261,12 +264,17 @@ export const resolveStateProps = {
           options?.type !== 'ObjectExpression' ||
           options.properties.some((p) => p.type === 'SpreadElement')
         ) {
-          cantTell(node.arguments[0] ?? node, "`useRender`'s options")
+          cantTell(
+            node.arguments[0] ?? node,
+            `\`${renderCallName(node)}\`'s options`,
+          )
           return
         }
-        const props = options.properties.find((p) => keyName(p) === 'props')
-        if (!props) return
-        checkSpread(props.value, start(props.value))
+        for (const property of options.properties) {
+          const key = keyName(property)
+          if (key !== 'props' && key !== 'consumer') continue
+          checkSpread(property.value, start(property.value))
+        }
       },
     }
   },

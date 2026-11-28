@@ -1,6 +1,5 @@
 'use client'
 
-import { useRender } from '@base-ui/react/use-render'
 import type { SubpageTriggerFields } from '@bazza-ui/menu-core'
 import * as React from 'react'
 import {
@@ -8,6 +7,7 @@ import {
   resolveStyle,
 } from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
+import { usePart } from '../../../../utils/use-part.js'
 import { ItemContext } from '../../../listbox/index.js'
 import {
   getSlotAttribute,
@@ -84,9 +84,7 @@ export const PopupMenuSubpageTrigger = React.forwardRef<
     render,
     className,
     style,
-    onClick,
     onPointerDown,
-    onPointerMove,
     children,
     'aria-describedby': ariaDescribedBy,
     ...rest
@@ -144,22 +142,20 @@ export const PopupMenuSubpageTrigger = React.forwardRef<
 
   const handleClick = React.useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
-      onClick?.(event)
       if (!event.defaultPrevented) {
         item.handlers.onClick(event)
       }
     },
-    [item.handlers, onClick],
+    [item.handlers],
   )
 
   const handlePointerMove = React.useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
-      onPointerMove?.(event)
       if (!event.defaultPrevented) {
         item.handlers.onPointerMove(event)
       }
     },
-    [onPointerMove, item.handlers],
+    [item.handlers],
   )
 
   const state: PopupMenuSubpageTrigger.State = React.useMemo(
@@ -192,13 +188,13 @@ export const PopupMenuSubpageTrigger = React.forwardRef<
   const componentName = useMaybeComponentName()
   const slotAttr = getSlotAttribute(componentName, 'subpage-trigger')
 
-  return useRender({
+  return usePart({
     render,
     ref: [item.ref, item.rowRef, forwardedRef],
     state,
     stateAttributesMapping,
+    consumer: rest,
     props: {
-      ...rest,
       ...(slotAttr ? { [slotAttr]: '' } : {}),
       id: item.id,
       role: 'menuitem',

@@ -7,6 +7,7 @@
 
 import * as React from 'react'
 import { REASONS } from '../../../utils/events/index.js'
+import { useComposedHandler } from '../../../utils/use-part.js'
 import { type ListboxStore, useListboxKeyboard } from '../../listbox/index.js'
 import {
   useCheckboxGestureKind,
@@ -199,10 +200,10 @@ export function usePopupMenuKeyboard(
     skipFocusOwnerCheck,
   })
 
-  const handleKeyDown = React.useCallback(
+  // The consumer's handler runs first (`useComposedHandler`, below); its
+  // `preventDefault()` or `preventBaseUIHandler()` skips everything here.
+  const handleOwnKeyDown = React.useCallback(
     (event: React.KeyboardEvent) => {
-      // Consumer handler first; it may prevent everything below.
-      onKeyDown?.(event)
       if (event.defaultPrevented) return
       const isComposing = event.nativeEvent.isComposing || event.keyCode === 229
       const selection = selectionSlot?.state.current ?? null
@@ -279,7 +280,6 @@ export function usePopupMenuKeyboard(
       handleListboxKeyDown(event)
     },
     [
-      onKeyDown,
       rangeSelection,
       selectionSlot,
       isOwner,
@@ -290,5 +290,6 @@ export function usePopupMenuKeyboard(
     ],
   )
 
+  const handleKeyDown = useComposedHandler(onKeyDown, handleOwnKeyDown)
   return React.useMemo(() => ({ handleKeyDown }), [handleKeyDown])
 }

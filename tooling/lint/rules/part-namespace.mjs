@@ -6,7 +6,8 @@
  * tables read the same names. A part is an exported value built from
  * `forwardRef(…)`, including `memo(forwardRef(…))`. It needs
  * `export namespace Part { … Props … }`, plus `State` when its render function
- * passes `state` to `useRender`.
+ * passes `state` to `useRender`, or to `usePart` (`utils/use-part.ts`), which
+ * renders through it.
  */
 import {
   exportedLocals,
@@ -49,7 +50,7 @@ function namespaceMembers(program) {
 }
 
 /**
- * Whether the `useRender` calls under `root` pass `state`: `'yes'`, `'no'`, or
+ * Whether the `useRender` / `usePart` calls under `root` pass `state`: `'yes'`, `'no'`, or
  * `'unknown'` when a call's options aren't an object literal the rule can read.
  */
 function statePassedToUseRender(root, names) {

@@ -11,6 +11,7 @@ import {
   stringifyAsValue,
 } from '../../utils/resolve-value-label.js'
 import type { ComponentProps } from '../../utils/types.js'
+import { useComposedHandler } from '../../utils/use-part.js'
 import { useComboboxContext } from '../contexts/combobox-context.js'
 
 export interface ComboboxIconState extends PopupMenuIconState {}
@@ -42,9 +43,10 @@ export const ComboboxIcon = React.forwardRef<
     [onPointerDown],
   )
 
-  const handleClick = React.useCallback(
+  // After the consumer's handler (`useComposedHandler`, below), which
+  // `preventDefault()` or `preventBaseUIHandler()` in skips it.
+  const handleOwnClick = React.useCallback(
     (event: React.MouseEvent<HTMLSpanElement>) => {
-      onClick?.(event)
       if (event.defaultPrevented) return
 
       if (open) {
@@ -70,8 +72,9 @@ export const ComboboxIcon = React.forwardRef<
 
       comboboxContext.openCombobox()
     },
-    [onClick, comboboxContext, open],
+    [comboboxContext, open],
   )
+  const handleClick = useComposedHandler(onClick, handleOwnClick)
 
   return (
     <PopupMenuIcon
