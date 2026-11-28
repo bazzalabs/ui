@@ -1,16 +1,14 @@
 'use client'
 
 import * as React from 'react'
-import { useMaybeSurfaceContext } from '../../../listbox/contexts/surface-context.js'
 import {
   getPendingRows,
   type ListboxStore,
   setPendingRows,
 } from '../../../listbox/store/ListboxStore.js'
 import {
-  findSurfaceTier,
   type MenuSurfaceTier,
-  useMaybeMenuSurfaceTier,
+  useMaybeMenuEnclosingSurface,
 } from '../../contexts/surface-tier-context.js'
 import { CheckboxSelectionStore } from '../../store/CheckboxSelectionStore.js'
 
@@ -75,10 +73,7 @@ export interface CheckboxRowSelection {
  * so a row that only reads (a disabled one) never makes it.
  */
 export function useCheckboxRowSelection(): CheckboxRowSelection {
-  const tier = findSurfaceTier(
-    useMaybeMenuSurfaceTier(),
-    useMaybeSurfaceContext()?.store,
-  )
+  const tier = useMaybeMenuEnclosingSurface()
   if (!tier) {
     throw new Error(
       'PopupMenu.CheckboxItem must be used within PopupMenu.Surface',

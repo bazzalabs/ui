@@ -3,13 +3,11 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type * as React from 'react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { DropdownMenu } from '../../dropdown-menu/index.js'
-import { useMaybeSurfaceContext } from '../listbox/index.js'
 import {
   type MenuTreeTier,
   useMaybeMenuTreeTier,
 } from './contexts/menu-tree-context.js'
 import {
-  findSurfaceTier,
   type MenuSurfaceTier,
   useMaybeMenuSurfaceTier,
 } from './contexts/surface-tier-context.js'
@@ -41,10 +39,7 @@ const seen: { tree: MenuTreeTier | null; surface: MenuSurfaceTier | null } = {
 /** Records the tiers the rows around it read. */
 function TierProbe() {
   seen.tree = useMaybeMenuTreeTier()
-  seen.surface = findSurfaceTier(
-    useMaybeMenuSurfaceTier(),
-    useMaybeSurfaceContext()?.store,
-  )
+  seen.surface = useMaybeMenuSurfaceTier()
   return null
 }
 

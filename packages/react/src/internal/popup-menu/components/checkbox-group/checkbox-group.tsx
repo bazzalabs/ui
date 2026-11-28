@@ -9,12 +9,13 @@ import {
 } from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { useRowPosition } from '../../../listbox/hooks/use-row-position.js'
-import { GroupContext, useSurfaceContext } from '../../../listbox/index.js'
+import { GroupContext } from '../../../listbox/index.js'
 import {
   getSlotAttribute,
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
 import { useMenuSurfaceSettings } from '../../contexts/surface-settings-context.js'
+import { useMenuEnclosingSurface } from '../../contexts/surface-tier-context.js'
 import { useGroupVisibility } from '../group/use-group-visibility.js'
 import { PopupMenuCheckboxGroupDataAttributes } from './checkbox-group.data-attrs.js'
 import {
@@ -96,7 +97,7 @@ export const PopupMenuCheckboxGroup = React.forwardRef(
       ...rest
     } = props
 
-    const { store } = useSurfaceContext()
+    const { store } = useMenuEnclosingSurface()
     const menuDisabled = useMenuSurfaceSettings().disabled
     const groupId = React.useId()
     const internalRef = React.useRef<HTMLDivElement>(null)

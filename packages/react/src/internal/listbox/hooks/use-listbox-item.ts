@@ -5,9 +5,10 @@ import * as React from 'react'
 import { useMaybeCollectionRows } from '../contexts/collection-row-context.js'
 import { useGroupContext } from '../contexts/group-context.js'
 import type { ItemContextValue } from '../contexts/item-context.js'
-import { useMaybeRowWidthContext } from '../contexts/row-width-context.js'
-import { useSurfaceContext } from '../contexts/surface-context.js'
-import { useSurfaceTier } from '../contexts/surface-tier-context.js'
+import {
+  useEnclosingSurface,
+  useSurfaceTier,
+} from '../contexts/surface-tier-context.js'
 import {
   bindDataRow,
   isVisible as isVisibleSelector,
@@ -254,7 +255,10 @@ export function useListboxItem(
     describedBy: describedByProp,
   } = params
 
-  const { store } = useSurfaceContext()
+  // The row is in the store of the Surface it's mounted in, and at its
+  // level's depth.
+  const surface = useEnclosingSurface()
+  const { store } = surface
   const groupContext = useGroupContext()
   const { depth } = useSurfaceTier()
 
@@ -351,14 +355,15 @@ export function useListboxItem(
     return store.registerItemRef(registrationId, ref)
   }, [registrationId, store])
 
-  // Register for row width measurement if enabled
-  const rowWidthContext = useMaybeRowWidthContext()
-
+  // Queue the row's width measurement with its surface (the List it's in
+  // measures it, if it measures rows): from a layout effect, which runs
+  // before the List's, so the List takes it in the same commit.
+  const { rowWidth } = surface
   React.useLayoutEffect(() => {
-    if (rowWidthContext && ref.current && registrationId) {
-      rowWidthContext.queueMeasurement(ref.current, registrationId)
+    if (ref.current && registrationId) {
+      return rowWidth.queue(ref.current, registrationId)
     }
-  }, [rowWidthContext, registrationId])
+  }, [rowWidth, registrationId])
 
   // Register onSelect handler if provided directly
   React.useEffect(() => {

@@ -8,11 +8,12 @@ import {
 } from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { useRowPosition } from '../../../listbox/hooks/use-row-position.js'
-import { GroupContext, useSurfaceContext } from '../../../listbox/index.js'
+import { GroupContext } from '../../../listbox/index.js'
 import {
   getSlotAttribute,
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
+import { useMenuEnclosingSurface } from '../../contexts/surface-tier-context.js'
 import { PopupMenuGroupDataAttributes } from './group.data-attrs.js'
 import { useGroupVisibility } from './use-group-visibility.js'
 
@@ -83,7 +84,7 @@ export const PopupMenuGroup = React.forwardRef<
     ...rest
   } = props
 
-  const { store } = useSurfaceContext()
+  const { store } = useMenuEnclosingSurface()
   const groupId = React.useId()
   const internalRef = React.useRef<HTMLDivElement>(null)
   const [rowElement, setRowElement] = React.useState<HTMLElement | null>(null)

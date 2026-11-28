@@ -13,13 +13,14 @@ import {
 } from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { useComposedHandler, usePart } from '../../../../utils/use-part.js'
-import { ItemContext, useSurfaceContext } from '../../../listbox/index.js'
+import { ItemContext } from '../../../listbox/index.js'
 import { isPending } from '../../../listbox/store/ListboxStore.js'
 import {
   getSlotAttribute,
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
 import { useMenuSurfaceSettings } from '../../contexts/surface-settings-context.js'
+import { useMenuEnclosingSurface } from '../../contexts/surface-tier-context.js'
 import type {
   CheckedChangeReason,
   SelectionCommitReason,
@@ -217,7 +218,7 @@ export const PopupMenuCheckboxItem = React.forwardRef<
   const { rangeSelection, dragSelection } = useMenuSurfaceSettings()
   // A range or drag selection previews the opposite of the committed state
   // for each item it would change, in the surface's store.
-  const { store } = useSurfaceContext()
+  const { store } = useMenuEnclosingSurface()
   const pending = useStore(store, isPending, item.storeId)
   const displayChecked = pending ? !checked : checked
 

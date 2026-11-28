@@ -115,9 +115,10 @@ export const PopupMenuPopup = React.forwardRef<
   const depth = tier?.depth ?? 0
   const popupStore = tier?.store ?? null
 
-  // Generate surfaceId for root menus, use submenu context for submenus
+  // The popup's surface id: its level's, which its Surface has too (an id of
+  // its own outside a menu).
   const generatedSurfaceId = React.useId()
-  const surfaceId = submenuContext?.childSurfaceId ?? generatedSurfaceId
+  const surfaceId = tier?.surfaceId ?? generatedSurfaceId
 
   const {
     subpageStackContextValue,

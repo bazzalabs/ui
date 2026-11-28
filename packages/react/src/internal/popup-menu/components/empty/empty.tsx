@@ -9,12 +9,12 @@ import {
 } from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
 import { useRowPosition } from '../../../listbox/hooks/use-row-position.js'
-import { useSurfaceContext } from '../../../listbox/index.js'
 import { hasResults } from '../../../listbox/store/ListboxStore.js'
 import {
   getSlotAttribute,
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
+import { useMenuEnclosingSurface } from '../../contexts/surface-tier-context.js'
 import { useMaybeAsyncMenuCoordinator } from '../../data-first/async-coordinator.js'
 import { PopupMenuEmptyDataAttributes } from './empty.data-attrs.js'
 
@@ -47,7 +47,7 @@ export const PopupMenuEmpty = React.forwardRef<
 >(function PopupMenuEmpty(props, forwardedRef) {
   const { render, className, style, children, ...rest } = props
 
-  const { store } = useSurfaceContext()
+  const { store } = useMenuEnclosingSurface()
   const rowId = React.useId()
   const [rowElement, setRowElement] = React.useState<HTMLElement | null>(null)
 

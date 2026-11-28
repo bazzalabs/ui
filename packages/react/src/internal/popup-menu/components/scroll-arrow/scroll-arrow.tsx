@@ -7,11 +7,11 @@ import {
   resolveStyle,
 } from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
-import { useSurfaceContext } from '../../../listbox/index.js'
 import {
   getSlotAttribute,
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
+import { useMenuEnclosingSurface } from '../../contexts/surface-tier-context.js'
 import { PopupMenuScrollArrowDataAttributes } from './scroll-arrow.data-attrs.js'
 
 export { PopupMenuScrollArrowDataAttributes }
@@ -80,7 +80,7 @@ export const PopupMenuScrollArrow = React.forwardRef<
     ...rest
   } = props
 
-  const { store } = useSurfaceContext()
+  const { store } = useMenuEnclosingSurface()
   const [visible, setVisible] = React.useState(false)
   const scrollingRef = React.useRef(false)
   const rafRef = React.useRef<number | null>(null)

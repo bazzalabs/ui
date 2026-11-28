@@ -1,7 +1,6 @@
 'use client'
 
 import * as React from 'react'
-import { useMaybeSurfaceContext } from '../../listbox/contexts/surface-context.js'
 import { useMaybeStore } from '../hooks/use-maybe-store.js'
 import type {
   CheckboxSelectionState,
@@ -9,8 +8,7 @@ import type {
 } from '../store/CheckboxSelectionStore.js'
 import {
   type CheckboxSelectionSlot,
-  findSurfaceTier,
-  useMaybeMenuSurfaceTier,
+  useMaybeMenuEnclosingSurface,
 } from './surface-tier-context.js'
 
 const currentSelection = (state: { current: CheckboxSelectionStore | null }) =>
@@ -25,11 +23,7 @@ const noop = () => {}
  * effect.
  */
 export function useCheckboxSelectionSlot(): CheckboxSelectionSlot | null {
-  const surface = useMaybeSurfaceContext()
-  return (
-    findSurfaceTier(useMaybeMenuSurfaceTier(), surface?.store)?.selection ??
-    null
-  )
+  return useMaybeMenuEnclosingSurface()?.selection ?? null
 }
 
 /**
