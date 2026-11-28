@@ -455,18 +455,17 @@ export function ComboboxRoot<
   // Get open state from store for Popover
   const open = store.useState('open')
 
-  // Custom handleOpenChange that ignores close events when input has focus
-  // This prevents base-ui's Popover from closing when clicking on the input
+  // Base UI's own changes, through the root's gate (`baseHandleOpenChange`,
+  // the close policy), except a close while the input has focus: this
+  // prevents base-ui's Popover from closing when clicking on the input. It
+  // stays a check of its own: it holds whatever reason Base UI gives, while
+  // the policy's exemptions are for a pressed or focused element.
   const handleOpenChange = React.useCallback(
     (
       newOpen: boolean,
       reason?: ComboboxOpenChangeEventDetails['reason'],
       event?: Event,
     ) => {
-      if (menuDisabled && reason !== REASONS.imperativeAction) {
-        return
-      }
-
       // When trying to close, check if input has focus
       if (!newOpen && inputRef.current) {
         const activeElement = document.activeElement
@@ -482,7 +481,7 @@ export function ComboboxRoot<
         event,
       )
     },
-    [baseHandleOpenChange, menuDisabled],
+    [baseHandleOpenChange],
   )
 
   // Handle animation complete - clear search and hide input if clearSearchOnClose is 'after-exit'
@@ -614,6 +613,8 @@ export function ComboboxRoot<
   }, [setFilterMode])
 
   // ===== Open/Close Helpers =====
+  // Through the root's gate, which refuses to open a disabled combobox; the
+  // check here only skips setting the filter mode up.
   const openCombobox = React.useCallback(() => {
     if (!menuDisabled) {
       // If opening with a selected value (single-select), show all items initially.
@@ -623,9 +624,9 @@ export function ComboboxRoot<
       } else {
         setFilterMode({ type: 'active' })
       }
-      store.setOpen(true)
+      baseHandleOpenChange(true)
     }
-  }, [menuDisabled, store, multiple, value, setFilterMode])
+  }, [menuDisabled, baseHandleOpenChange, multiple, value, setFilterMode])
 
   const closeCombobox = React.useCallback(
     (reason?: ComboboxOpenChangeEventDetails['reason'], event?: Event) => {
@@ -646,14 +647,15 @@ export function ComboboxRoot<
 
       setFilterMode({ type: 'frozen', search: searchToFreeze })
       // Cast is safe: closeCombobox only receives close-related reasons
-      // which are a subset of PopupMenuOpenChangeReason
-      store.setOpen(
-        false,
-        reason as PopupMenuOpenChangeReason | undefined,
+      // which are a subset of PopupMenuOpenChangeReason. The combobox closes
+      // itself (blur, Escape, a choice): an engine close, which goes
+      // through while disabled
+      closeAll(
+        (reason as PopupMenuOpenChangeReason | undefined) ?? REASONS.none,
         event,
       )
     },
-    [store, setFilterMode, internalInputValue],
+    [closeAll, setFilterMode, internalInputValue],
   )
 
   // ===== Combobox Context =====

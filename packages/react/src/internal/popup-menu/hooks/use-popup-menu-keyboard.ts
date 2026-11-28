@@ -9,9 +9,11 @@ import * as React from 'react'
 import { REASONS } from '../../../utils/events/index.js'
 import { type ListboxStore, useListboxKeyboard } from '../../listbox/index.js'
 import { useMaybeCheckboxSelection } from '../contexts/checkbox-selection-context.js'
+import { useMaybeMenuTree } from '../contexts/menu-tree-context.js'
 import { usePopupMenuContext } from '../contexts/popup-menu-context.js'
 import type { SubmenuContextValue } from '../contexts/submenu-context.js'
 import type { SubpageContextValue } from '../contexts/subpage-context.js'
+import type { PopupMenuOpenChangeReason } from '../events.js'
 import type { FocusOwnerStore } from '../store/FocusOwnerStore.js'
 
 const SPAN_NAVIGATION_KEYS = new Set(['ArrowDown', 'ArrowUp', 'Home', 'End'])
@@ -55,10 +57,10 @@ export interface UsePopupMenuKeyboardParams {
   /** User's onKeyDown handler to compose with */
   onKeyDown?: React.KeyboardEventHandler
   /**
-   * Callback to close the entire menu tree from the root.
+   * Callback to close the entire menu tree from the root, for `reason`.
    * Used when Escape is pressed and closeRootOnEsc is true (default).
    */
-  closeAll: () => void
+  closeAll: (reason?: PopupMenuOpenChangeReason, event?: Event) => void
   /**
    * Whether to skip the focus owner check.
    * When true, keyboard handling will work based on `enabled` prop alone,
@@ -138,14 +140,7 @@ export function usePopupMenuKeyboard(
   const submenuInterface = React.useMemo(() => {
     if (!submenuContext) return null
     return {
-      setOpen: (open: boolean) => {
-        if (!open) {
-          // Explicit keyboard close (ArrowLeft/Ctrl+H/Escape): suppress
-          // auto-reopen while the trigger stays highlighted.
-          submenuContext.suppressAutoOpenRef.current = true
-        }
-        submenuContext.setOpen(open)
-      },
+      setOpen: submenuContext.setOpen,
       parentSurfaceId: submenuContext.parentSurfaceId,
       closeRootOnEsc: submenuContext.closeRootOnEsc,
     }
@@ -170,13 +165,26 @@ export function usePopupMenuKeyboard(
     [closeAll],
   )
 
+  // Escape that closes the whole tree from a submenu or subpage. Pinned
+  // (behaviour-pins.test.tsx): the root reports it as `item-press`, with no
+  // event; its submenus get `escape-key`
+  const tree = useMaybeMenuTree()
+  const closeAllFromKeys = React.useCallback(
+    (reason?: PopupMenuOpenChangeReason, event?: Event) => {
+      if (reason === REASONS.escapeKey && tree?.closeTree) {
+        tree.closeTree(REASONS.itemPress, undefined, { reason, event })
+      } else closeAll(reason, event)
+    },
+    [closeAll, tree],
+  )
+
   const { handleKeyDown: handleListboxKeyDown } = useListboxKeyboard({
     store,
     surfaceId,
     enabled: enabled && !disabled,
     onKeyDown: undefined,
     onSelect: handleSelect,
-    closeAll,
+    closeAll: closeAllFromKeys,
     focusOwner: focusOwnerStore,
     depth,
     submenuContext: submenuInterface,

@@ -1,13 +1,17 @@
 'use client'
 
+import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect'
+import { useStableCallback } from '@base-ui/utils/useStableCallback'
+import { decideOpenChange } from '@bazza-ui/menu-core'
 import * as React from 'react'
 import type { ChangeEventDetails } from '../../../utils/events/index.js'
-import {
-  createChangeEventDetails,
-  REASONS,
-} from '../../../utils/events/index.js'
+import { REASONS } from '../../../utils/events/index.js'
 import { ensureInputModalityTracking } from '../../../utils/input-modality.js'
 import type { ListboxStore, VirtualItem } from '../../listbox/index.js'
+import {
+  type CloseCause,
+  getCloseCause,
+} from '../../listbox/store/ListboxStore.js'
 import { useMaybeMenuTree } from '../contexts/menu-tree-context.js'
 import type { VirtualizationConfig } from '../contexts/popup-menu-context.js'
 import type {
@@ -120,7 +124,11 @@ export interface UsePopupMenuRootReturn {
   /** Register a surface (submenu) for closeAll tracking */
   registerSurface: (
     depth: number,
-    setOpen: (open: boolean) => void,
+    setOpen: (
+      open: boolean,
+      reason?: PopupMenuOpenChangeReason,
+      event?: Event,
+    ) => void,
   ) => () => void
   /** Close the entire menu tree */
   closeAll: (reason?: PopupMenuOpenChangeReason, event?: Event) => void
@@ -213,41 +221,19 @@ export function usePopupMenuRoot(
   // focus-out close happens immediately after, we can treat it as outside-press
   const outsidePointerEventRef = React.useRef<PointerEvent | null>(null)
 
-  // Create stable callback wrapper for onOpenChange that converts focus-out to outside-press
-  // when the close was triggered by a pointer event outside the menu
-  const stableOnOpenChange = React.useCallback(
+  // Stable, for the tree keeps the first one it's given; it calls the
+  // latest `onOpenChange`.
+  const stableOnOpenChange = useStableCallback(
     (open: boolean, eventDetails: ChangeEventDetails<string>) => {
-      // If closing due to focus-out but we have a stored outside pointer event,
-      // convert the reason to outside-press for better cancel() support
-      if (
-        !open &&
-        eventDetails.reason === REASONS.focusOut &&
-        outsidePointerEventRef.current
-      ) {
-        const pointerEvent = outsidePointerEventRef.current
-        outsidePointerEventRef.current = null
-
-        // Create new event details with outside-press reason and the pointer event
-        const convertedDetails = createChangeEventDetails(
-          REASONS.outsidePress,
-          pointerEvent,
-        )
-
-        onOpenChange?.(open, convertedDetails)
-
-        // If the converted callback canceled, also cancel the original
-        if (convertedDetails.isCanceled) {
-          eventDetails.cancel()
-        }
-        return
-      }
-
-      // Clear the pointer event ref if we're not using it
-      outsidePointerEventRef.current = null
-
       onOpenChange?.(open, eventDetails)
     },
-    [onOpenChange],
+  )
+  // The tree's `closeTree`, stable for the same reason; it closes through
+  // the gate below, telling the submenus `cause` (the menu's own keys pass
+  // one)
+  const closeTree = useStableCallback(
+    (reason: PopupMenuOpenChangeReason, event?: Event, cause?: CloseCause) =>
+      requestOpen(false, reason, event, true, cause),
   )
 
   // The menu tree's store (one per root, shared by its submenus) keeps the
@@ -262,6 +248,7 @@ export function usePopupMenuRoot(
       resolver: menuTreeResolver,
       open: defaultOpen,
       onOpenChange: stableOnOpenChange,
+      closeTree,
     })
     storesRef.current = { tree, store: tree.createRootStore() }
   }
@@ -291,13 +278,22 @@ export function usePopupMenuRoot(
     [elements],
   )
 
-  // Registry for tracking open submenus (for closeAll)
-  type SurfaceEntry = { depth: number; setOpen: (open: boolean) => void }
+  // The root's own submenus (and subpages), closed when the root closes;
+  // each submenu closes its own the same way. They register from a layout
+  // effect.
+  type SurfaceEntry = {
+    depth: number
+    setOpen: (
+      open: boolean,
+      reason?: PopupMenuOpenChangeReason,
+      event?: Event,
+    ) => void
+  }
   const surfaceRegistryRef = React.useRef<Map<string, SurfaceEntry>>(new Map())
 
   // Register a surface (submenu) for closeAll tracking
   const registerSurface = React.useCallback(
-    (depth: number, setOpen: (open: boolean) => void) => {
+    (depth: number, setOpen: SurfaceEntry['setOpen']) => {
       const id = Math.random().toString(36).slice(2)
       surfaceRegistryRef.current.set(id, { depth, setOpen })
       return () => {
@@ -307,31 +303,31 @@ export function usePopupMenuRoot(
     [],
   )
 
-  // Close the entire menu tree from deepest submenu to root
-  const closeAll = React.useCallback(
-    (reason: PopupMenuOpenChangeReason = REASONS.itemPress, event?: Event) => {
-      // Sort surfaces by depth (deepest first)
-      const surfaces = [...surfaceRegistryRef.current.values()].sort(
-        (a, b) => b.depth - a.depth,
-      )
-
-      // Close each submenu from deepest to shallowest
-      for (const surface of surfaces) {
-        surface.setOpen(false)
-      }
-
-      // Finally close the root
-      tree.setOpen(false, reason, event)
-
-      // Clear focus ownership and open chain
-      tree.clear()
-    },
-    [tree],
+  // When the root's `open` goes false (whatever closed it: a request, Base
+  // UI's dismissal, a controlled `open`), close its open submenus with the
+  // cause of the close (`getCloseCause`: the last close the consumer let
+  // through, for a controlled `open` set whenever), then clear focus
+  // ownership and the open chain. A close the consumer canceled, or hasn't applied yet, leaves them
+  // as they are.
+  // Subscribed in a layout effect, before a close a layout effect makes (a
+  // controlled `open` syncs in one).
+  useIsoLayoutEffect(
+    () =>
+      store.observe('open', (open, wasOpen) => {
+        if (open || !wasOpen) return
+        const cause = getCloseCause(store)
+        for (const surface of [...surfaceRegistryRef.current.values()]) {
+          surface.setOpen(false, cause?.reason ?? REASONS.none, cause?.event)
+        }
+        tree.clear()
+      }),
+    [store, tree],
   )
 
   // Ref to hold closeAll for use in the pointerdown effect
-  const closeAllRef = React.useRef(closeAll)
-  closeAllRef.current = closeAll
+  const closeAllRef = React.useRef<
+    (reason: PopupMenuOpenChangeReason, event?: Event) => void
+  >(() => {})
 
   // Listen for pointerdown events on document to detect outside clicks
   // This is a single listener at the root level that handles the entire menu tree.
@@ -346,6 +342,8 @@ export function usePopupMenuRoot(
 
     // The outside press waiting for its decision (see below).
     let cancelPending = () => {}
+    // Clears `outsidePressThisTask` once the press's task ends.
+    let endOfTask: ReturnType<typeof setTimeout> | undefined
 
     const handlePointerDown = (event: PointerEvent) => {
       cancelPending()
@@ -354,14 +352,23 @@ export function usePopupMenuRoot(
       // Presses on an exempt element (e.g. a host input) count as inside.
       if (elements.isExempt(target)) return
 
+      // A press outside the tree's elements reaches the root, so a submenu
+      // leaves the focus-out it causes in this task to the root.
+      const owned = elements.owns(target)
+      if (!owned) {
+        clearTimeout(endOfTask)
+        elements.outsidePressThisTask = event
+        endOfTask = setTimeout(() => {
+          elements.outsidePressThisTask = null
+        })
+      }
+
+      // Presses inside an element this tree (or a tree nested in it)
+      // registered count as inside; a backdrop's press is its own to handle.
+      if (owned) return
+
       // Store the event for focus-out-to-outside-press conversion
       outsidePointerEventRef.current = event
-
-      // Inside an element this tree (or a tree nested in it) registered, or
-      // nothing to close on pointerdown: nothing more to decide.
-      if (closeOnOutsidePress !== 'pointerdown' || elements.owns(target)) {
-        return
-      }
 
       // Outside the registered elements, the press may still be on content a
       // popup of the tree renders through a portal (a consumer's popover
@@ -377,10 +384,15 @@ export function usePopupMenuRoot(
         if (outsidePointerEventRef.current !== event || !store.select('open')) {
           return
         }
-        // Another open popup on the page is outside.
-        if (!elements.claimed(event)) {
-          closeAllRef.current(REASONS.outsidePress, event)
+        // Content a popup of the tree claimed is inside: a focus-out it
+        // causes isn't this press. Another open popup on the page is outside.
+        if (elements.claimed(event)) {
+          outsidePointerEventRef.current = null
+          return
         }
+        // With 'click', the press only waits for a focus-out it causes
+        if (closeOnOutsidePress !== 'pointerdown') return
+        closeAllRef.current(REASONS.outsidePress, event)
       }
       const timeout = setTimeout(decide)
       target.addEventListener('pointerdown', decide, true)
@@ -396,43 +408,75 @@ export function usePopupMenuRoot(
     return () => {
       document.removeEventListener('pointerdown', handlePointerDown, true)
       cancelPending()
+      clearTimeout(endOfTask)
+      elements.outsidePressThisTask = null
       outsidePointerEventRef.current = null
     }
   }, [isOpen, closeOnOutsidePress, disabled, elements, store])
 
-  // Handle open state change
+  // The one gate for every open change of the root: the close policy
+  // decides, then the tree's store takes it, telling the consumer (who may
+  // cancel it) with the policy's reason. A press on an exempt element, or
+  // focus moving to one, or to another popup of the tree, doesn't dismiss;
+  // this covers Base UI's own dismissal, which runs alongside our listener.
+  // A focus-out an outside press caused is reported as that press. A close
+  // the engine makes (`closeAll`) goes through while disabled; `cause` is
+  // what the submenus closing with the root are told.
+  const requestOpen = React.useCallback(
+    (
+      newOpen: boolean,
+      reason: PopupMenuOpenChangeReason,
+      event: Event | undefined,
+      engine: boolean,
+      cause?: CloseCause,
+    ) => {
+      // For a focus-out only the element gaining focus (`relatedTarget`)
+      // counts: `target` is the element losing it.
+      const focusTarget =
+        reason === REASONS.focusOut
+          ? (event as FocusEvent | undefined)?.relatedTarget
+          : undefined
+      const decision = decideOpenChange<PopupMenuOpenChangeReason, Event>({
+        open: newOpen,
+        reason,
+        event,
+        level: 'root',
+        disabled,
+        engine,
+        exempt:
+          reason === REASONS.outsidePress
+            ? isExemptNode(event?.target)
+            : isExemptNode(focusTarget),
+        focusInTree:
+          focusTarget instanceof Node &&
+          elements.popupFor(focusTarget) !== null,
+        outsidePress: outsidePointerEventRef.current ?? undefined,
+      })
+      if (decision.type !== 'allow') return
+      outsidePointerEventRef.current = null
+      tree.requestOpen(newOpen, decision.reason, decision.event, cause)
+    },
+    [tree, disabled, isExemptNode, elements],
+  )
+
   const handleOpenChange = React.useCallback(
     (
       newOpen: boolean,
       reason: PopupMenuOpenChangeReason = REASONS.none,
       event?: Event,
-    ) => {
-      const isImperativeAction = reason === REASONS.imperativeAction
-
-      // Ignore user-driven open/close interactions while disabled.
-      if (disabled && !isImperativeAction) {
-        return
-      }
-
-      // A press on an exempt element, or focus moving to one, doesn't dismiss.
-      // Covers Base UI's own dismissal, which runs alongside our listener.
-      // For focus-out only the element gaining focus (`relatedTarget`) counts:
-      // `target` is the element losing it.
-      if (
-        !newOpen &&
-        ((reason === REASONS.outsidePress && isExemptNode(event?.target)) ||
-          (reason === REASONS.focusOut &&
-            isExemptNode((event as FocusEvent | undefined)?.relatedTarget)))
-      ) {
-        return
-      }
-
-      tree.setOpen(newOpen, reason, event)
-      // Clear focus ownership and open chain when menu closes
-      if (!newOpen) tree.clear()
-    },
-    [tree, disabled, isExemptNode],
+    ) => requestOpen(newOpen, reason, event, false),
+    [requestOpen],
   )
+
+  // Close the entire menu tree, through the gate: the root closes, and its
+  // submenus close with it (see above), with `reason`.
+  const closeAll = React.useCallback(
+    (reason: PopupMenuOpenChangeReason = REASONS.itemPress, event?: Event) => {
+      requestOpen(false, reason, event, true)
+    },
+    [requestOpen],
+  )
+  closeAllRef.current = closeAll
 
   // Memoize listbox wiring config
   const virtualization = React.useMemo(() => {

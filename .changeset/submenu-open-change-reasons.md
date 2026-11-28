@@ -1,0 +1,7 @@
+---
+'@bazza-ui/react': minor
+---
+
+**Breaking change.** A submenu's `onOpenChange` (`DropdownMenu.Submenu`, `ContextMenu.Submenu`) now reports every change with its reason: hovering the trigger or aiming at the submenu (`'trigger-hover'`), ArrowRight or a keyboard highlight (`'list-navigation'`), ArrowLeft and Ctrl+H (`'list-navigation'`), Escape (`'escape-key'`, also when Escape closes the whole menu), Tab out of the submenu (`'focus-out'`), another row taking the highlight (`'sibling-open'`), and the whole menu closing (with the menu's reason, such as `'item-press'` or `'outside-press'`), as well as a press on the trigger. It reported only presses and Base UI's own dismissal before. `eventDetails.cancel()` keeps the submenu as it is (a canceled ArrowLeft, Ctrl+H or Escape keeps focus in it; focus goes back to the parent menu once that close happens), and a submenu with a controlled `open` now opens on hover and keyboard when its handler applies the change. A hover asks once: after a canceled or unapplied open, moving over the trigger doesn't ask again until the pointer leaves and comes back.
+
+The details are typed as `DropdownMenu.Submenu.ChangeEventDetails` (and the ContextMenu one), the same shape as the menu's own open-change details (`reason`, `event`, `cancel()`, `isCanceled`), whose reason now includes `'list-navigation'`, `'sibling-open'` and the menu's close reasons. They no longer have Base UI's `preventUnmountOnClose()`. A handler annotated with Base UI's `Popover.Root.ChangeEventDetails` needs the new type.

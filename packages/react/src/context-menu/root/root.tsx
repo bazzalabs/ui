@@ -294,13 +294,13 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
     [],
   )
 
-  // Open the menu (called by Trigger on right-click/long-press)
+  // Open the menu (called by Trigger on right-click/long-press); the close
+  // policy refuses it while the menu is disabled
   const openMenu = React.useCallback(
     (event: Event) => {
-      if (menuDisabled) return
-      store.setOpen(true, REASONS.triggerContextMenu, event)
+      handleOpenChange(true, REASONS.triggerContextMenu, event)
     },
-    [store, menuDisabled],
+    [handleOpenChange],
   )
 
   // Handle animation complete - clear search and hide input if clearSearchOnClose is 'after-exit'

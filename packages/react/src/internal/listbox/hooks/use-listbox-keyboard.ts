@@ -1,6 +1,9 @@
 'use client'
 
+import { decideOpenChange } from '@bazza-ui/menu-core'
 import * as React from 'react'
+import { REASONS } from '../../../utils/events/index.js'
+import type { PopupMenuOpenChangeReason } from '../events.js'
 import {
   getRegistration,
   getShortcutItemId,
@@ -23,8 +26,15 @@ export interface FocusOwnerInterface {
  * Optional - only needed for popup menus with submenus.
  */
 export interface SubmenuInterface {
-  /** Close this submenu */
-  setOpen: (open: boolean) => void
+  /**
+   * Open or close this submenu, for `reason` (`'none'` when left out). Once
+   * it closes, it hands focus back to `parentSurfaceId` itself.
+   */
+  setOpen: (
+    open: boolean,
+    reason?: PopupMenuOpenChangeReason,
+    event?: Event,
+  ) => void
   /** Parent surface ID for focus transfer */
   parentSurfaceId: string
   /** Whether Escape closes the root menu or just this submenu */
@@ -60,10 +70,10 @@ export interface UseListboxKeyboardParams {
    */
   onSelect?: (details: { itemId: string | null; closeOnClick: boolean }) => void
   /**
-   * Callback to close the entire menu tree from the root.
+   * Callback to close the entire menu tree from the root, for `reason`.
    * Used when Escape is pressed and closeRootOnEsc is true (default).
    */
-  closeAll: () => void
+  closeAll: (reason?: PopupMenuOpenChangeReason, event?: Event) => void
 
   // Optional popup-menu features
 
@@ -232,11 +242,15 @@ export function useListboxKeyboard(
           }
 
           // Close submenu and return to parent (only if in a submenu)
-          if (depth > 0 && submenuContext && focusOwner) {
+          if (depth > 0 && submenuContext) {
             event.preventDefault()
-            submenuContext.setOpen(false)
-            // Transfer focus back to parent surface
-            focusOwner.setOwnerId(submenuContext.parentSurfaceId)
+            // Focus goes back to the parent surface once the submenu closes
+            // (its consumer may cancel it, or apply it later)
+            submenuContext.setOpen(
+              false,
+              REASONS.listNavigation,
+              event.nativeEvent,
+            )
           }
           break
         }
@@ -251,11 +265,15 @@ export function useListboxKeyboard(
           }
 
           // Ctrl+H - close submenu (vim binding fallback)
-          if (event.ctrlKey && depth > 0 && submenuContext && focusOwner) {
+          if (event.ctrlKey && depth > 0 && submenuContext) {
             event.preventDefault()
-            submenuContext.setOpen(false)
-            // Transfer focus back to parent surface
-            focusOwner.setOwnerId(submenuContext.parentSurfaceId)
+            // Focus goes back to the parent surface once the submenu closes
+            // (its consumer may cancel it, or apply it later)
+            submenuContext.setOpen(
+              false,
+              REASONS.listNavigation,
+              event.nativeEvent,
+            )
           }
           break
         }
@@ -287,48 +305,45 @@ export function useListboxKeyboard(
           break
         }
         case 'Escape': {
-          // In a subpage: close root (optional) or navigate back one page.
-          if (subpageContext) {
-            event.preventDefault()
-            event.stopPropagation()
+          // The close policy decides: the root closes through Base UI; a
+          // submenu closes the whole tree, or only itself; a subpage goes
+          // back a page, or closes the whole tree.
+          const level = subpageContext
+            ? 'subpage'
+            : depth > 0
+              ? 'submenu'
+              : 'root'
+          if (level === 'root') break
+          const decision = decideOpenChange({
+            open: false,
+            reason: REASONS.escapeKey,
+            event: event.nativeEvent,
+            level,
+            closeRootOnEsc: (subpageContext ?? submenuContext)?.closeRootOnEsc,
+          })
 
-            if (subpageContext.closeRootOnEsc) {
-              closeAll()
-            } else {
-              const didGoBack = subpageContext.goBack()
-              if (didGoBack && focusOwner && subpageContext.parentSurfaceId) {
-                focusOwner.setOwnerId(subpageContext.parentSurfaceId)
-              } else if (depth > 0 && submenuContext) {
-                submenuContext.setOpen(false)
-                if (focusOwner) {
-                  focusOwner.setOwnerId(submenuContext.parentSurfaceId)
-                }
-              }
-            }
-            break
-          }
-
-          // Handle Escape based on depth and closeRootOnEsc setting
-          if (depth === 0) {
-            // Root menu: let parent component handle it normally
-            // (closes the menu and returns focus to trigger)
-            break
-          }
-
-          // In a submenu: always prevent default to avoid parent's focus restoration
+          // Stop the parent's handling (its focus restoration, or closing)
           event.preventDefault()
           event.stopPropagation()
 
-          if (submenuContext?.closeRootOnEsc !== false) {
-            // closeRootOnEsc is true (default): close entire menu tree
-            closeAll()
-          } else {
-            // closeRootOnEsc is false: close only this submenu
-            submenuContext.setOpen(false)
-            // Transfer focus back to parent surface
-            if (focusOwner) {
-              focusOwner.setOwnerId(submenuContext.parentSurfaceId)
-            }
+          if (decision.type === 'redirect') {
+            closeAll(decision.reason, decision.event)
+            break
+          }
+          if (
+            decision.type === 'back' &&
+            subpageContext?.goBack() &&
+            focusOwner &&
+            subpageContext.parentSurfaceId
+          ) {
+            focusOwner.setOwnerId(subpageContext.parentSurfaceId)
+            break
+          }
+          // Only this submenu closes (or a subpage with no page to go back
+          // to closes its submenu)
+          if (depth > 0 && submenuContext) {
+            // Focus goes back to the parent surface once it closes
+            submenuContext.setOpen(false, REASONS.escapeKey, event.nativeEvent)
           }
           break
         }

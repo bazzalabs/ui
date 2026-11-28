@@ -7,8 +7,9 @@ import {
 import { ListboxStore } from '../../listbox/index.js'
 import {
   attachOpenOwner,
+  type CloseCause,
   changeOpen,
-  controlCell,
+  controlOpenCell,
 } from '../../listbox/store/ListboxStore.js'
 import type {
   AsyncMenuState,
@@ -128,6 +129,11 @@ export interface MenuTreeOptions {
     open: boolean,
     eventDetails: PopupMenuOpenChangeEventDetails,
   ) => void
+  /**
+   * Closes the whole tree through the root's gate (`closeTree`). Kept for
+   * the tree's lifetime, so pass one that stays the same and calls the latest.
+   */
+  closeTree?: MenuTreeStore['closeTree']
 }
 
 // ============================================================================
@@ -188,6 +194,7 @@ export class MenuTreeStore extends ReactStore<
     this.focusOwner = options.focusOwner ?? new FocusOwnerStore()
     this.#elements = options.elements ?? new ElementRegistry()
     this.#onOpenChange = options.onOpenChange
+    this.closeTree = options.closeTree
     this.#cells = { open: createCell(options.open ?? false) }
   }
 
@@ -207,13 +214,50 @@ export class MenuTreeStore extends ReactStore<
    * a canceled change, or one to a controlled value, leaves it as it is.
    */
   setOpen(open: boolean, reason?: PopupMenuOpenChangeReason, event?: Event) {
-    if (!this.#root) return
-    changeOpen(this.#root, this.#cells, this.#onOpenChange, open, reason, event)
+    this.requestOpen(open, reason, event)
   }
+
+  /**
+   * `setOpen`, returning the details the consumer saw. `cause` is what the
+   * root's submenus are told when the root closes (`getCloseCause`); the
+   * request's reason and event when left out.
+   */
+  requestOpen(
+    open: boolean,
+    reason?: PopupMenuOpenChangeReason,
+    event?: Event,
+    cause?: CloseCause,
+  ): PopupMenuOpenChangeEventDetails | null {
+    if (!this.#root) return null
+    return changeOpen(
+      this.#root,
+      this.#cells,
+      this.#onOpenChange,
+      open,
+      reason,
+      event,
+      cause,
+    )
+  }
+
+  /**
+   * Closes the whole tree through the root's gate, as a close the engine
+   * makes, reported to the root's consumer with `reason` and `event`;
+   * `cause` is what its submenus are told. Set when the root makes the tree
+   * (`usePopupMenuRoot`); unset on a tree made around stores a root was
+   * given.
+   */
+  readonly closeTree:
+    | ((
+        reason: PopupMenuOpenChangeReason,
+        event?: Event,
+        cause?: CloseCause,
+      ) => void)
+    | undefined
 
   /** Syncs the root's controlled `open` prop into the cell. */
   control(open: boolean | undefined) {
-    if (this.#root) controlCell(this.#root, this.#cells, 'open', open)
+    if (this.#root) controlOpenCell(this.#root, this.#cells, open)
   }
 
   /** Clears the focus owner and the open chain: the tree closed. */

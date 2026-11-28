@@ -5,10 +5,12 @@ import { useStableCallback } from '@base-ui/utils/useStableCallback'
 import {
   type AimGuardTrigger,
   SubmenuController,
+  type SubmenuOpenChangeReason,
   type SubmenuSettings,
 } from '@bazza-ui/menu-core'
 import * as React from 'react'
 import type { ListboxStore } from '../../../listbox/store/ListboxStore.js'
+import type { SubmenuContextValue } from '../../contexts/submenu-context.js'
 import { useMaybeMenuSurfaceTier } from '../../contexts/surface-tier-context.js'
 import type { FocusOwnerStore } from '../../store/FocusOwnerStore.js'
 
@@ -31,7 +33,7 @@ export interface SubmenuControllerParams {
   highlighted: boolean
   visible: boolean
   open: boolean
-  setOpen: (open: boolean) => void
+  setOpen: SubmenuContextValue['setOpen']
   suppressAutoOpenRef: { current: boolean }
   contentRef: React.RefObject<HTMLElement | null>
   focusOwnerStore: FocusOwnerStore
@@ -64,13 +66,18 @@ export function useSubmenuController(
     childSurfaceId,
   } = params
 
-  // The submenu's own store: what it says after `setOpen` is whether the
-  // change took (a disabled or controlled submenu refuses it)
+  // Each decision goes to the submenu with its reason, past the close policy
+  // and the consumer's `onOpenChange`. What the submenu's store says after
+  // is whether the change took: a disabled submenu or a canceled change
+  // refuses it, and so, until its prop follows, does a consumer controlling
+  // `open` (interim, until UI-739 makes the store the only authority).
   const submenuStore = useSubmenuStore()
-  const onOpenChange = useStableCallback((nextOpen: boolean) => {
-    setOpen(nextOpen)
-    return submenuStore.select('open')
-  })
+  const onOpenChange = useStableCallback(
+    (nextOpen: boolean, reason: SubmenuOpenChangeReason) => {
+      setOpen(nextOpen, reason)
+      return submenuStore.select('open')
+    },
+  )
   const onHighlight = useStableCallback(() => {
     parentStore.setHighlightedId(storeId, 'pointer')
   })

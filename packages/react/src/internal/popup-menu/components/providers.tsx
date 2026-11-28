@@ -27,6 +27,7 @@ import {
   SurfaceTierContext,
   useMaybeMenuSurfaceTier,
 } from '../contexts/surface-tier-context.js'
+import type { PopupMenuOpenChangeReason } from '../events.js'
 import { createAimGuard } from '../hooks/use-aim-guard.js'
 import type { MenuTreeResolver } from '../menu-tree/resolver.js'
 import type { FocusOwnerStore } from '../store/FocusOwnerStore.js'
@@ -51,8 +52,8 @@ export interface PopupMenuProvidersProps {
   disabled: boolean
   /** Nesting depth: 0 = root menu */
   depth: number
-  /** Close the entire menu tree */
-  closeAll: () => void
+  /** Close the entire menu tree, for `reason` */
+  closeAll: (reason?: PopupMenuOpenChangeReason, event?: Event) => void
   /**
    * Internal: when true, Surface handles Tab explicitly (close the tree, or
    * cycle through focus zones). Enabled only by DropdownMenu.Root and
@@ -79,7 +80,11 @@ export interface PopupMenuProvidersProps {
   /** Register a surface for closeAll tracking */
   registerSurface: (
     depth: number,
-    setOpen: (open: boolean) => void,
+    setOpen: (
+      open: boolean,
+      reason?: PopupMenuOpenChangeReason,
+      event?: Event,
+    ) => void,
   ) => () => void
   /** Virtualization configuration */
   virtualization?: VirtualizationConfig

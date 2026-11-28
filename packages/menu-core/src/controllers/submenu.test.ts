@@ -281,17 +281,12 @@ describe('SubmenuController from idle', () => {
 })
 
 describe('SubmenuController when the submenu refuses a change', () => {
-  it('stays idle when an open is refused, and tries again on the next move', () => {
+  it('stays idle when an open is refused', () => {
     const t = setup()
     t.submenu.refuses = true
     t.controller.send({ type: 'pointer.enter' })
     expect(t.state()).toBe('idle')
-    t.controller.send({ type: 'pointer.move' })
-    expect(t.state()).toBe('idle')
-    expect(t.changes).toEqual([
-      [true, 'trigger-hover'],
-      [true, 'trigger-hover'],
-    ])
+    expect(t.changes).toEqual([[true, 'trigger-hover']])
   })
 
   it('does not suppress on a press after a refused open', () => {
@@ -350,6 +345,105 @@ describe('SubmenuController when the submenu refuses a change', () => {
     t.submenu.refuses = true
     t.clock.advance(200)
     expect(t.state()).toBe('open')
+  })
+})
+
+describe('SubmenuController when a hover is refused', () => {
+  it('asks once per hover gesture: a move after a refusal does not ask again', () => {
+    const t = setup()
+    t.submenu.refuses = true
+    t.controller.send({ type: 'pointer.enter' })
+    t.controller.send({ type: 'pointer.move' })
+    t.controller.send({ type: 'pointer.move' })
+    expect(t.changes).toEqual([[true, 'trigger-hover']])
+    expect(t.state()).toBe('idle')
+    // Still takes the highlight on each move
+    expect(t.highlights()).toBe(3)
+  })
+
+  it('does not ask again on another enter within the gesture', () => {
+    const t = setup()
+    t.submenu.refuses = true
+    t.controller.send({ type: 'pointer.enter' })
+    t.controller.send({ type: 'pointer.enter' })
+    expect(t.changes).toEqual([[true, 'trigger-hover']])
+    expect(t.highlights()).toBe(2)
+  })
+
+  it('asks once per gesture after its pointer delay too', () => {
+    const t = setup({ delay: { pointer: 100, keyboard: 150 } })
+    t.submenu.refuses = true
+    t.controller.send({ type: 'pointer.enter' })
+    t.clock.advance(100)
+    expect(t.changes).toEqual([[true, 'trigger-hover']])
+    t.controller.send({ type: 'pointer.move' })
+    expect(t.state()).toBe('idle')
+    t.clock.advance(500)
+    expect(t.changes).toHaveLength(1)
+  })
+
+  it('asks again once the pointer leaves and comes back', () => {
+    const t = setup()
+    t.submenu.refuses = true
+    t.controller.send({ type: 'pointer.enter' })
+    t.controller.send({ type: 'pointer.move' })
+    t.leave(MISS)
+    t.controller.send({ type: 'pointer.enter' })
+    expect(t.changes).toEqual([
+      [true, 'trigger-hover'],
+      [true, 'trigger-hover'],
+    ])
+  })
+
+  it('asks again once the trigger loses the highlight', () => {
+    const t = setup()
+    t.submenu.refuses = true
+    t.controller.send({ type: 'pointer.enter' })
+    t.controller.send({
+      type: 'highlight',
+      highlighted: false,
+      keyboard: false,
+    })
+    t.controller.send({ type: 'pointer.move' })
+    expect(t.changes).toHaveLength(2)
+  })
+
+  it('asks again after the trigger hides', () => {
+    const t = setup()
+    t.submenu.refuses = true
+    t.controller.send({ type: 'pointer.enter' })
+    t.controller.send({ type: 'hide' })
+    t.controller.send({ type: 'pointer.move' })
+    expect(t.changes).toHaveLength(2)
+  })
+
+  it('opens when a controlled consumer applies the open later, and asks again after it closes', () => {
+    const t = setup()
+    t.submenu.refuses = true
+    t.controller.send({ type: 'pointer.enter' })
+    // The consumer's prop follows on its next render
+    t.controller.send({ type: 'open.change', open: true })
+    expect(t.state()).toBe('open')
+    t.controller.send({ type: 'open.change', open: false })
+    expect(t.state()).toBe('idle')
+    t.controller.send({ type: 'pointer.move' })
+    expect(t.changes).toEqual([
+      [true, 'trigger-hover'],
+      [true, 'trigger-hover'],
+    ])
+  })
+
+  it('still opens on a key in the same gesture', () => {
+    const t = setup()
+    t.submenu.refuses = true
+    t.controller.send({ type: 'pointer.enter' })
+    t.submenu.refuses = false
+    t.controller.send({ type: 'key' })
+    expect(t.state()).toBe('open')
+    expect(t.changes).toEqual([
+      [true, 'trigger-hover'],
+      [true, 'list-navigation'],
+    ])
   })
 })
 

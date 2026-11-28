@@ -94,6 +94,20 @@ describe('ElementRegistry.owns', () => {
   })
 })
 
+describe('ElementRegistry.inBackdrop', () => {
+  it('tells a backdrop the tree registered from its other elements', () => {
+    const nodes = tree()
+    const registry = new ElementRegistry<FakeNode>()
+    registry.add('popup', nodes.popup, 'root')
+    registry.add('backdrop', nodes.unrelated)
+
+    expect(registry.inBackdrop(nodes.unrelatedChild)).toBe(true)
+    expect(registry.owns(nodes.unrelatedChild)).toBe(true)
+    expect(registry.inBackdrop(nodes.item)).toBe(false)
+    expect(registry.inBackdrop(null)).toBe(false)
+  })
+})
+
 describe('ElementRegistry.nest', () => {
   it('owns what nested registries own, at any depth, until unlinked', () => {
     const nodes = tree()
@@ -137,6 +151,38 @@ describe('ElementRegistry.claim', () => {
     expect(outer.claimed(event)).toBe(true)
     unlinkMiddle()
     expect(outer.claimed(event)).toBe(false)
+  })
+})
+
+describe('ElementRegistry.popupFor', () => {
+  it("finds a nested tree's popups too, the innermost first", () => {
+    const nodes = tree()
+    const registry = new ElementRegistry<FakeNode>()
+    registry.add('popup', nodes.popup, 'root')
+    const nested = new ElementRegistry<FakeNode>()
+    // A nested tree's popup, portaled beside the outer one
+    nested.add('popup', nodes.unrelated, 'nested')
+    const unnest = registry.nest(nested)
+
+    expect(registry.popupFor(nodes.unrelatedChild)).toBe(nodes.unrelated)
+    expect(registry.popupFor(nodes.item)).toBe(nodes.popup)
+    // Its surface ids stay its own
+    expect(registry.surfaceFor(nodes.unrelatedChild)).toBe(null)
+
+    unnest()
+    expect(registry.popupFor(nodes.unrelatedChild)).toBe(null)
+  })
+
+  it('picks the nested popup when it renders inside an outer one', () => {
+    const nodes = tree()
+    const registry = new ElementRegistry<FakeNode>()
+    registry.add('popup', nodes.popup, 'root')
+    const nested = new ElementRegistry<FakeNode>()
+    const inner = new FakeNode(nodes.item)
+    nested.add('popup', inner, 'nested')
+    registry.nest(nested)
+
+    expect(registry.popupFor(new FakeNode(inner))).toBe(inner)
   })
 })
 

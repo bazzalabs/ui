@@ -464,14 +464,17 @@ describe('Escape in a submenu', () => {
     expect(openChangeCalls(onRootOpenChange)).toEqual([
       [false, 'item-press', 'ui-event'],
     ])
-    // Suspected bug: the submenu's onOpenChange reports neither the keyboard
-    // open nor the Escape close.
-    expect(onSubmenuOpenChange).not.toHaveBeenCalled()
+    // The submenu reports every change with its reason (design §8): the
+    // ArrowRight open, and the tree closing it for the Escape.
+    expect(openChangeCalls(onSubmenuOpenChange)).toEqual([
+      [true, 'list-navigation', 'ui-event'],
+      [false, 'escape-key', 'keydown'],
+    ])
     expect(screen.queryByTestId('submenu-popup')).not.toBeInTheDocument()
     expect(screen.getByTestId('trigger')).toHaveFocus()
   })
 
-  it('closes only the submenu with closeRootOnEsc={false}, reporting nothing', async () => {
+  it('closes only the submenu with closeRootOnEsc={false}, which only the submenu reports', async () => {
     const user = userEvent.setup()
     const onRootOpenChange = vi.fn()
     const onSubmenuOpenChange = vi.fn()
@@ -492,9 +495,12 @@ describe('Escape in a submenu', () => {
     await sleep(30)
 
     expect(onRootOpenChange).not.toHaveBeenCalled()
-    // Suspected bug: the submenu's onOpenChange reports neither the keyboard
-    // open nor the Escape close.
-    expect(onSubmenuOpenChange).not.toHaveBeenCalled()
+    // The submenu reports every change with its reason (design §8): the
+    // ArrowRight open and the Escape close.
+    expect(openChangeCalls(onSubmenuOpenChange)).toEqual([
+      [true, 'list-navigation', 'ui-event'],
+      [false, 'escape-key', 'keydown'],
+    ])
     expect(screen.getByTestId('root-popup')).toBeInTheDocument()
     expect(screen.getByTestId('root-list')).toHaveFocus()
     expect(highlightedTestIds()).toEqual(['submenu-trigger'])

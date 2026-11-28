@@ -1,7 +1,10 @@
 'use client'
 
 import * as React from 'react'
-import type { HighlightChangeEventDetails } from '../events.js'
+import type {
+  HighlightChangeEventDetails,
+  PopupMenuOpenChangeReason,
+} from '../events.js'
 import type { ListboxStore, VirtualItem } from '../store/ListboxStore.js'
 
 /**
@@ -29,11 +32,15 @@ export interface ListboxContextValue {
   /** Nesting depth: 0 = root menu, 1+ = submenu */
   depth: number
   /** Close the entire menu tree (deepest submenu to root, sequentially) */
-  closeAll: () => void
+  closeAll: (reason?: PopupMenuOpenChangeReason, event?: Event) => void
   /** Register a surface (submenu) for closeAll tracking. Returns unregister function. */
   registerSurface: (
     depth: number,
-    setOpen: (open: boolean) => void,
+    setOpen: (
+      open: boolean,
+      reason?: PopupMenuOpenChangeReason,
+      event?: Event,
+    ) => void,
   ) => () => void
   /** Virtualization configuration (if enabled) */
   virtualization?: VirtualizationConfig

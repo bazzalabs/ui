@@ -83,7 +83,11 @@ export interface PopupMenuContextValue {
   /** Register a surface (submenu) for closeAll tracking. Returns unregister function. */
   registerSurface: (
     depth: number,
-    setOpen: (open: boolean) => void,
+    setOpen: (
+      open: boolean,
+      reason?: PopupMenuOpenChangeReason,
+      event?: Event,
+    ) => void,
   ) => () => void
   /** Virtualization configuration (if enabled) */
   virtualization?: VirtualizationConfig

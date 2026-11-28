@@ -33,6 +33,13 @@ export class ElementRegistry<N extends ContainingNode<N> = Node> {
    * render.
    */
   getExempt: (() => ReadonlyArray<N | null | undefined>) | undefined
+  /**
+   * The press outside the tree's elements that the tree's root saw in the
+   * current task, if any. The root sets it from its pointer listener and
+   * clears it once the task ends: a focus-out the press causes in that task
+   * reaches the root as the press.
+   */
+  outsidePressThisTask: object | null = null
 
   /**
    * Registers an element until the returned function removes it. A popup
@@ -91,22 +98,41 @@ export class ElementRegistry<N extends ContainingNode<N> = Node> {
     return false
   }
 
+  /**
+   * Whether `target` is inside a backdrop the tree registered: a press there
+   * is outside its popups, though the tree owns the element.
+   */
+  inBackdrop(target: N | null): boolean {
+    for (const [role, element] of this.#entries) {
+      if (role === 'backdrop' && element.contains(target)) return true
+    }
+    return false
+  }
+
   /** Whether `target` is inside an exempt element. */
   isExempt(target: N | null): boolean {
     return !!this.getExempt?.().some((element) => element?.contains(target))
   }
 
   /**
-   * The surface id of the innermost registered popup holding `target`, or
-   * `null` when no popup does.
+   * The surface id of the innermost popup this tree registered holding
+   * `target` (nested trees' aren't counted), or `null` when no popup does.
    */
   surfaceFor(target: N | null): string | null {
     return this.#popupFor(target)?.[2] ?? null
   }
 
-  /** The innermost registered popup element holding `target`. */
+  /**
+   * The innermost registered popup element holding `target`, this tree's or
+   * a nested tree's.
+   */
   popupFor(target: N | null): N | null {
-    return this.#popupFor(target)?.[1] ?? null
+    let found = this.#popupFor(target)?.[1] ?? null
+    for (const registry of this.#nested) {
+      const popup = registry.popupFor(target)
+      if (popup && (!found || found.contains(popup))) found = popup
+    }
+    return found
   }
 
   #popupFor(target: N | null): Entry<N> | undefined {

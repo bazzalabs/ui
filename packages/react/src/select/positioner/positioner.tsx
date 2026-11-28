@@ -98,6 +98,7 @@ export const SelectPositioner = React.forwardRef<
   const direction = useDirection() === 'rtl' ? 'rtl' : 'ltr'
 
   const store = popupMenuContext.store
+  const closeAll = popupMenuContext.closeAll
   const open = store.useState('open')
   const openMethod = store.useState('openMethod')
   // True whenever a search input is actually rendered in the Surface (an
@@ -288,13 +289,13 @@ export const SelectPositioner = React.forwardRef<
     const positioner = positionerRef.current
     const win = positioner ? ownerWindow(positioner) : window
     const handleResize = (event: UIEvent) => {
-      store.setOpen(false, REASONS.none, event)
+      closeAll(REASONS.none, event)
     }
     win.addEventListener('resize', handleResize)
     return () => {
       win.removeEventListener('resize', handleResize)
     }
-  }, [open, alignItemWithTriggerActive, store])
+  }, [open, alignItemWithTriggerActive, closeAll])
 
   // Grow the popup toward the viewport edge as the user scrolls (native-select
   // feel): scroll input first expands the popup until it reaches the maximum
