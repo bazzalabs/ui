@@ -2,7 +2,7 @@
 
 import { Popover, type PopoverRootProps } from '@base-ui/react/popover'
 import * as React from 'react'
-import type { ListboxStore, VirtualItem } from '../../internal/listbox/index.js'
+import type { VirtualItem } from '../../internal/listbox/index.js'
 import {
   type ForwardKeyDown,
   type GetResolvedIdFn,
@@ -15,7 +15,11 @@ import {
   usePopupMenuContext,
   usePopupMenuRoot,
 } from '../../internal/popup-menu/index.js'
-import type { PopupMenuOpenChangeReason } from '../../internal/popup-menu/members.js'
+import {
+  askFromBaseUI,
+  getRequestReason,
+  type PopupMenuOpenChangeReason,
+} from '../../internal/popup-menu/members.js'
 import { REASONS } from '../../utils/events/index.js'
 import type {
   SuggestionMenuHighlightChangeEventDetails,
@@ -189,13 +193,6 @@ export function SuggestionMenuRoot<Payload = unknown>(
     handle.getState,
   )
 
-  const storeRef = React.useRef<ListboxStore | null>(null)
-  const reportedOpenRef = React.useRef<boolean | null>(null)
-  const pendingChangeRef = React.useRef<{
-    open: boolean
-    reason: SuggestionMenuOpenChangeReason
-    thisTask: boolean
-  } | null>(null)
   const {
     store,
     focusOwnerStore,
@@ -207,51 +204,13 @@ export function SuggestionMenuRoot<Payload = unknown>(
     disabled,
     menuTreeResolver,
   } = usePopupMenuRoot({
-    // A request that matches the current state isn't reported. In an editor,
-    // choosing a row edits the text, and the trigger code then calls
-    // `close()` too. Until the task ends, the last reported state counts as
-    // current: a controlled parent's `open` prop hasn't re-rendered yet.
-    onOpenChange: ((
-      nextOpen: boolean,
-      details: SuggestionMenuOpenChangeEventDetails,
-    ) => {
-      // The reason of the request that changes the state, for the handle:
-      // the first one in this task, or a later task's (a controlled parent
-      // may have refused an earlier one).
-      const pending = pendingChangeRef.current
-      if (
-        storeRef.current?.select('open') !== nextOpen &&
-        (!pending || pending.open !== nextOpen || !pending.thisTask)
-      ) {
-        const change = {
-          open: nextOpen,
-          reason: details.reason,
-          thisTask: true,
-        }
-        pendingChangeRef.current = change
-        queueMicrotask(() => {
-          change.thisTask = false
-        })
-        // A controlled parent may commit the change in a later task; to
-        // refuse it, it cancels the details, which drops the reason.
-      }
-      const current =
-        reportedOpenRef.current ?? storeRef.current?.select('open')
-      if (current === nextOpen) return
-      // Recorded before the consumer runs: its handler may ask again (e.g.
-      // an editor exiting the trigger calls `close()` from inside it).
-      const previous = reportedOpenRef.current
-      reportedOpenRef.current = nextOpen
-      queueMicrotask(() => {
-        reportedOpenRef.current = null
-      })
-      onOpenChange?.(nextOpen, details)
-      // A cancelled request didn't happen, so the next one is reported too.
-      if (details.isCanceled) {
-        reportedOpenRef.current = previous
-        pendingChangeRef.current = null
-      }
-    }) as unknown as UsePopupMenuRootParams['onOpenChange'],
+    // A request that matches the current state isn't reported: the store's
+    // open cell drops it (in an editor, choosing a row edits the text, and
+    // the trigger code then calls `close()` too). Until a controlled
+    // parent's `open` prop follows, the change it was told of counts as
+    // current in the task it was asked in; a reversal still reaches it.
+    onOpenChange:
+      onOpenChange as unknown as UsePopupMenuRootParams['onOpenChange'],
     defaultOpen,
     virtualized,
     items: itemsProp,
@@ -264,22 +223,24 @@ export function SuggestionMenuRoot<Payload = unknown>(
     idScope,
   })
 
-  storeRef.current = store
   store.useControlledProp('openProp', openProp)
   const open = store.useState('open')
   // Tell the handle once the change has happened (a controlled parent may
-  // refuse it), e.g. so a text-field binding knows how the menu closed.
-  const lastNotifiedOpenRef = React.useRef(open)
-  React.useLayoutEffect(() => {
-    if (lastNotifiedOpenRef.current === open) return
-    lastNotifiedOpenRef.current = open
-    const pending = pendingChangeRef.current
-    pendingChangeRef.current = null
-    handle.notifyOpenChange(
-      open,
-      pending?.open === open ? pending.reason : REASONS.none,
-    )
-  }, [open, handle])
+  // refuse it), with the reason of the request behind it (`none` when a
+  // controlled parent set `open` with none), e.g. so a text-field binding
+  // knows how the menu closed.
+  React.useLayoutEffect(
+    () =>
+      store.observe('open', (isOpen, wasOpen) => {
+        if (isOpen === wasOpen) return
+        handle.notifyOpenChange(
+          isOpen,
+          (getRequestReason(store, isOpen) ??
+            REASONS.none) as SuggestionMenuOpenChangeReason,
+        )
+      }),
+    [store, handle],
+  )
 
   const handleOpenChangeRef = React.useRef(handleOpenChange)
   handleOpenChangeRef.current = handleOpenChange
@@ -511,13 +472,11 @@ export function SuggestionMenuRoot<Payload = unknown>(
 
   const handlePopoverOpenChange = React.useCallback(
     (nextOpen: boolean, details: Popover.Root.ChangeEventDetails) => {
-      handleOpenChange(
-        nextOpen,
-        details.reason as PopupMenuOpenChangeReason,
-        details.event,
-      )
+      // Through the root's gate; a change that doesn't go through cancels
+      // Base UI's too, so Base UI skips its dismissal's side effects
+      askFromBaseUI(store, nextOpen, details)
     },
-    [handleOpenChange],
+    [store],
   )
 
   const rootContext = React.useMemo(

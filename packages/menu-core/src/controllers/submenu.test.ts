@@ -74,15 +74,24 @@ function fakeAimGuard() {
 function setup(settings: Partial<SubmenuSettings> = {}) {
   const clock = createFakeClock()
   const aimGuard = fakeAimGuard()
-  const suppressAutoOpen = { current: false }
   const changes: Array<[boolean, string]> = []
-  const submenu = { open: false, refuses: false }
+  // The submenu's store: it refuses (cancels) a change, or a consumer
+  // controls `open` and applies it later (`apply()`); otherwise it applies
+  // it and reports it at once, as the binding's store observer does
+  // A controlled request is the store's pending one until the prop applies
+  // it or another request replaces it (`pending`: an open is pending)
+  const submenu = {
+    open: false,
+    refuses: false,
+    controlled: false,
+    pending: false,
+  }
   let highlights = 0
   let notifications = 0
-  const controller = new SubmenuController({
+  let focuses = 0
+  const controller: SubmenuController = new SubmenuController({
     clock,
     aimGuard,
-    suppressAutoOpen,
     settings: {
       delay: { pointer: 0, keyboard: 150 },
       closeDelay: 0,
@@ -92,13 +101,36 @@ function setup(settings: Partial<SubmenuSettings> = {}) {
     },
     onOpenChange: (open, reason) => {
       changes.push([open, reason])
-      if (!submenu.refuses) submenu.open = open
-      return submenu.open
+      if (submenu.refuses) return 'canceled'
+      if (submenu.controlled) {
+        submenu.pending = open && !submenu.open
+        return 'controlled'
+      }
+      if (submenu.open === open) return 'noop'
+      submenu.open = open
+      controller.send({ type: 'open.change', open })
+      return 'applied'
+    },
+    isOpenPending: () => submenu.pending,
+    onFocus: () => {
+      focuses++
     },
     onHighlight: () => {
       highlights++
     },
   })
+  // What the published `suppressAutoOpenRef` does: reads the controller's
+  // suppression; setting it is an explicit close, clearing it clears it
+  const suppressAutoOpen = {
+    get current() {
+      return controller.getSnapshot().suppressed
+    },
+    set current(value: boolean) {
+      controller.send({
+        type: value ? 'close.explicit' : 'suppression.clear',
+      })
+    },
+  }
   controller.subscribe(() => {
     notifications++
   })
@@ -109,7 +141,26 @@ function setup(settings: Partial<SubmenuSettings> = {}) {
     changes,
     submenu,
     controller,
-    state: () => controller.getSnapshot().state,
+    // The interaction state, read as before the store owned `open`: idle
+    // with the submenu open reads `open`
+    state: () => {
+      const { state } = controller.getSnapshot()
+      return state === 'idle' && submenu.open ? 'open' : state
+    },
+    /** A consumer controlling `open` applies `open` (its prop follows). */
+    apply(open: boolean) {
+      submenu.open = open
+      submenu.pending = false
+      controller.send({ type: 'open.change', open })
+    },
+    /**
+     * A request the controller didn't make takes the pending open back (a
+     * key, the parent closing it), and the prop doesn't change.
+     */
+    takeBack() {
+      submenu.pending = false
+    },
+    focuses: () => focuses,
     highlights: () => highlights,
     notifications: () => notifications,
     leave(aim: SubmenuAim) {
@@ -208,7 +259,7 @@ describe('SubmenuController from idle', () => {
 
   it('follows an open the binding reports, without deciding one', () => {
     const t = setup()
-    t.controller.send({ type: 'open.change', open: true })
+    t.apply(true)
     expect(t.state()).toBe('open')
     expect(t.changes).toEqual([])
   })
@@ -422,9 +473,9 @@ describe('SubmenuController when a hover is refused', () => {
     t.submenu.refuses = true
     t.controller.send({ type: 'pointer.enter' })
     // The consumer's prop follows on its next render
-    t.controller.send({ type: 'open.change', open: true })
+    t.apply(true)
     expect(t.state()).toBe('open')
-    t.controller.send({ type: 'open.change', open: false })
+    t.apply(false)
     expect(t.state()).toBe('idle')
     t.controller.send({ type: 'pointer.move' })
     expect(t.changes).toEqual([
@@ -444,6 +495,474 @@ describe('SubmenuController when a hover is refused', () => {
       [true, 'trigger-hover'],
       [true, 'list-navigation'],
     ])
+  })
+})
+
+describe('SubmenuController when a consumer controls open', () => {
+  /** A submenu whose consumer controls `open`: it applies with `apply`. */
+  const controlled = (settings: Partial<SubmenuSettings> = {}) => {
+    const t = setup(settings)
+    t.submenu.controlled = true
+    return t
+  }
+
+  it('asks once per hover gesture, and opens when the prop follows', () => {
+    const t = controlled()
+    t.controller.send({ type: 'pointer.enter' })
+    t.controller.send({ type: 'pointer.move' })
+    t.controller.send({ type: 'pointer.move' })
+    expect(t.changes).toEqual([[true, 'trigger-hover']])
+    expect(t.state()).toBe('idle')
+    t.apply(true)
+    expect(t.state()).toBe('open')
+  })
+
+  it('asks again on the next gesture after the consumer kept it closed', () => {
+    const t = controlled({ closeOnPointerLeave: false })
+    t.controller.send({ type: 'pointer.enter' })
+    t.leave(NO_POPUP)
+    t.controller.send({ type: 'pointer.enter' })
+    expect(t.changes).toEqual([
+      [true, 'trigger-hover'],
+      [true, 'trigger-hover'],
+    ])
+  })
+
+  it('holds the guard and tracks for an aim hit while the open is pending, bounded by the guard timeout', () => {
+    const t = controlled({ delay: { pointer: 5000, keyboard: 150 } })
+    t.controller.send({ type: 'pointer.enter' })
+    t.leave(HIT)
+    expect(t.changes).toEqual([[true, 'trigger-hover']])
+    expect(t.state()).toBe('guarded')
+    expect(t.aimGuard.held).toBe(600)
+    expect(t.aimGuard.tracking).toBe(true)
+    // The prop follows on the consumer's next render: the guard survives
+    t.apply(true)
+    expect(t.state()).toBe('guarded')
+    expect(t.aimGuard.tracking).toBe(true)
+    t.clock.advance(600)
+    expect(t.state()).toBe('open')
+    expect(t.aimGuard.tracking).toBe(false)
+  })
+
+  it('ends the guard of a pending open that never applies at the guard timeout', () => {
+    const t = controlled({ delay: { pointer: 5000, keyboard: 150 } })
+    t.controller.send({ type: 'pointer.enter' })
+    t.leave(HIT)
+    t.clock.advance(600)
+    expect(t.state()).toBe('idle')
+    expect(t.aimGuard.tracking).toBe(false)
+  })
+
+  it('holds the guard for an aim hit an uncontrolled submenu applies', () => {
+    const t = setup({ delay: { pointer: 5000, keyboard: 150 } })
+    t.controller.send({ type: 'pointer.enter' })
+    t.leave(HIT)
+    expect(t.state()).toBe('guarded')
+    expect(t.aimGuard.held).toBe(600)
+  })
+
+  it('holds nothing for an aim hit the consumer cancels', () => {
+    const t = setup({ delay: { pointer: 5000, keyboard: 150 } })
+    t.submenu.refuses = true
+    t.controller.send({ type: 'pointer.enter' })
+    t.leave(HIT)
+    expect(t.state()).toBe('idle')
+    expect(t.aimGuard.held).toBe(null)
+    expect(t.aimGuard.tracking).toBe(false)
+  })
+
+  it('tells the consumer of a reversal before the prop arrives', () => {
+    const t = controlled()
+    t.controller.send({ type: 'pointer.enter' })
+    // The pointer leaves without aiming at the popup, before the prop
+    t.leave(MISS)
+    expect(t.changes).toEqual([
+      [true, 'trigger-hover'],
+      [false, 'trigger-hover'],
+    ])
+    expect(t.state()).toBe('idle')
+    // Nothing is pending any more: the next gesture asks again
+    t.controller.send({ type: 'pointer.enter' })
+    expect(t.changes).toHaveLength(3)
+    expect(t.changes[2]).toEqual([true, 'trigger-hover'])
+  })
+
+  it('tells the consumer of a reversal a missed aim makes while guarding a pending open', () => {
+    const t = controlled({ delay: { pointer: 5000, keyboard: 150 } })
+    t.controller.send({ type: 'pointer.enter' })
+    t.leave(HIT)
+    t.aimGuard.move(AWAY_MISS)
+    expect(t.changes).toEqual([
+      [true, 'trigger-hover'],
+      [false, 'trigger-hover'],
+    ])
+    expect(t.state()).toBe('idle')
+    expect(t.aimGuard.held).toBe(null)
+  })
+
+  describe('a close the consumer ignores', () => {
+    /** Open, then a controlled `open` takes a close and never follows. */
+    const ignoredClose = () => {
+      const t = setup()
+      t.controller.send({ type: 'pointer.enter' })
+      t.submenu.controlled = true
+      t.controller.send({ type: 'sibling.highlight' })
+      expect(t.changes).toEqual([
+        [true, 'trigger-hover'],
+        [false, 'sibling-open'],
+      ])
+      return t
+    }
+
+    it('leaves the submenu open, as the store says', () => {
+      const t = ignoredClose()
+      expect(t.state()).toBe('open')
+      expect(t.clock.pendingTimers()).toBe(0)
+    })
+
+    it('asks nothing of a hover, as for an open submenu', () => {
+      const t = ignoredClose()
+      t.controller.send({ type: 'pointer.enter' })
+      t.controller.send({ type: 'pointer.move' })
+      expect(t.changes).toHaveLength(2)
+    })
+
+    it('suppresses reopening on a press, as for an open submenu', () => {
+      const t = ignoredClose()
+      t.controller.send({ type: 'press' })
+      expect(t.controller.getSnapshot().suppressed).toBe(true)
+    })
+
+    it('asks to close again when the trigger hides, or a sibling takes the highlight', () => {
+      const t = ignoredClose()
+      t.controller.send({ type: 'hide' })
+      t.controller.send({ type: 'sibling.highlight' })
+      expect(t.changes.slice(2)).toEqual([
+        [false, 'none'],
+        [false, 'sibling-open'],
+      ])
+    })
+  })
+
+  describe('an aim hit whose open the consumer took and never applies', () => {
+    /** Guarding an open that's pending: the pointer left aiming at it. */
+    const guardingPending = () => {
+      const t = controlled()
+      t.controller.send({ type: 'pointer.enter' })
+      t.leave(HIT)
+      expect(t.state()).toBe('guarded')
+      expect(t.aimGuard.tracking).toBe(true)
+      return t
+    }
+
+    it('takes the open back when the exit tracking times out, and the next hover asks again', () => {
+      const t = guardingPending()
+      t.clock.advance(600)
+      expect(t.state()).toBe('idle')
+      expect(t.aimGuard.tracking).toBe(false)
+      t.controller.send({ type: 'pointer.enter' })
+      expect(t.changes).toEqual([
+        [true, 'trigger-hover'],
+        [false, 'trigger-hover'],
+        [true, 'trigger-hover'],
+      ])
+    })
+
+    it('leaves nothing pending for a sibling to take back after the timeout', () => {
+      const t = guardingPending()
+      t.clock.advance(600)
+      t.controller.send({ type: 'sibling.highlight' })
+      expect(t.changes).toEqual([
+        [true, 'trigger-hover'],
+        [false, 'trigger-hover'],
+      ])
+    })
+
+    it('takes the open back when the popup goes while the exit is tracked', () => {
+      const t = guardingPending()
+      t.aimGuard.move(NO_POPUP)
+      expect(t.changes).toEqual([
+        [true, 'trigger-hover'],
+        [false, 'trigger-hover'],
+      ])
+      expect(t.state()).toBe('idle')
+      expect(t.aimGuard.tracking).toBe(false)
+      expect(t.clock.pendingTimers()).toBe(0)
+    })
+  })
+
+  describe('an open it asked for that another request takes back', () => {
+    // The prop never changes: the store no longer has the open pending
+    const takenBack = () => {
+      const t = controlled()
+      t.controller.send({ type: 'pointer.enter' })
+      t.takeBack()
+      return t
+    }
+
+    it('asks nothing when the pointer leaves, or a sibling takes the highlight', () => {
+      const t = takenBack()
+      t.leave(NO_POPUP)
+      t.controller.send({ type: 'sibling.highlight' })
+      expect(t.changes).toEqual([[true, 'trigger-hover']])
+    })
+
+    it('asks again on the next hover', () => {
+      const t = takenBack()
+      t.leave(NO_POPUP)
+      t.controller.send({ type: 'pointer.enter' })
+      expect(t.changes).toEqual([
+        [true, 'trigger-hover'],
+        [true, 'trigger-hover'],
+      ])
+    })
+
+    it("doesn't hold the guard for an aim hit on it", () => {
+      const t = takenBack()
+      t.submenu.controlled = false
+      t.submenu.refuses = true
+      t.leave(HIT)
+      // The hit asks for it again (the consumer cancels it this time)
+      expect(t.changes).toEqual([
+        [true, 'trigger-hover'],
+        [true, 'trigger-hover'],
+      ])
+      expect(t.state()).toBe('idle')
+    })
+  })
+
+  for (const [name, end] of [
+    [
+      "the trigger's menu closes",
+      (t: ReturnType<typeof setup>) =>
+        t.controller.send({ type: 'parent.close' }),
+    ],
+    [
+      'the trigger loses the highlight',
+      (t: ReturnType<typeof setup>) =>
+        t.controller.send({
+          type: 'highlight',
+          highlighted: false,
+          keyboard: false,
+        }),
+    ],
+    [
+      'the controller is disposed',
+      (t: ReturnType<typeof setup>) => t.controller.dispose(),
+    ],
+  ] as const) {
+    it(`forgets a pending open when ${name}: the next hover asks, and leaving takes only that back`, () => {
+      const t = controlled()
+      t.controller.send({ type: 'pointer.enter' })
+      end(t)
+      t.controller.send({ type: 'pointer.enter' })
+      t.leave(NO_POPUP)
+      expect(t.changes).toEqual([
+        [true, 'trigger-hover'],
+        [true, 'trigger-hover'],
+        [false, 'trigger-hover'],
+      ])
+    })
+  }
+
+  describe('while the open it asked for is pending', () => {
+    it('asks nothing when the pointer comes back to the trigger', () => {
+      const t = controlled()
+      t.controller.send({ type: 'pointer.enter' })
+      t.leave(HIT)
+      t.controller.send({ type: 'pointer.enter' })
+      t.controller.send({ type: 'pointer.move' })
+      expect(t.changes).toEqual([[true, 'trigger-hover']])
+    })
+
+    it('takes it back when a sibling takes the highlight', () => {
+      const t = controlled()
+      t.controller.send({ type: 'pointer.enter' })
+      t.controller.send({ type: 'sibling.highlight' })
+      expect(t.changes).toEqual([
+        [true, 'trigger-hover'],
+        [false, 'sibling-open'],
+      ])
+    })
+
+    it("doesn't read a press as one on the open trigger", () => {
+      const t = controlled()
+      t.controller.send({ type: 'pointer.enter' })
+      t.controller.send({ type: 'press' })
+      expect(t.controller.getSnapshot().suppressed).toBe(false)
+    })
+
+    it('drops it once the store opens the submenu: a later close leaves nothing pending', () => {
+      const t = controlled()
+      t.controller.send({ type: 'pointer.enter' })
+      t.apply(true)
+      // Closed by something else, with the pointer still on the trigger
+      t.apply(false)
+      t.controller.send({ type: 'pointer.move' })
+      expect(t.changes).toEqual([
+        [true, 'trigger-hover'],
+        [true, 'trigger-hover'],
+      ])
+    })
+  })
+
+  it('keeps nothing pending after it takes an open back', () => {
+    const t = controlled()
+    t.controller.send({ type: 'pointer.enter' })
+    t.leave(NO_POPUP)
+    // Nothing pending: a sibling's highlight asks nothing
+    t.controller.send({ type: 'sibling.highlight' })
+    expect(t.changes).toEqual([
+      [true, 'trigger-hover'],
+      [false, 'trigger-hover'],
+    ])
+  })
+
+  describe('a key', () => {
+    it('moves focus in once the prop follows, not before', () => {
+      const t = controlled()
+      t.controller.send({ type: 'key' })
+      expect(t.changes).toEqual([[true, 'list-navigation']])
+      expect(t.focuses()).toBe(0)
+      t.apply(true)
+      expect(t.focuses()).toBe(1)
+      // Only once
+      t.apply(false)
+      t.apply(true)
+      expect(t.focuses()).toBe(1)
+    })
+
+    it('moves focus in at once when the submenu opens with it', () => {
+      const t = setup()
+      t.controller.send({ type: 'key' })
+      expect(t.focuses()).toBe(1)
+      t.controller.send({ type: 'key' })
+      expect(t.focuses()).toBe(2)
+      expect(t.changes).toHaveLength(1)
+    })
+
+    it('moves no focus for an open the consumer cancels', () => {
+      const t = setup()
+      t.submenu.refuses = true
+      t.controller.send({ type: 'key' })
+      t.submenu.refuses = false
+      t.apply(true)
+      expect(t.focuses()).toBe(0)
+    })
+
+    for (const [name, event] of [
+      [
+        'the highlight is lost',
+        { type: 'highlight', highlighted: false, keyboard: false },
+      ],
+      ['a sibling takes the highlight', { type: 'sibling.highlight' }],
+      ["the trigger's menu closes", { type: 'parent.close' }],
+    ] as const) {
+      it(`drops its focus intent when ${name}`, () => {
+        const t = controlled()
+        t.controller.send({ type: 'key' })
+        t.controller.send(event)
+        t.apply(true)
+        expect(t.focuses()).toBe(0)
+      })
+    }
+
+    for (const [name, take] of [
+      [
+        'the pointer leaves without aiming at it',
+        (t: ReturnType<typeof setup>) => t.leave(NO_POPUP),
+      ],
+      [
+        'the trigger hides',
+        (t: ReturnType<typeof setup>) => t.controller.send({ type: 'hide' }),
+      ],
+    ] as const) {
+      it(`drops its focus intent when it takes the open back as ${name}`, () => {
+        const t = controlled()
+        t.controller.send({ type: 'key' })
+        take(t)
+        expect(t.changes).toHaveLength(2)
+        expect(t.changes[1]?.[0]).toBe(false)
+        // The submenu opens later, for something else (a hover)
+        t.apply(true)
+        expect(t.focuses()).toBe(0)
+      })
+    }
+
+    it('drops its focus intent on dispose', () => {
+      const t = controlled()
+      t.controller.send({ type: 'key' })
+      t.controller.dispose()
+      t.apply(true)
+      expect(t.focuses()).toBe(0)
+    })
+  })
+
+  describe('suppression', () => {
+    it('is set by an explicit close, and keeps a highlight from reopening', () => {
+      const t = setup({ delay: { pointer: 0, keyboard: 0 } })
+      t.controller.send({ type: 'close.explicit' })
+      expect(t.controller.getSnapshot().suppressed).toBe(true)
+      t.controller.send({
+        type: 'highlight',
+        highlighted: true,
+        keyboard: true,
+      })
+      t.controller.send({ type: 'pointer.enter' })
+      expect(t.changes).toEqual([])
+    })
+
+    it('ends when cleared, and a highlight opens it again', () => {
+      const t = setup({ delay: { pointer: 0, keyboard: 0 } })
+      t.suppressAutoOpen.current = true
+      t.suppressAutoOpen.current = false
+      expect(t.controller.getSnapshot().suppressed).toBe(false)
+      t.controller.send({ type: 'pointer.enter' })
+      expect(t.changes).toEqual([[true, 'trigger-hover']])
+    })
+
+    it('ends when the trigger loses the highlight, and tells subscribers', () => {
+      const t = setup()
+      t.controller.send({ type: 'close.explicit' })
+      const before = t.notifications()
+      t.controller.send({
+        type: 'highlight',
+        highlighted: false,
+        keyboard: false,
+      })
+      expect(t.controller.getSnapshot().suppressed).toBe(false)
+      expect(t.notifications()).toBe(before + 1)
+      t.controller.send({ type: 'pointer.enter' })
+      expect(t.changes).toEqual([[true, 'trigger-hover']])
+    })
+  })
+})
+
+describe("SubmenuController when the trigger's menu closes", () => {
+  it('stops tracking an exit it guards, and holds no guard', () => {
+    const t = setup()
+    t.controller.send({ type: 'pointer.enter' })
+    t.leave(HIT)
+    expect(t.state()).toBe('guarded')
+    const released = t.aimGuard.ownReleases
+    t.controller.send({ type: 'parent.close' })
+    expect(t.controller.getSnapshot().state).toBe('idle')
+    expect(t.aimGuard.tracking).toBe(false)
+    expect(t.aimGuard.ownReleases).toBe(released + 1)
+    expect(t.clock.pendingTimers()).toBe(0)
+  })
+
+  it('stops a close delay and the tracking it waits out', () => {
+    const t = setup({ closeDelay: 300 })
+    t.controller.send({ type: 'pointer.enter' })
+    t.leave(MISS)
+    expect(t.state()).toBe('close-pending')
+    expect(t.aimGuard.tracking).toBe(true)
+    t.controller.send({ type: 'parent.close' })
+    expect(t.controller.getSnapshot().state).toBe('idle')
+    expect(t.aimGuard.tracking).toBe(false)
+    expect(t.clock.pendingTimers()).toBe(0)
   })
 })
 
@@ -554,7 +1073,7 @@ describe('SubmenuController from open-pending', () => {
 
   it('follows an open the binding reports, and drops its delay', () => {
     const t = pending()
-    t.controller.send({ type: 'open.change', open: true })
+    t.apply(true)
     expect(t.state()).toBe('open')
     t.clock.advance(1000)
     expect(t.changes).toEqual([])
@@ -649,7 +1168,7 @@ describe('SubmenuController from open', () => {
   it('follows a close the binding reports, without deciding one', () => {
     const t = openSetup()
     const ownReleases = t.aimGuard.ownReleases
-    t.controller.send({ type: 'open.change', open: false })
+    t.apply(false)
     expect(t.state()).toBe('idle')
     expect(t.aimGuard.ownReleases).toBe(ownReleases + 1)
     expect(t.changes).toEqual([])
@@ -779,7 +1298,7 @@ describe('SubmenuController from guarded', () => {
 
   it('closes when the binding reports a close, dropping its own guard', () => {
     const t = guardedSetup()
-    t.controller.send({ type: 'open.change', open: false })
+    t.apply(false)
     expect(t.state()).toBe('idle')
     expect(t.aimGuard.tracking).toBe(false)
     expect(t.aimGuard.held).toBe(null)
@@ -929,7 +1448,7 @@ describe('SubmenuController lifecycle', () => {
     const t = closePendingSetup()
     t.aimGuard.held = 600
     t.controller.dispose()
-    expect(t.state()).toBe('idle')
+    expect(t.controller.getSnapshot().state).toBe('idle')
     expect(t.aimGuard.tracking).toBe(false)
     expect(t.aimGuard.held).toBe(null)
     expect(t.aimGuard.releases).toBe(0)
@@ -1044,27 +1563,29 @@ describe('SubmenuController lifecycle', () => {
   it('notifies only once the outer event is done when the binding re-enters it', () => {
     const clock = createFakeClock()
     const seen: string[] = []
+    const aimGuard = fakeAimGuard()
     const controller: SubmenuController = new SubmenuController({
       clock,
-      aimGuard: fakeAimGuard(),
-      suppressAutoOpen: { current: false },
+      aimGuard,
       settings: {
         delay: { pointer: 0, keyboard: 150 },
         closeDelay: 0,
         closeOnPointerLeave: true,
         openOnHighlight: true,
       },
-      // The open applies, then something closes it again before it returns
+      // The store applies the open and reports it before it returns
       onOpenChange: (open) => {
-        if (open) controller.send({ type: 'open.change', open: false })
-        return false
+        controller.send({ type: 'open.change', open })
+        return 'applied'
       },
+      isOpenPending: () => false,
+      onFocus: () => {},
       onHighlight: () => {},
     })
     controller.subscribe(() => seen.push(controller.getSnapshot().state))
-    controller.send({ type: 'pointer.move' })
-    controller.send({ type: 'open.change', open: true })
-    expect(seen).toEqual(['open'])
+    aimGuard.aim = HIT
+    controller.send({ type: 'pointer.leave', point: POINT })
+    expect(seen).toEqual(['guarded'])
   })
 
   it('notifies nobody for an event that changes nothing', () => {

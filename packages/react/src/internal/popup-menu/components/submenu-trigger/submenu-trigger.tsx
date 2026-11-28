@@ -135,14 +135,7 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
 
   // Get submenu context for open state and refs
   const submenuContext = useSubmenuContext()
-  const {
-    open,
-    setOpen,
-    suppressAutoOpenRef,
-    triggerRef,
-    contentRef,
-    childSurfaceId,
-  } = submenuContext
+  const { open, triggerRef, contentRef, childSurfaceId } = submenuContext
 
   // Get focus owner store for keyboard focus transfer
   const focusOwnerStore = useFocusOwner()
@@ -193,8 +186,6 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
     highlighted: item.isHighlighted,
     visible: item.isVisible,
     open,
-    setOpen,
-    suppressAutoOpenRef,
     contentRef,
     focusOwnerStore,
     childSurfaceId,

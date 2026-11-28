@@ -14,6 +14,7 @@ import {
   usePopupMenuRoot,
   type VirtualAnchor,
 } from '../../internal/popup-menu/index.js'
+import { askFromBaseUI } from '../../internal/popup-menu/members.js'
 import { REASONS } from '../../utils/events/index.js'
 import type {
   ContextMenuHighlightChangeEventDetails,
@@ -326,14 +327,11 @@ export function ContextMenuRoot(props: ContextMenuRoot.Props) {
   // Wrapper to adapt Popover's event details to our handleOpenChange
   const handlePopoverOpenChange = React.useCallback(
     (nextOpen: boolean, popoverDetails: Popover.Root.ChangeEventDetails) => {
-      // Forward to our internal handler with the reason and event
-      handleOpenChange(
-        nextOpen,
-        popoverDetails.reason as ContextMenuOpenChangeEventDetails['reason'],
-        popoverDetails.event,
-      )
+      // Through the root's gate; a change that doesn't go through cancels
+      // Base UI's too, so Base UI skips its dismissal's side effects
+      askFromBaseUI(store, nextOpen, popoverDetails)
     },
-    [handleOpenChange],
+    [store],
   )
 
   // Internal context for Trigger

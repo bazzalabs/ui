@@ -3,21 +3,30 @@ import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect'
 import { useRefWithInit } from '@base-ui/utils/useRefWithInit'
 import {
   buildSnapshotWithoutPositions,
+  type CellRequest,
+  type CellRequestResult,
   type CollectionSnapshot,
   type ControlledCell,
   cellValue,
   changeCell,
   computePositions,
+  controlledBy,
   createCell,
+  currentTask,
   emptyCollection,
   type FilterFn,
   filteredSnapshotInput,
   type ItemRowMeta,
   isItemRow,
+  isNoopRequest,
+  markRequested,
   mergeByPosition,
   Pos,
   type RowMeta,
+  requestCell,
   type SearchNormalizer,
+  settledResult,
+  settleRequest,
 } from '@bazza-ui/menu-core'
 import {
   createChangeEventDetails,
@@ -383,7 +392,7 @@ function hasDataAdapter(state: ListboxState): boolean {
 
 /** The store's controlled values, by the state field that mirrors each. */
 interface ControlledCells {
-  open: ControlledCell<boolean>
+  open: OpenCell
   search: ControlledCell<string>
 }
 
@@ -806,8 +815,8 @@ export function getShortcutItemId(
 /**
  * The store that keeps another store's open cell: a menu tree keeps its
  * root's, and writes the store's `open`, `openProp` and `openMethod` with it
- * (`changeOpen`, `controlCell`). The store hands it `setOpen` and the
- * `openProp` sync.
+ * (`changeOpen`, `controlOpenCell`). The store hands it `setOpen` and the
+ * `openProp` sync, and reads the cell's request from it.
  */
 export interface OpenOwner {
   setOpen(
@@ -817,21 +826,38 @@ export interface OpenOwner {
   ): void
   /** Syncs the controlled `open` prop. */
   control(open: boolean | undefined): void
+  /** The open cell it keeps. */
+  readonly openCell: OpenCell
 }
 
 let openOwnerAccess: {
   get(store: ListboxStore): OpenOwner | undefined
   attach(store: ListboxStore, owner: OpenOwner): void
-  getCloseCause(store: ListboxStore): CloseCause | null
-  setCloseCause(store: ListboxStore, cause: CloseCause | null): void
+  /** The store's open cell: its owner's, if another store keeps it. */
+  getCell(store: ListboxStore): OpenCell
   request(
     store: ListboxStore,
     open: boolean,
     reason: PopupMenuOpenChangeReason,
     event: Event | undefined,
     cause: CloseCause | undefined,
-  ): PopupMenuOpenChangeEventDetails
+  ): CellRequestResult
 }
+
+/**
+ * An open change asked of a store, as its open cell keeps it while it's
+ * pending (`ControlledCell.request`): what it asked for, when and with what
+ * event, its reported reason, and, for a close, what the popups that close
+ * with it are told.
+ */
+export interface OpenRequest extends CellRequest<boolean> {
+  readonly reason: PopupMenuOpenChangeReason
+  readonly event: Event | undefined
+  readonly cause: CloseCause | null
+}
+
+/** An open cell, with its pending request (`OpenRequest`). */
+export type OpenCell = ControlledCell<boolean, OpenRequest>
 
 /**
  * What closed a store's popup, for the popups that close with it (a menu's
@@ -844,19 +870,44 @@ export interface CloseCause {
 }
 
 /**
- * Why `store`'s popup is closing, while its `open` goes false: the last close
- * request the consumer let through, unless a later request or a prop sync
- * superseded it (see `changeOpen`). Read it from an observer of `open`.
+ * Why `store`'s popup is closing, while its `open` goes false: the close its
+ * open cell has pending (see `changeOpen`). Read it from an observer of
+ * `open`.
  */
 export function getCloseCause(store: ListboxStore): CloseCause | null {
-  return openOwnerAccess.getCloseCause(store)
+  const { request } = openOwnerAccess.getCell(store)
+  return request && !request.value ? request.cause : null
+}
+
+/**
+ * The reported reason of the request that's opening (`open`) or closing
+ * `store`'s popup, while its `open` changes: read it from an observer of
+ * `open`. `null` when no request is behind the change (a controlled `open`
+ * set with nothing asked).
+ */
+export function getRequestReason(
+  store: ListboxStore,
+  open: boolean,
+): PopupMenuOpenChangeReason | null {
+  const { request } = openOwnerAccess.getCell(store)
+  return request?.value === open ? request.reason : null
+}
+
+/**
+ * Whether an open asked of `store` is pending: a controlled `open` the
+ * consumer took that its prop hasn't applied, and no later request took
+ * back.
+ */
+export function isOpenPending(store: ListboxStore): boolean {
+  const cell = openOwnerAccess.getCell(store)
+  return cell.request?.value === true && !cellValue(cell)
 }
 
 /**
  * Requests `open` for a store that keeps its own open cell, as `setOpen`
- * does, and returns the details its consumer saw (canceled or not). `cause`
- * is what the popups that close with it are told; the request's reason and
- * event when left out.
+ * does, and returns what became of it (`changeOpen`). `cause` is what the
+ * popups that close with it are told; the request's reason and event when
+ * left out.
  */
 export function requestStoreOpen(
   store: ListboxStore,
@@ -864,7 +915,7 @@ export function requestStoreOpen(
   reason: PopupMenuOpenChangeReason = REASONS.none,
   event?: Event,
   cause?: CloseCause,
-): PopupMenuOpenChangeEventDetails {
+): CellRequestResult {
   return openOwnerAccess.request(store, open, reason, event, cause)
 }
 
@@ -883,24 +934,29 @@ export function getOpenOwner(store: ListboxStore): OpenOwner | undefined {
 
 /**
  * Requests `open` for an open cell (a `ListboxStore`'s, or a menu tree's,
- * for its root) and writes `store`, whose state mirrors it. The consumer's
- * `onOpenChange` runs first; a canceled change, or one to a controlled value,
- * leaves the cell as it is. Returns the details the consumer saw.
+ * for its root) and writes `store`, whose state mirrors it, and returns what
+ * became of it (`requestCell`). Unless it's a `noop` (the popup is already
+ * so, with nothing pending, or it's the same change asked again in this
+ * task or with this event), the consumer's `onOpenChange` runs first; a
+ * canceled change, or one to a controlled value, leaves the value as it is.
  *
- * A close of a popup that's open records its cause (`cause`, else the
- * request's reason and event) before the consumer runs, so observers of
- * `open` read it (`getCloseCause`), even when the consumer applies a
- * controlled `open` from inside its callback (`flushSync`). A canceled
- * change puts the previous cause back. An uncontrolled close drops it once
- * it has written `open`; for a controlled `open` it lasts until it's
- * superseded: by the next request (an open, or a close of a closed popup,
- * records none), or by the next prop sync, once its observers have read it.
- * No timer: a controlled `open` applied in a later task (a commit React
- * schedules for a non-discrete update) still reads it.
+ * The request (`OpenRequest`: its reason and event, and for a close its
+ * cause, `cause` or else the request's reason and event) is the cell's from
+ * before the consumer runs, so observers of `open` read it (`getCloseCause`,
+ * `getRequestReason`), even when the consumer applies a controlled `open`
+ * from inside its callback (`flushSync`), and the same change asked from
+ * inside the callback is a repeat. A canceled change puts the cell back as
+ * it was. An uncontrolled change drops the request once it has written
+ * `open`; a controlled one keeps it while it's pending: until the next prop
+ * sync, once its observers have read it (`controlOpenCell`), or the next
+ * request. No timer: a controlled `open` applied in a later task (a commit
+ * React schedules for a non-discrete update, a transition, an external
+ * store) still reads it. A change the consumer superseded from inside its
+ * callback returns what the cell says of it afterwards (`settledResult`).
  */
 export function changeOpen(
   store: ListboxStore,
-  cells: { open: ControlledCell<boolean> },
+  cells: { open: OpenCell },
   onOpenChange:
     | ((open: boolean, details: PopupMenuOpenChangeEventDetails) => void)
     | undefined,
@@ -908,21 +964,41 @@ export function changeOpen(
   reason: PopupMenuOpenChangeReason = REASONS.none,
   event?: Event,
   cause?: CloseCause,
-): PopupMenuOpenChangeEventDetails {
-  const eventDetails = createChangeEventDetails(reason, event)
+): CellRequestResult {
   const prevCell = cells.open
-  const previousCause = openOwnerAccess.getCloseCause(store)
-  const closeCause =
-    !open && cellValue(prevCell) ? (cause ?? { reason, event }) : null
-  openOwnerAccess.setCloseCause(store, closeCause)
-  const nextCell = changeCell(prevCell, open, eventDetails, onOpenChange)
+  const request: OpenRequest = {
+    value: open,
+    task: currentTask(),
+    event,
+    reason,
+    cause: open ? null : (cause ?? { reason, event }),
+  }
+  if (isNoopRequest(prevCell, request)) return 'noop'
 
-  if (eventDetails.isCanceled) {
-    // Unless a prop sync inside the callback already dropped it
-    if (openOwnerAccess.getCloseCause(store) === closeCause) {
-      openOwnerAccess.setCloseCause(store, previousCause)
-    }
-    return eventDetails
+  const eventDetails = createChangeEventDetails(reason, event)
+  // Marked while the consumer decides: the same change asked again from
+  // inside its callback is a repeat
+  const marked = markRequested(prevCell, request)
+  cells.open = marked
+  const { cell: nextCell, result } = requestCell(
+    prevCell,
+    request,
+    eventDetails,
+    onOpenChange,
+  )
+
+  // Changed from inside the callback (a prop sync with `flushSync`, or
+  // another request), which made `nextCell` stale
+  if (cells.open !== marked) {
+    return result === 'canceled' ? result : settledResult(cells.open, open)
+  }
+  if (result === 'canceled') {
+    cells.open = prevCell
+    return result
+  }
+  if (result === 'controlled') {
+    cells.open = nextCell
+    return result
   }
 
   // Record how the popup was opened so hover-only affordances (scroll arrows,
@@ -931,33 +1007,38 @@ export function changeOpen(
   if (open) {
     store.set('openMethod', deriveOpenMethod(event))
   }
-
-  // Unchanged when controlled. Skipped when the callback changed the cell
-  // (synced a prop from inside it): `nextCell` is stale then.
-  if (nextCell !== prevCell && cells.open === prevCell) {
-    cells.open = nextCell
-    // oxlint-disable-next-line bazza/no-raw-controlled-state -- the cell's mirror, written with it
-    store.set('open', open)
-    // Uncontrolled, the close is done and its observers have read the cause
-    if (openOwnerAccess.getCloseCause(store) === closeCause) {
-      openOwnerAccess.setCloseCause(store, null)
-    }
-  }
-  return eventDetails
+  cells.open = nextCell
+  // oxlint-disable-next-line bazza/no-raw-controlled-state -- the cell's mirror, written with it
+  store.set('open', open)
+  // Uncontrolled, the change is done and its observers have read it
+  if (cells.open === nextCell) cells.open = settleRequest(nextCell)
+  return result
 }
 
 /**
- * Syncs a controlled `open` prop into an open cell, as `controlCell` does,
- * then drops the close cause the last request recorded: observers of `open`
- * read it while the prop applies the close.
+ * Syncs a controlled `open` prop into an open cell and its mirrors in
+ * `store`, then drops the cell's request: observers of `open` read it while
+ * the prop applies the change. An open the request asked for records how it
+ * was asked (`openMethod`, from the request's event) before `open` changes,
+ * as an uncontrolled one does.
  */
 export function controlOpenCell(
   store: ListboxStore,
-  cells: { open: ControlledCell<boolean> },
+  cells: { open: OpenCell },
   controlled: boolean | undefined,
 ): void {
-  controlCell(store, cells, 'open', controlled)
-  openOwnerAccess.setCloseCause(store, null)
+  const cell = cells.open
+  const next = controlledBy(cell, controlled)
+  if (controlled !== undefined && next !== cell) {
+    const { request } = cell
+    if (controlled && request?.value === true) {
+      store.set('openMethod', deriveOpenMethod(request.event))
+    }
+    cells.open = next
+    // oxlint-disable-next-line bazza/no-raw-controlled-state -- the cell's mirror, written with it
+    store.update({ open: controlled, openProp: controlled })
+  }
+  if (cells.open === next) cells.open = settleRequest(next)
 }
 
 /**
@@ -1081,10 +1162,7 @@ export class ListboxStore extends ReactStore<
       attach: (store, owner) => {
         store.#openOwner = owner
       },
-      getCloseCause: (store) => store.#closeCause,
-      setCloseCause: (store, cause) => {
-        store.#closeCause = cause
-      },
+      getCell: (store) => store.#openOwner?.openCell ?? store.#cells.open,
       request: (store, open, reason, event, cause) =>
         changeOpen(
           store,
@@ -1139,7 +1217,10 @@ export class ListboxStore extends ReactStore<
 
     const mergedContext = { ...defaultContext, ...context }
     const mergedState = { ...createInitialState(), ...initialState }
-    const openCell = createCell(mergedState.open, mergedState.openProp)
+    const openCell = createCell<boolean, OpenRequest>(
+      mergedState.open,
+      mergedState.openProp,
+    )
     const searchCell = createCell(mergedState.search, mergedState.searchProp)
     mergedState.open = cellValue(openCell)
     mergedState.search = cellValue(searchCell)
@@ -1226,9 +1307,6 @@ export class ListboxStore extends ReactStore<
   // Set when another store keeps the open cell (`attachOpenOwner`): the
   // `open` cell above isn't read then, and the owner writes the mirrors.
   #openOwner: OpenOwner | undefined
-
-  // What closed the popup, while observers of `open` read it (`changeOpen`).
-  #closeCause: CloseCause | null = null
 
   /**
    * Syncs a controlled prop into the store. `openProp` and `searchProp` go

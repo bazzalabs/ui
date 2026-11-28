@@ -11,6 +11,7 @@ import {
   type UsePopupMenuRootParams,
   usePopupMenuRoot,
 } from '../../internal/popup-menu/index.js'
+import { askFromBaseUI } from '../../internal/popup-menu/members.js'
 import {
   defaultItemEquality,
   type ItemEqualityComparer,
@@ -364,7 +365,6 @@ export function SelectRoot<
     registerSurface,
     closeAll,
     virtualization,
-    handleOpenChange,
     disabled: menuDisabled,
     setDisabled,
     menuTreeResolver,
@@ -552,14 +552,11 @@ export function SelectRoot<
   // Wrapper to adapt Popover's event details to our handleOpenChange
   const handlePopoverOpenChange = React.useCallback(
     (nextOpen: boolean, popoverDetails: Popover.Root.ChangeEventDetails) => {
-      // Forward to our internal handler with the reason and event
-      handleOpenChange(
-        nextOpen,
-        popoverDetails.reason as SelectOpenChangeEventDetails['reason'],
-        popoverDetails.event,
-      )
+      // Through the root's gate; a change that doesn't go through cancels
+      // Base UI's too, so Base UI skips its dismissal's side effects
+      askFromBaseUI(store, nextOpen, popoverDetails)
     },
-    [handleOpenChange],
+    [store],
   )
 
   // Handle animation complete - reset positioning state after close animation

@@ -3,7 +3,7 @@
 import { Popover, type PopoverRootProps } from '@base-ui/react/popover'
 import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect'
 import { useStableCallback } from '@base-ui/utils/useStableCallback'
-import { decideOpenChange } from '@bazza-ui/menu-core'
+import { decideOpenChange, type OpenRequestResult } from '@bazza-ui/menu-core'
 import * as React from 'react'
 import { REASONS } from '../../../../utils/events/index.js'
 import {
@@ -40,7 +40,10 @@ import type {
   PopupMenuOpenChangeReason,
 } from '../../events.js'
 import type { PopupMenuRootActions } from '../../hooks/use-popup-menu-root.js'
-import { getElementRegistry } from '../../store/MenuTreeStore.js'
+import {
+  getElementRegistry,
+  mirrorToBaseUI,
+} from '../../store/MenuTreeStore.js'
 
 export interface PopupMenuSubmenuRootProps
   extends Omit<
@@ -207,9 +210,9 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
   }, [])
 
   // Every open change of the submenu: the close policy decides, then the
-  // store takes it (and tells the consumer). Returns the details the
-  // consumer saw, or null when nothing was asked of it. Stable, so the
-  // submenu's tier never changes; it reads the latest `disabled`.
+  // store takes it (and tells the consumer, unless there's nothing to
+  // change). Returns what became of it. Stable, so the submenu's tier never
+  // changes; it reads the latest `disabled`.
   const requestOpen = useStableCallback(
     (
       newOpen: boolean,
@@ -220,9 +223,7 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
         outsidePress: object | undefined
         exempt: boolean
       },
-    ): PopupMenuOpenChangeEventDetails | null => {
-      // Nothing to change, nothing to report
-      if (store.select('open') === newOpen) return null
+    ): OpenRequestResult => {
       const decision = decideOpenChange({
         open: newOpen,
         reason,
@@ -236,7 +237,7 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
         outsidePress: facts?.outsidePress,
         exempt: facts?.exempt,
       })
-      if (decision.type !== 'allow') return null
+      if (decision.type !== 'allow') return 'refused'
       return requestStoreOpen(
         store,
         newOpen,
@@ -295,13 +296,13 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
           elements.owns(target) &&
           !elements.inBackdrop(target)
         )
-      const details = requestOpen(newOpen, reason, event, {
+      const result = requestOpen(newOpen, reason, event, {
         outsideTree,
         outsidePress: elements.outsidePressThisTask ?? undefined,
         // A press on, or focus moving to, an element the menu exempts
         exempt: target instanceof Node && elements.isExempt(target),
       })
-      if (details?.isCanceled) eventDetails.cancel()
+      mirrorToBaseUI(result, eventDetails)
     },
     [requestOpen, elements],
   )
@@ -375,11 +376,12 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
       new SubmenuHandle(
         store,
         setOpen,
+        requestOpen,
         parentSurfaceId,
         childSurfaceId,
         closeRootOnEsc,
       ),
-    [store, setOpen, parentSurfaceId, childSurfaceId],
+    [store, setOpen, requestOpen, parentSurfaceId, childSurfaceId],
   )
   submenu.useSyncedValue('closeRootOnEsc', closeRootOnEsc)
 
@@ -415,7 +417,7 @@ export function PopupMenuSubmenuRoot(props: PopupMenuSubmenuRootProps) {
           active === active.ownerDocument.body ||
           elements.owns(active)
         if (keyboardClose && parentStore?.select('open') && focusStillInMenu) {
-          submenu.suppressAutoOpenRef.current = true
+          submenu.closeExplicitly()
           focusOwnerStore.setOwnerId(parentSurfaceId)
         } else if (focusOwnerStore.state.ownerId === childSurfaceId) {
           focusOwnerStore.clearOwner()

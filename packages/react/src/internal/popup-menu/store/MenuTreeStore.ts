@@ -1,8 +1,9 @@
 import { ReactStore } from '@base-ui/utils/store'
 import {
-  type ControlledCell,
+  type CellRequestResult,
   createCell,
   ElementRegistry,
+  type OpenRequestResult,
 } from '@bazza-ui/menu-core'
 import { ListboxStore } from '../../listbox/index.js'
 import {
@@ -10,6 +11,10 @@ import {
   type CloseCause,
   changeOpen,
   controlOpenCell,
+  getOpenOwner,
+  type OpenCell,
+  type OpenRequest,
+  requestStoreOpen,
 } from '../../listbox/store/ListboxStore.js'
 import type {
   AsyncMenuState,
@@ -130,10 +135,21 @@ export interface MenuTreeOptions {
     eventDetails: PopupMenuOpenChangeEventDetails,
   ) => void
   /**
-   * Closes the whole tree through the root's gate (`closeTree`). Kept for
-   * the tree's lifetime, so pass one that stays the same and calls the latest.
+   * Asks the root to open or close through its gate (`ask`). Kept for the
+   * tree's lifetime, so pass one that stays the same and calls the latest.
    */
-  closeTree?: MenuTreeStore['closeTree']
+  ask?: MenuTreeStore['ask']
+}
+
+/** How `MenuTreeStore.ask` asks: see there. */
+export interface RootAskOptions {
+  /**
+   * A close the engine makes (`closeAll`, a Combobox closing itself), which
+   * goes through while the menu is disabled.
+   */
+  readonly engine?: boolean
+  /** What the root's submenus are told when the root closes. */
+  readonly cause?: CloseCause
 }
 
 // ============================================================================
@@ -183,7 +199,7 @@ export class MenuTreeStore extends ReactStore<
 
   // The root's controlled open. The root surface's store mirrors it, written
   // in the same update: by `setOpen` and `control`.
-  readonly #cells: { open: ControlledCell<boolean> }
+  readonly #cells: { open: OpenCell }
 
   #root: ListboxStore | undefined
 
@@ -194,8 +210,10 @@ export class MenuTreeStore extends ReactStore<
     this.focusOwner = options.focusOwner ?? new FocusOwnerStore()
     this.#elements = options.elements ?? new ElementRegistry()
     this.#onOpenChange = options.onOpenChange
-    this.closeTree = options.closeTree
-    this.#cells = { open: createCell(options.open ?? false) }
+    this.ask = options.ask
+    this.#cells = {
+      open: createCell<boolean, OpenRequest>(options.open ?? false),
+    }
   }
 
   /**
@@ -218,17 +236,17 @@ export class MenuTreeStore extends ReactStore<
   }
 
   /**
-   * `setOpen`, returning the details the consumer saw. `cause` is what the
-   * root's submenus are told when the root closes (`getCloseCause`); the
-   * request's reason and event when left out.
+   * `setOpen`, past no gate, returning what became of it (`changeOpen`).
+   * `cause` is what the root's submenus are told when the root closes
+   * (`getCloseCause`); the request's reason and event when left out.
    */
   requestOpen(
     open: boolean,
     reason?: PopupMenuOpenChangeReason,
     event?: Event,
     cause?: CloseCause,
-  ): PopupMenuOpenChangeEventDetails | null {
-    if (!this.#root) return null
+  ): CellRequestResult {
+    if (!this.#root) return 'noop'
     return changeOpen(
       this.#root,
       this.#cells,
@@ -241,19 +259,25 @@ export class MenuTreeStore extends ReactStore<
   }
 
   /**
-   * Closes the whole tree through the root's gate, as a close the engine
-   * makes, reported to the root's consumer with `reason` and `event`;
-   * `cause` is what its submenus are told. Set when the root makes the tree
+   * Asks the root to open or close through its gate (the close policy, then
+   * `requestOpen`), and returns what became of it: what a root adapter
+   * mirrors to Base UI's details. Set when the root makes the tree
    * (`usePopupMenuRoot`); unset on a tree made around stores a root was
    * given.
    */
-  readonly closeTree:
+  readonly ask:
     | ((
+        open: boolean,
         reason: PopupMenuOpenChangeReason,
         event?: Event,
-        cause?: CloseCause,
-      ) => void)
+        options?: RootAskOptions,
+      ) => OpenRequestResult)
     | undefined
+
+  /** The root's open cell, with its pending request. */
+  get openCell(): OpenCell {
+    return this.#cells.open
+  }
 
   /** Syncs the root's controlled `open` prop into the cell. */
   control(open: boolean | undefined) {
@@ -319,4 +343,69 @@ export class MenuTreeStore extends ReactStore<
   publishResolved() {
     this.set('version', this.state.version + 1)
   }
+}
+
+/**
+ * Asks the menu root whose surface store is `store` to open or close
+ * through its gate (`MenuTreeStore.ask`), and returns what became of it. A
+ * store with no menu tree around it is asked itself.
+ */
+export function askRootOpen(
+  store: ListboxStore,
+  open: boolean,
+  reason: PopupMenuOpenChangeReason,
+  event?: Event,
+  options?: RootAskOptions,
+): OpenRequestResult {
+  const owner = getOpenOwner(store)
+  if (owner instanceof MenuTreeStore && owner.ask) {
+    return owner.ask(open, reason, event, options)
+  }
+  return requestStoreOpen(store, open, reason, event, options?.cause)
+}
+
+/** Base UI's details of an open change it started (a popover's, a dialog's). */
+export interface BaseUIOpenChangeDetails {
+  readonly reason: string
+  readonly event: Event | undefined
+  cancel(): void
+}
+
+/**
+ * Cancels Base UI's details of a change it started that didn't go through:
+ * the consumer canceled it, the close policy refused it, or the adapter
+ * kept it from being asked (`null`). Base UI then skips what it does with
+ * the change (its dismissal's side effects, such as `preventDefault()` on
+ * Escape). A `noop` (nothing to change) and a change taken stay as they are.
+ * The one rule for what Base UI is told: every adapter applies it, through
+ * `askFromBaseUI` or, with a request of its own, directly.
+ */
+export function mirrorToBaseUI(
+  result: OpenRequestResult | null,
+  details: { cancel(): void },
+): void {
+  if (result === 'canceled' || result === 'refused' || result === null) {
+    details.cancel()
+  }
+}
+
+/**
+ * A root adapter's Base UI `onOpenChange`: asks the root whose surface store
+ * is `store` (`askRootOpen`), and tells Base UI what became of it
+ * (`mirrorToBaseUI`).
+ */
+export function askFromBaseUI(
+  store: ListboxStore,
+  open: boolean,
+  details: BaseUIOpenChangeDetails,
+): void {
+  mirrorToBaseUI(
+    askRootOpen(
+      store,
+      open,
+      details.reason as PopupMenuOpenChangeReason,
+      details.event,
+    ),
+    details,
+  )
 }

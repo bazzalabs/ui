@@ -1,5 +1,6 @@
 import { REASONS } from '../events/reasons.js'
 import { type Clock, type ClockHandle, realClock } from '../platform/clock.js'
+import type { OpenRequestResult } from './open-change.js'
 
 /** A pointer position in viewport coordinates. */
 export interface Point {
@@ -8,20 +9,19 @@ export interface Point {
 }
 
 /**
- * - `idle`: closed, nothing pending.
- * - `open-pending`: closed, waiting out the open delay.
- * - `open`: open, nothing pending.
- * - `guarded`: open, the pointer left the trigger aiming at the popup; the
- *   aim guard holds the parent's highlight while its moves are tracked.
- * - `close-pending`: open, waiting out the close delay (its moves may still
- *   be tracked, and a hit keeps it open).
+ * What the pointer or keyboard is doing with the trigger; whether the
+ * submenu is open is the store's, which the controller learns from
+ * `open.change`.
+ * - `idle`: nothing pending.
+ * - `open-pending`: waiting out the open delay.
+ * - `guarded`: the pointer left the trigger aiming at the popup; the aim
+ *   guard holds the parent's highlight while its moves are tracked. The
+ *   submenu is open, or the open it asked for is pending (a controlled
+ *   `open` the consumer took).
+ * - `close-pending`: waiting out the close delay (its moves may still be
+ *   tracked, and a hit keeps it open).
  */
-export type SubmenuState =
-  | 'idle'
-  | 'open-pending'
-  | 'open'
-  | 'guarded'
-  | 'close-pending'
+export type SubmenuState = 'idle' | 'open-pending' | 'guarded' | 'close-pending'
 
 /**
  * Where a pointer is, against the submenu's popup: no popup to aim at, inside
@@ -88,25 +88,38 @@ export type SubmenuOpenChangeReason =
   | typeof REASONS.siblingOpen
   | typeof REASONS.none
 
+/**
+ * What became of a change the controller asked of the submenu: its store's,
+ * or `refused` when the close policy didn't let it through (a disabled
+ * submenu opening).
+ */
+export type SubmenuRequestResult = OpenRequestResult
+
 export interface SubmenuControllerOptions {
   readonly settings: SubmenuSettings
   readonly aimGuard: SubmenuAimGuard
   /**
-   * Set by an explicit close (ArrowLeft, Escape or Tab in the submenu, or
-   * a press on its open trigger); while set, a highlight doesn't open the
-   * submenu. Cleared when the trigger loses the highlight.
-   */
-  readonly suppressAutoOpen: { current: boolean }
-  /**
-   * The submenu should open or close. Returns whether it is open afterwards:
-   * a disabled submenu, a canceled change, or a controlled `open` the
-   * consumer applies on its next render read as refused until `open.change`
-   * reports the prop (interim: UI-739 makes the store the only authority).
+   * Asks the submenu's store to open or close, and returns what became of
+   * it. The store reports the submenu's open state with `open.change`,
+   * whatever changed it; the controller never assumes it.
    */
   readonly onOpenChange: (
     open: boolean,
     reason: SubmenuOpenChangeReason,
-  ) => boolean
+  ) => SubmenuRequestResult
+  /**
+   * Whether the submenu's store still has an open pending (a controlled
+   * `open` the consumer took that its prop hasn't applied). Another request
+   * can take back the open the controller asked for (a key, the parent
+   * closing it, the consumer itself) without the prop changing, which the
+   * controller reads here.
+   */
+  readonly isOpenPending: () => boolean
+  /**
+   * A key asked to open the submenu, and the store opened it (now, or once a
+   * controlled `open` follows): move focus into it.
+   */
+  readonly onFocus: () => void
   /** The pointer is on the trigger: it takes its menu's highlight. */
   readonly onHighlight: () => void
   readonly clock?: Clock
@@ -125,6 +138,13 @@ export type SubmenuEvent =
   | { readonly type: 'press' }
   /** A key asked to open the submenu (ArrowRight, Ctrl+L). */
   | { readonly type: 'key' }
+  /**
+   * The submenu closed for an explicit close (ArrowLeft, Ctrl+H, Escape or
+   * Tab in it): a highlight doesn't reopen it while the trigger keeps it.
+   */
+  | { readonly type: 'close.explicit' }
+  /** Whatever suppresses reopening on a highlight no longer does. */
+  | { readonly type: 'suppression.clear' }
   /** The trigger's highlight changed; `keyboard` if a key moved it there. */
   | {
       readonly type: 'highlight'
@@ -135,13 +155,18 @@ export type SubmenuEvent =
   | { readonly type: 'sibling.highlight' }
   /** The trigger's menu closed (Escape, an outside press, an item press). */
   | { readonly type: 'parent.close' }
-  /** The submenu opened or closed, whatever did it. */
+  /** The submenu's store opened or closed it, whatever asked. */
   | { readonly type: 'open.change'; readonly open: boolean }
   /** The trigger stopped showing (a search hid it). */
   | { readonly type: 'hide' }
 
 export interface SubmenuSnapshot {
   readonly state: SubmenuState
+  /**
+   * An explicit close, or a press on the open trigger, suppresses opening
+   * on a highlight until the trigger loses it.
+   */
+  readonly suppressed: boolean
 }
 
 /** How long a hit holds the aim guard, and how long its moves are tracked. */
@@ -150,9 +175,15 @@ const GUARD_MS = 600
 /**
  * When a submenu opens and closes: hover and keyboard delays, the aim guard
  * on a pointer leaving toward the popup, the close delay, and a sibling's
- * highlight. It decides; the binding applies its decisions (`onOpenChange`,
- * `onHighlight`) and tells it what happened (`send`). Subscribers hear of a
- * new state once per event or timer.
+ * highlight. It decides what to ask of the submenu's store
+ * (`onOpenChange`) and what to highlight (`onHighlight`); the store decides
+ * whether the submenu is open, and the binding tells the controller
+ * (`open.change`), with what else happens (`send`). It keeps interaction
+ * intent only: an open it asked for that a controlled `open` hasn't applied
+ * yet, a hover that didn't open it for the rest of its gesture, a key's wish
+ * to move focus in once the submenu opens, and an explicit close's
+ * suppression. Whether the submenu is open is only ever what the store said
+ * last. Subscribers hear of a new snapshot once per event or timer.
  */
 export class SubmenuController {
   readonly #options: SubmenuControllerOptions
@@ -160,14 +191,39 @@ export class SubmenuController {
   readonly #listeners = new Set<() => void>()
   #settings: SubmenuSettings
   #state: SubmenuState = 'idle'
-  #snapshot: SubmenuSnapshot = { state: 'idle' }
+  #snapshot: SubmenuSnapshot = { state: 'idle', suppressed: false }
   #depth = 0
+  /** Whether the submenu is open, as the store last said (`open.change`). */
+  #open = false
   /**
-   * A hover asked to open the submenu and was refused: the rest of the
-   * gesture doesn't ask again. Cleared when the pointer leaves, the
-   * highlight is lost, the trigger hides, or the submenu opens.
+   * It asked to open the closed submenu and the consumer took it, for a
+   * controlled `open` that hasn't followed (it opens when the prop does, if
+   * it does). Not whether it's open: only what this gesture asked, so it
+   * doesn't ask again, and so the pointer leaving, a sibling's highlight or
+   * the trigger hiding takes it back (asks to close), as do the exit's
+   * tracking timing out and the popup going while it's tracked. Dropped when
+   * the store opens or closes it, or no longer has it pending (another
+   * request took it back, `isOpenPending`), the trigger's menu closes or the
+   * highlight is lost, the trigger hides, on dispose, and with any close it
+   * asks for.
+   */
+  #pendingOpen = false
+  /**
+   * A hover asked to open the submenu and it didn't open (the consumer
+   * canceled it, the policy refused it, or a controlled `open` took it): the
+   * rest of the gesture doesn't ask again. Dropped when the pointer leaves,
+   * and as `#pendingOpen` is.
    */
   #hoverRefused = false
+  /**
+   * A key asked to open the submenu before it opened: focus moves in when it
+   * does. Dropped when the highlight is lost, a sibling takes it, the
+   * trigger's menu closes or the trigger hides, with any close it asks for,
+   * and on dispose.
+   */
+  #focusOnOpen = false
+  /** See `SubmenuSnapshot.suppressed`. */
+  #suppressed = false
   /** The open delay in `open-pending`, the close delay in `close-pending`. */
   #timer: ClockHandle | null = null
   #trackTimer: ClockHandle | null = null
@@ -183,8 +239,12 @@ export class SubmenuController {
   }
 
   getSnapshot(): SubmenuSnapshot {
-    if (this.#snapshot.state !== this.#state) {
-      this.#snapshot = { state: this.#state }
+    const snapshot = this.#snapshot
+    if (
+      snapshot.state !== this.#state ||
+      snapshot.suppressed !== this.#suppressed
+    ) {
+      this.#snapshot = { state: this.#state, suppressed: this.#suppressed }
     }
     return this.#snapshot
   }
@@ -219,11 +279,14 @@ export class SubmenuController {
   }
 
   /**
-   * Stops its timers and tracking and releases its guard, without deciding
-   * anything. It takes events again afterwards.
+   * Stops its timers and tracking, releases its guard and drops its intents,
+   * without deciding anything. It takes events again afterwards.
    */
   dispose() {
-    this.#run(() => this.#toIdle())
+    this.#run(() => {
+      this.#dropIntents()
+      this.#toIdle()
+    })
   }
 
   #handle(event: SubmenuEvent) {
@@ -237,52 +300,58 @@ export class SubmenuController {
       case 'pointer.enterPopup':
         return this.#settle()
       case 'press':
-        if (this.#isOpen()) this.#options.suppressAutoOpen.current = true
+        if (this.#open) this.#suppressed = true
         return
       case 'key':
-        this.#stopTracking()
-        this.#open(REASONS.listNavigation, 'open')
+        return this.#key()
+      case 'close.explicit':
+        this.#suppressed = true
+        return
+      case 'suppression.clear':
+        this.#suppressed = false
         return
       case 'highlight':
         return this.#highlight(event.highlighted, event.keyboard)
       case 'sibling.highlight':
-        if (this.#isOpen()) return this.#close(REASONS.siblingOpen)
+        this.#focusOnOpen = false
+        if (this.#asked()) return this.#close(REASONS.siblingOpen)
         return this.#cancelPending()
       case 'parent.close':
-        return this.#cancelPending()
+        this.#dropIntents()
+        return this.#toIdle()
       case 'open.change':
         return this.#openChange(event.open)
       case 'hide':
-        this.#hoverRefused = false
-        if (this.#isOpen()) return this.#close(REASONS.none)
+        if (this.#asked()) return this.#close(REASONS.none)
+        this.#dropIntents()
         return this.#toIdle()
     }
   }
 
   #pointerEnter() {
-    const { aimGuard, suppressAutoOpen } = this.#options
+    const { aimGuard } = this.#options
     if (aimGuard.isBlocked()) return
     aimGuard.show('hover')
     this.#options.onHighlight()
-    if (!this.#settings.openOnHighlight || suppressAutoOpen.current) return
+    if (!this.#settings.openOnHighlight || this.#suppressed) return
     if (this.#hoverRefused) return
 
     this.#stopTracking()
     aimGuard.release()
     this.#clearTimer()
-    if (this.#isOpen()) {
-      this.#set('open')
+    if (this.#asked()) {
+      this.#set('idle')
       return
     }
     this.#scheduleOpen(this.#settings.delay.pointer, REASONS.triggerHover)
   }
 
   #pointerMove() {
-    const { aimGuard, suppressAutoOpen } = this.#options
+    const { aimGuard } = this.#options
     if (aimGuard.isBlocked()) return
     this.#options.onHighlight()
-    if (!this.#settings.openOnHighlight || this.#isOpen()) return
-    if (suppressAutoOpen.current || this.#hoverRefused) return
+    if (!this.#settings.openOnHighlight || this.#asked()) return
+    if (this.#suppressed || this.#hoverRefused) return
 
     this.#stopTracking()
     const ms = this.#settings.delay.pointer
@@ -312,9 +381,9 @@ export class SubmenuController {
     }
     if (aim.hit) {
       // A refused open leaves nothing guarded to show
-      const opened = this.#guard()
-      aimGuard.show(opened ? 'hit' : 'none')
-      if (opened) this.#startTracking(GUARD_MS)
+      const guarded = this.#guard()
+      aimGuard.show(guarded ? 'hit' : 'none')
+      if (guarded) this.#startTracking(GUARD_MS)
       return
     }
     aimGuard.show('miss')
@@ -332,7 +401,9 @@ export class SubmenuController {
     const guarded = this.#state === 'guarded'
     if (aim.type === 'no-popup') {
       this.#stopTracking()
-      if (guarded) this.#set('open')
+      // Nothing left to aim at: an open still pending doesn't outlive it
+      if (this.#pending()) return this.#close(REASONS.triggerHover)
+      if (guarded) this.#set('idle')
       return
     }
     if (aim.type === 'inside') return this.#settle()
@@ -351,58 +422,85 @@ export class SubmenuController {
     // Waiting out the close delay: a heading that hits the popup keeps it,
     // tracked for as long as the guard it now holds.
     if (!aim.hit) return
-    const opened = this.#guard()
-    aimGuard.show(opened ? 'hit' : 'none')
-    if (opened) this.#timeTracking(GUARD_MS)
+    const held = this.#guard()
+    aimGuard.show(held ? 'hit' : 'none')
+    if (held) this.#timeTracking(GUARD_MS)
+  }
+
+  #key() {
+    this.#stopTracking()
+    this.#clearTimer()
+    this.#set('idle')
+    if (this.#open) {
+      this.#options.onFocus()
+      return
+    }
+    const result = this.#request(true, REASONS.listNavigation)
+    if (result === 'canceled' || result === 'refused') return
+    // Focus moves in once the store says it's open: now, or when a
+    // controlled `open` follows
+    if (this.#open) this.#options.onFocus()
+    else this.#focusOnOpen = true
   }
 
   #highlight(highlighted: boolean, keyboard: boolean) {
     this.#highlighted = highlighted
     this.#keyboardHighlight = keyboard
-    const { suppressAutoOpen } = this.#options
     if (!highlighted) {
-      suppressAutoOpen.current = false
-      this.#hoverRefused = false
+      this.#suppressed = false
+      this.#dropIntents()
     }
     if (!this.#settings.openOnHighlight || !highlighted || !keyboard) {
       // Whatever started the open delay: a keyboard highlight's, or a
       // pointer's that a move restarts.
       return this.#cancelPending()
     }
-    if (suppressAutoOpen.current || this.#isOpen()) return
+    if (this.#suppressed || this.#asked()) return
     this.#clearTimer()
     this.#scheduleOpen(this.#settings.delay.keyboard, REASONS.listNavigation)
   }
 
   #openChange(open: boolean) {
+    this.#open = open
+    this.#pendingOpen = false
+    this.#hoverRefused = false
     if (open) {
-      this.#hoverRefused = false
-      if (!this.#isOpen()) {
+      if (this.#state === 'open-pending') {
         this.#clearTimer()
-        this.#set('open')
+        this.#set('idle')
+      }
+      if (this.#focusOnOpen) {
+        this.#focusOnOpen = false
+        this.#options.onFocus()
       }
       return
     }
-    if (this.#isOpen()) this.#toIdle()
+    // Whatever the pointer was doing with the open submenu is over
+    if (this.#state !== 'open-pending') this.#toIdle()
   }
 
   /** The pointer reached the popup: nothing pending closes it. */
   #settle() {
     if (this.#state === 'close-pending') this.#clearTimer()
     this.#stopTracking()
-    if (this.#isOpen()) this.#set('open')
+    if (this.#state === 'guarded' || this.#state === 'close-pending') {
+      this.#set('idle')
+    }
   }
 
   /** The pointer is leaving without aiming at the popup. */
   #missed() {
-    if (!this.#isOpen()) {
+    if (!this.#asked()) {
       this.#stopTracking()
       return
     }
     const { closeDelay, closeOnPointerLeave } = this.#settings
     if (!closeOnPointerLeave) {
       this.#stopTracking()
-      this.#set('open')
+      this.#set('idle')
+      // An open still pending (a controlled `open` the consumer hasn't
+      // applied) ends with the gesture: the next one asks again
+      this.#pendingOpen = false
       return
     }
     if (closeDelay <= 0) {
@@ -417,17 +515,26 @@ export class SubmenuController {
     this.#set('close-pending')
   }
 
-  /** The pointer aims at the popup: guard the trigger's highlight, open. */
+  /**
+   * The pointer aims at the popup: guard the trigger's highlight while the
+   * submenu is open or the open it asked for is pending; ask for it if it's
+   * neither. A canceled or refused open holds nothing.
+   */
   #guard(): boolean {
     this.#options.aimGuard.hold(GUARD_MS)
     this.#options.onHighlight()
-    return this.#open(REASONS.triggerHover, 'guarded')
+    this.#clearTimer()
+    this.#set('guarded')
+    if (this.#asked()) return true
+    const result = this.#request(true, REASONS.triggerHover)
+    if (result !== 'canceled' && result !== 'refused') return true
+    this.#toIdle()
+    return false
   }
 
   #scheduleOpen(ms: number, reason: SubmenuOpenChangeReason) {
-    const hover = reason === REASONS.triggerHover
     if (ms <= 0) {
-      this.#askOpen(reason, hover)
+      this.#askOpen(reason)
       return
     }
     const keyboard = reason === REASONS.listNavigation
@@ -435,19 +542,31 @@ export class SubmenuController {
       this.#timer = null
       this.#run(() => {
         // A keyboard delay outlives an explicit close made while it ran.
-        if (keyboard && this.#options.suppressAutoOpen.current) {
+        if (keyboard && this.#suppressed) {
           this.#set('idle')
           return
         }
-        this.#askOpen(reason, hover)
+        this.#askOpen(reason)
       })
     }, ms)
     this.#set('open-pending')
   }
 
-  /** Opens the submenu; a hover that's refused doesn't ask again until it ends. */
-  #askOpen(reason: SubmenuOpenChangeReason, hover: boolean) {
-    if (!this.#open(reason, 'open') && hover) this.#hoverRefused = true
+  /**
+   * Asks to open the submenu. A hover that doesn't open it (canceled,
+   * refused, or left to a controlled `open`) doesn't ask again until its
+   * gesture ends.
+   */
+  #askOpen(reason: SubmenuOpenChangeReason) {
+    this.#clearTimer()
+    this.#set('idle')
+    const result = this.#request(true, reason)
+    if (
+      reason === REASONS.triggerHover &&
+      (result === 'canceled' || result === 'refused' || result === 'controlled')
+    ) {
+      this.#hoverRefused = true
+    }
   }
 
   #cancelPending() {
@@ -456,21 +575,53 @@ export class SubmenuController {
     this.#set('idle')
   }
 
-  /** Opens the submenu as `next`; back to idle if it refuses. */
-  #open(reason: SubmenuOpenChangeReason, next: 'open' | 'guarded'): boolean {
-    const wasOpen = this.#isOpen()
-    this.#clearTimer()
-    this.#set(next)
-    if (wasOpen) return true
-    if (this.#options.onOpenChange(true, reason)) return true
-    this.#toIdle()
-    return false
-  }
-
-  /** Closes the submenu; still open if it refuses. */
+  /**
+   * Asks to close the submenu (or takes back the open it asked for), ending
+   * the gesture and what it intended. A controlled `open` closes when the
+   * prop follows; until the store says so, it's still open.
+   */
   #close(reason: SubmenuOpenChangeReason) {
     this.#toIdle()
-    if (this.#options.onOpenChange(false, reason)) this.#set('open')
+    this.#dropIntents()
+    this.#request(false, reason)
+  }
+
+  /**
+   * Asks the store for `open`. An open a controlled `open` took is pending
+   * (`#pendingOpen`) until the store says what became of it.
+   */
+  #request(
+    open: boolean,
+    reason: SubmenuOpenChangeReason,
+  ): SubmenuRequestResult {
+    const result = this.#options.onOpenChange(open, reason)
+    if (open && result === 'controlled' && !this.#open) {
+      this.#pendingOpen = true
+    }
+    return result
+  }
+
+  /** Whether the submenu is open, or the open it asked for is pending. */
+  #asked() {
+    return this.#open || this.#pending()
+  }
+
+  /**
+   * Whether the open it asked for is still pending: the store has it pending
+   * too, unless another request took it back, which drops it.
+   */
+  #pending() {
+    if (this.#pendingOpen && !this.#options.isOpenPending()) {
+      this.#pendingOpen = false
+    }
+    return this.#pendingOpen
+  }
+
+  /** Forgets what it intended: the open it asked for, a refusal, a key's focus. */
+  #dropIntents() {
+    this.#pendingOpen = false
+    this.#hoverRefused = false
+    this.#focusOnOpen = false
   }
 
   /** Nothing pending, nothing tracked, no guard of its own. */
@@ -497,7 +648,13 @@ export class SubmenuController {
       this.#trackTimer = null
       this.#run(() => {
         this.#stopTracking()
-        if (this.#state === 'guarded') this.#set('open')
+        // An open still pending (a controlled `open` the consumer hasn't
+        // applied) doesn't outlive the exit: it's taken back, as a pointer
+        // leaving without aiming at the popup takes it back, and the next
+        // hover asks again
+        if (this.#pending()) return this.#close(REASONS.triggerHover)
+        if (this.#state === 'guarded') this.#set('idle')
+        this.#hoverRefused = false
       })
     }, ms)
   }
@@ -518,25 +675,22 @@ export class SubmenuController {
     this.#timer = null
   }
 
-  #isOpen() {
-    const state = this.#state
-    return state === 'open' || state === 'guarded' || state === 'close-pending'
-  }
-
   #set(state: SubmenuState) {
     this.#state = state
   }
 
-  /** Runs `fn`, then tells subscribers once if the state changed. */
+  /** Runs `fn`, then tells subscribers once if the snapshot changed. */
   #run(fn: () => void) {
     const before = this.#state
+    const suppressedBefore = this.#suppressed
     this.#depth++
     try {
       fn()
     } finally {
       this.#depth--
     }
-    if (this.#depth > 0 || this.#state === before) return
+    if (this.#depth > 0) return
+    if (this.#state === before && this.#suppressed === suppressedBefore) return
     for (const listener of this.#listeners) listener()
   }
 }

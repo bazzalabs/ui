@@ -1,4 +1,5 @@
 import { REASONS } from '../events/reasons.js'
+import type { CellRequestResult } from '../state/controlled-cell.js'
 
 /** Where in a menu tree an open change is asked for. */
 export type OpenChangeLevel = 'root' | 'submenu' | 'subpage'
@@ -75,6 +76,13 @@ export type OpenChangeDecision<R extends string = string, E = unknown> =
       readonly event?: E
     }
   | { readonly type: 'back' }
+
+/**
+ * What became of an open change asked through the close policy: the
+ * store's (`CellRequestResult`), or `refused` when the policy didn't let it
+ * through.
+ */
+export type OpenRequestResult = CellRequestResult | 'refused'
 
 const CANCEL = { type: 'cancel' } as const
 const BACK = { type: 'back' } as const

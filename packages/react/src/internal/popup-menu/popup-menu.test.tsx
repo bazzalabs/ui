@@ -11,6 +11,7 @@ import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DropdownMenu } from '../../dropdown-menu/index.js'
+import { useSubmenuContext } from './contexts/submenu-context.js'
 
 type Spy = ReturnType<typeof vi.fn>
 
@@ -2216,7 +2217,7 @@ describe('PopupMenu', () => {
       ).toEqual([[true, 'trigger-hover']])
     })
 
-    it('opens once its prop follows an aim hit', async () => {
+    it('keeps the aim guard and the exit tracking of a hit, while its prop follows', async () => {
       const onSubmenuOpenChange = vi.fn()
       render(
         <ControlledSubmenuMenu
@@ -2243,14 +2244,31 @@ describe('PopupMenu', () => {
       await waitFor(() => {
         expect(submenuTrigger).toHaveAttribute('aria-expanded', 'true')
       })
-      // Interim (UI-739): the guard of a hit on a closed controlled submenu
-      // isn't held while the prop follows
+      expect(onSubmenuOpenChange.mock.calls.map(([open]) => open)).toEqual([
+        true,
+      ])
+
+      // The guard holds: still heading for the submenu, over a row of the
+      // menu the trigger is in
+      const rootItem = screen.getByTestId('root-item')
+      fireEvent.pointerMove(rootItem, { clientX: 200, clientY: 94 })
+      expect(rootItem).not.toHaveAttribute('data-highlighted')
+
+      // The exit is tracked: moving back closes it
+      fireEvent.pointerMove(window, { clientX: 170, clientY: 94 })
+      fireEvent.pointerMove(window, { clientX: 140, clientY: 94 })
+      await waitFor(() => {
+        expect(submenuTrigger).toHaveAttribute('aria-expanded', 'false')
+      })
       expect(
         onSubmenuOpenChange.mock.calls.map(([open, details]) => [
           open,
           details.reason,
         ]),
-      ).toEqual([[true, 'trigger-hover']])
+      ).toEqual([
+        [true, 'trigger-hover'],
+        [false, 'trigger-hover'],
+      ])
     })
 
     it('stays closed, and can open later, when the consumer ignores a hover-open', async () => {
@@ -2300,7 +2318,8 @@ describe('PopupMenu', () => {
       fireEvent.pointerMove(submenuTrigger, { clientX: 150, clientY: 76 })
       expect(onOpenChange.mock.calls.map(([open]) => open)).toEqual([true])
 
-      // Leaving and coming back is a new gesture, which asks again
+      // Leaving takes back the open it asked for (the consumer may still
+      // apply it), and coming back is a new gesture, which asks again
       fireEvent.pointerLeave(submenuTrigger, { clientX: 150, clientY: 300 })
       fireEvent.pointerEnter(submenuTrigger, { clientX: 140, clientY: 75 })
       expect(
@@ -2310,6 +2329,7 @@ describe('PopupMenu', () => {
         ]),
       ).toEqual([
         [true, 'trigger-hover'],
+        [false, 'trigger-hover'],
         [true, 'trigger-hover'],
       ])
     })
@@ -3291,6 +3311,200 @@ describe('PopupMenu', () => {
 
       await sleep(200)
       expect(screen.queryByTestId('popup-submenu-1')).not.toBeInTheDocument()
+    })
+
+    describe('suppressAutoOpenRef', () => {
+      // A part under the submenu that reads its context, as a consumer's can
+      const refs: Array<React.MutableRefObject<boolean>> = []
+      function Capture({ write }: { write?: boolean }) {
+        const { suppressAutoOpenRef } = useSubmenuContext()
+        refs.push(suppressAutoOpenRef)
+        React.useLayoutEffect(() => {
+          if (write !== undefined) suppressAutoOpenRef.current = write
+        }, [suppressAutoOpenRef, write])
+        return null
+      }
+      function Menu({
+        write,
+        withTrigger = true,
+      }: {
+        write?: boolean
+        withTrigger?: boolean
+      }) {
+        return (
+          <DropdownMenu.Root defaultOpen>
+            <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Positioner>
+                <DropdownMenu.Popup>
+                  <DropdownMenu.Surface>
+                    <DropdownMenu.List data-testid="root-list">
+                      <DropdownMenu.Item value="first">First</DropdownMenu.Item>
+                      <DropdownMenu.Submenu>
+                        <Capture write={write} />
+                        {withTrigger && (
+                          <DropdownMenu.SubmenuTrigger
+                            data-testid="submenu-trigger"
+                            value="more"
+                          >
+                            More
+                          </DropdownMenu.SubmenuTrigger>
+                        )}
+                        <DropdownMenu.Portal>
+                          <DropdownMenu.Positioner>
+                            <DropdownMenu.Popup data-testid="popup-submenu">
+                              <DropdownMenu.Surface>
+                                <DropdownMenu.List>
+                                  <DropdownMenu.Item value="sub">
+                                    Sub
+                                  </DropdownMenu.Item>
+                                </DropdownMenu.List>
+                              </DropdownMenu.Surface>
+                            </DropdownMenu.Popup>
+                          </DropdownMenu.Positioner>
+                        </DropdownMenu.Portal>
+                      </DropdownMenu.Submenu>
+                    </DropdownMenu.List>
+                  </DropdownMenu.Surface>
+                </DropdownMenu.Popup>
+              </DropdownMenu.Positioner>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
+        )
+      }
+
+      it('reopens on pointer enter once set to false after an explicit close', async () => {
+        refs.length = 0
+        const user = userEvent.setup()
+        render(<Menu />)
+        await waitFor(() => {
+          expect(screen.getByTestId('root-list')).toHaveFocus()
+        })
+        const submenuTrigger = screen.getByTestId('submenu-trigger')
+        await user.keyboard('{ArrowDown}')
+        if (!submenuTrigger.hasAttribute('data-highlighted')) {
+          await user.keyboard('{ArrowDown}')
+        }
+        await waitFor(() => {
+          expect(screen.getByTestId('popup-submenu')).toBeInTheDocument()
+        })
+        await user.keyboard('{ArrowRight}')
+        await waitFor(() => {
+          expect(screen.getByTestId('popup-submenu')).toHaveAttribute(
+            'data-focused',
+            '',
+          )
+        })
+        await user.keyboard('{ArrowLeft}')
+        await waitFor(() => {
+          expect(screen.queryByTestId('popup-submenu')).not.toBeInTheDocument()
+        })
+        const ref = refs[refs.length - 1]
+        expect(ref?.current).toBe(true)
+
+        act(() => {
+          if (ref) ref.current = false
+        })
+        expect(ref?.current).toBe(false)
+        fireEvent.pointerEnter(submenuTrigger, { clientX: 100, clientY: 75 })
+        fireEvent.pointerMove(submenuTrigger, { clientX: 102, clientY: 76 })
+        await waitFor(() => {
+          expect(screen.getByTestId('popup-submenu')).toBeInTheDocument()
+        })
+      })
+
+      it('keeps a write made while no trigger is mounted, for the trigger to take', async () => {
+        refs.length = 0
+        const { rerender } = render(<Menu write withTrigger={false} />)
+        await waitFor(() => expect(refs.length).toBeGreaterThan(0))
+        expect(refs[refs.length - 1]?.current).toBe(true)
+
+        // The trigger mounts unhighlighted and takes it, which its losing
+        // the highlight then ends
+        rerender(<Menu write withTrigger />)
+        await screen.findByTestId('submenu-trigger')
+        await waitFor(() => {
+          expect(refs[refs.length - 1]?.current).toBe(false)
+        })
+      })
+    })
+
+    it('does not reopen on pointer enter after Tab closes the submenu into a focus zone', async () => {
+      const user = userEvent.setup()
+      render(
+        <DropdownMenu.Root defaultOpen>
+          <DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Positioner>
+              <DropdownMenu.Popup>
+                <DropdownMenu.Surface>
+                  <DropdownMenu.List data-testid="root-list">
+                    <DropdownMenu.Item value="first">First</DropdownMenu.Item>
+                    <DropdownMenu.Submenu>
+                      <DropdownMenu.SubmenuTrigger
+                        data-testid="submenu-trigger"
+                        value="more"
+                      >
+                        More
+                      </DropdownMenu.SubmenuTrigger>
+                      <DropdownMenu.Portal>
+                        <DropdownMenu.Positioner>
+                          <DropdownMenu.Popup data-testid="popup-submenu">
+                            <DropdownMenu.Surface>
+                              <DropdownMenu.List>
+                                <DropdownMenu.Item value="sub">
+                                  Sub
+                                </DropdownMenu.Item>
+                              </DropdownMenu.List>
+                            </DropdownMenu.Surface>
+                          </DropdownMenu.Popup>
+                        </DropdownMenu.Positioner>
+                      </DropdownMenu.Portal>
+                    </DropdownMenu.Submenu>
+                  </DropdownMenu.List>
+                  <DropdownMenu.FocusZone>
+                    <button data-testid="apply" type="button">
+                      Apply
+                    </button>
+                  </DropdownMenu.FocusZone>
+                </DropdownMenu.Surface>
+              </DropdownMenu.Popup>
+            </DropdownMenu.Positioner>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>,
+      )
+      await waitFor(() => {
+        expect(screen.getByTestId('root-list')).toHaveFocus()
+      })
+      const submenuTrigger = screen.getByTestId('submenu-trigger')
+      await user.keyboard('{ArrowDown}')
+      if (!submenuTrigger.hasAttribute('data-highlighted')) {
+        await user.keyboard('{ArrowDown}')
+      }
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-submenu')).toBeInTheDocument()
+      })
+      await user.keyboard('{ArrowRight}')
+      await waitFor(() => {
+        expect(screen.getByTestId('popup-submenu')).toHaveAttribute(
+          'data-focused',
+          '',
+        )
+      })
+
+      // The submenu has no zone: Tab closes it into its parent's
+      await user.keyboard('{Tab}')
+      await waitFor(() => {
+        expect(screen.queryByTestId('popup-submenu')).not.toBeInTheDocument()
+      })
+      expect(screen.getByTestId('apply')).toHaveFocus()
+      expect(submenuTrigger).toHaveAttribute('data-highlighted')
+
+      fireEvent.pointerEnter(submenuTrigger, { clientX: 100, clientY: 75 })
+      fireEvent.pointerMove(submenuTrigger, { clientX: 102, clientY: 76 })
+
+      await sleep(200)
+      expect(screen.queryByTestId('popup-submenu')).not.toBeInTheDocument()
     })
   })
 

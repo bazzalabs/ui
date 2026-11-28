@@ -3,7 +3,13 @@ import { renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defaultFilter } from '../utils/command-score.js'
 import type { ListboxContext, ListboxState } from './ListboxStore.js'
-import { ListboxStore, publishDataRows } from './ListboxStore.js'
+import {
+  getCloseCause,
+  getRequestReason,
+  ListboxStore,
+  publishDataRows,
+  requestStoreOpen,
+} from './ListboxStore.js'
 
 // ============================================================================
 // Test Helpers
@@ -690,6 +696,114 @@ describe('ListboxStore', () => {
       } as PointerEvent)
 
       expect(store.state.openMethod).toBe(null)
+    })
+
+    it('records the open method when a controlled prop applies the open it asked for', () => {
+      const store = createStore()
+      const setProp = control(store, 'openProp', false)
+      const seen: Array<string | null> = []
+      store.observe('open', (open) => {
+        if (open) seen.push(store.state.openMethod)
+      })
+
+      expect(
+        requestStoreOpen(store, true, 'trigger-press', {
+          pointerType: 'touch',
+        } as PointerEvent),
+      ).toBe('controlled')
+      setProp(true)
+
+      expect(store.state.openMethod).toBe('touch')
+      // Before `open` changed, so its observers read it
+      expect(seen).toEqual(['touch'])
+    })
+
+    it('records nothing for a controlled open no request asked for', () => {
+      const store = createStore()
+      const setProp = control(store, 'openProp', false)
+      requestStoreOpen(store, false, 'escape-key', new KeyboardEvent('keydown'))
+      setProp(true)
+      expect(store.state.openMethod).toBe(null)
+    })
+  })
+
+  describe('open requests', () => {
+    it('reads a change the consumer takes back from inside its callback as canceled', () => {
+      const store: ListboxStore = createStore(
+        {},
+        {
+          onOpenChange: (open) => {
+            if (open) store.setOpen(false, 'none')
+          },
+        },
+      )
+      expect(requestStoreOpen(store, true, 'trigger-press')).toBe('canceled')
+      expect(store.state.open).toBe(false)
+    })
+
+    it('reads a controlled open the consumer applies from inside its callback as applied', () => {
+      let setProp: (open: boolean | undefined) => void = () => {}
+      const reasons: Array<string | null> = []
+      const store: ListboxStore = createStore(
+        {},
+        { onOpenChange: (open) => setProp(open) },
+      )
+      setProp = control(store, 'openProp', false)
+      store.observe('open', (open) => {
+        if (open) reasons.push(getRequestReason(store, open))
+      })
+
+      expect(requestStoreOpen(store, true, 'trigger-press')).toBe('applied')
+      expect(store.state.open).toBe(true)
+      // Its observers read the request while the prop applied it
+      expect(reasons).toEqual(['trigger-press'])
+    })
+
+    it('drops the request once an uncontrolled change is written, after its observers read it', () => {
+      const store = createStore({ open: true })
+      const causes: unknown[] = []
+      store.observe('open', (open) => {
+        if (!open) causes.push(getCloseCause(store))
+      })
+
+      expect(requestStoreOpen(store, false, 'escape-key')).toBe('applied')
+
+      expect(causes).toEqual([{ reason: 'escape-key', event: undefined }])
+      expect(getCloseCause(store)).toBe(null)
+      expect(getRequestReason(store, false)).toBe(null)
+    })
+
+    it('keeps one record of a pending close: its cause, until the prop next syncs', () => {
+      const onOpenChange = vi.fn()
+      const store = createStore({}, { onOpenChange })
+      const setProp = control(store, 'openProp', true)
+      const event = new KeyboardEvent('keydown')
+
+      expect(requestStoreOpen(store, false, 'escape-key', event)).toBe(
+        'controlled',
+      )
+      expect(getCloseCause(store)).toEqual({ reason: 'escape-key', event })
+
+      // The prop stops controlling the cell: the request goes with its cause
+      setProp(undefined)
+      expect(getCloseCause(store)).toBe(null)
+      requestStoreOpen(store, false, 'escape-key', event)
+      expect(onOpenChange).toHaveBeenCalledTimes(2)
+    })
+
+    it('asks nobody for a change already asked with the same event, in a later task', async () => {
+      const onOpenChange = vi.fn()
+      const store = createStore({}, { onOpenChange })
+      control(store, 'openProp', true)
+      const event = new KeyboardEvent('keydown')
+
+      requestStoreOpen(store, false, 'escape-key', event)
+      await Promise.resolve()
+      expect(requestStoreOpen(store, false, 'escape-key', event)).toBe('noop')
+      expect(onOpenChange).toHaveBeenCalledTimes(1)
+      // Another event asks again
+      requestStoreOpen(store, false, 'escape-key', new KeyboardEvent('keydown'))
+      expect(onOpenChange).toHaveBeenCalledTimes(2)
     })
   })
 

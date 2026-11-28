@@ -13,6 +13,7 @@ import {
   type UsePopupMenuRootParams,
   usePopupMenuRoot,
 } from '../../internal/popup-menu/index.js'
+import { askFromBaseUI } from '../../internal/popup-menu/members.js'
 import type {
   DropdownMenuHighlightChangeEventDetails,
   DropdownMenuOpenChangeEventDetails,
@@ -190,7 +191,6 @@ export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
     registerSurface,
     closeAll,
     virtualization,
-    handleOpenChange,
     disabled: menuDisabled,
     setDisabled,
     menuTreeResolver,
@@ -254,14 +254,11 @@ export function DropdownMenuRoot(props: DropdownMenuRoot.Props) {
   // Wrapper to adapt Popover's event details to our handleOpenChange
   const handlePopoverOpenChange = useCallback(
     (nextOpen: boolean, popoverDetails: Popover.Root.ChangeEventDetails) => {
-      // Forward to our internal handler with the reason and event
-      handleOpenChange(
-        nextOpen,
-        popoverDetails.reason as DropdownMenuOpenChangeEventDetails['reason'],
-        popoverDetails.event,
-      )
+      // Through the root's gate; a change that doesn't go through cancels
+      // Base UI's too, so Base UI skips its dismissal's side effects
+      askFromBaseUI(store, nextOpen, popoverDetails)
     },
-    [handleOpenChange],
+    [store],
   )
 
   return (
