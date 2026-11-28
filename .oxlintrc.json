@@ -350,6 +350,26 @@
       }
     },
 
+    // --- Module side effects -------------------------------------------------
+    // Shipped source of both packages: menu-core ships inside @bazza-ui/react's
+    // dist. Tests, type tests and test fixtures run code at their top level.
+    {
+      "files": [
+        "packages/react/src/**/*.{ts,tsx}",
+        "packages/menu-core/src/**/*.{ts,tsx}"
+      ],
+      "rules": { "bazza/no-module-side-effects": "error" }
+    },
+    {
+      "files": [
+        "packages/*/src/**/*.test.{ts,tsx}",
+        "packages/*/src/**/*.test-d.ts",
+        "packages/*/src/**/__tests__/**",
+        "packages/*/src/**/test-helpers.ts"
+      ],
+      "rules": { "bazza/no-module-side-effects": "off" }
+    },
+
     // --- Allowlists -----------------------------------------------------------
     // Files that broke a rule when the rule was added. Each file is exempt from
     // that one rule until it's fixed. Shrink these lists: fix the file, then

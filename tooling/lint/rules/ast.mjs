@@ -17,6 +17,18 @@ export function unwrap(node) {
   return current
 }
 
+/** A string literal's value, or a template literal's with no expressions. */
+export function stringValue(node) {
+  const value = unwrap(node)
+  if (value?.type === 'Literal' && typeof value.value === 'string') {
+    return value.value
+  }
+  if (value?.type === 'TemplateLiteral' && value.expressions.length === 0) {
+    return value.quasis[0].value.cooked
+  }
+  return undefined
+}
+
 /** The declaration a top-level statement holds, looking inside `export`. */
 export function topLevelDeclaration(statement) {
   return statement.type === 'ExportNamedDeclaration' ||

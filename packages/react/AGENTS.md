@@ -283,6 +283,17 @@ The `Allowlists` entries in `.oxlintrc.json` list files that broke a rule when i
 
 `bun run lint:exceptions` lists every allowlisted file by rule and every inline exception with its reason. CI runs it and adds the list to the job summary. It fails only on a malformed exception, which catches a bare `/* oxlint-disable */` that has silenced `bazza/disable-needs-reason` itself.
 
+## Module side effects
+
+`package.json` declares `"sideEffects": false` (as `@bazza-ui/menu-core` does, whose code ships inside `dist`), so a bundler (`bench:size`, tsdown, a consumer's app) drops every module a member never reaches through an import whose bindings it uses: in `bench:size`, Select ships no submenu or checkbox parts because it never imports them. (`dist` keeps the engine in one shared chunk, which an app's bundler keeps whole.) That's only safe while importing a module does nothing outside it. At its top level a module in `packages/react/src` or `packages/menu-core/src` may only:
+
+- import with bindings (never a bare `import './x'`, a dynamic `import()` or a top-level `await`) and export;
+- declare functions, classes, types, interfaces, enums and namespaces, whose code that runs on definition (a superclass, computed keys, static members and blocks, enum values, a namespace's body) follows these rules too, with no decorators;
+- initialize variables with values built by known-pure calls only (React's component and context factories, Base UI's store primitives, and a few built-ins that build a fresh value); destructuring defaults and computed keys count as initializers. `PURE_CALLS` in `tooling/lint/rules/no-module-side-effects.mjs` is the one list of them;
+- write a direct property of an object it owns: a function, class or enum it declares, or a `const` it initializes with a fresh literal, a function or a pure call (`Tooltip.Popup = TooltipPopup`, `Context.displayName = …`). A class static block may also set the module's own `let` bindings. A `const` that aliases an import or a global (`const Portal = Dialog.Portal`) isn't owned: writing to it writes another module's object. Nor is an ambient (`declare`) declaration, a class with a superclass, or an object literal with a setter, and a write to a class's static setter isn't own. Inside a dev-only block or a namespace body, a name means that scope's own declaration first. All of this also inside `if (process.env.NODE_ENV !== 'production') { … }`.
+
+Anything else (a registration, a listener, a global or an imported object written, a polyfill, a CSS import) would run in some apps and not others. Put it in a function the code that needs it calls. `bazza/no-module-side-effects` checks this in the shipped source of both packages (tests, type tests, `__tests__` and `test-helpers` files are exempt), and its message names what it found. A new pure call an initializer needs goes in `PURE_CALLS`; anything that must run on import takes a reasoned `oxlint-disable-next-line` and an entry in the `sideEffects` array instead of `false`.
+
 ## Bundle size
 
 `bun run bench:size` bundles each menu family entry (`dropdown-menu`, `context-menu`, `command-menu`, `suggestion-menu`, `select`, `combobox`) from `src`, minified with React external and every other dependency bundled, and gzips it. CI runs it on every pull request and fails when an entry's gzip size is over its budget in `bench/size/budgets.json` (bytes).
