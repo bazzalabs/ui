@@ -23,11 +23,7 @@ import type { MenuTreeResolver } from '../menu-tree/resolver.js'
 import { createMenuTreeResolver } from '../menu-tree/resolver.js'
 import type { GetResolvedIdFn, PopupMenuIdScope } from '../menu-tree/types.js'
 import type { FocusOwnerStore } from '../store/FocusOwnerStore.js'
-import {
-  getElementRegistry,
-  MenuTreeStore,
-  type RootAskOptions,
-} from '../store/MenuTreeStore.js'
+import { MenuTreeStore, type RootAskOptions } from '../store/MenuTreeStore.js'
 import type { OpenChainStore } from '../store/OpenChainStore.js'
 
 // ============================================================================
@@ -206,14 +202,6 @@ export function usePopupMenuRoot(
     [menuTreeResolver, onHighlightChange],
   )
 
-  const [imperativeDisabled, setImperativeDisabled] =
-    React.useState(defaultDisabled)
-  const disabled = disabledProp || imperativeDisabled
-
-  const setDisabled = React.useCallback((nextDisabled: boolean) => {
-    setImperativeDisabled(nextDisabled)
-  }, [])
-
   // Begin tracking global input modality so the store can attribute opens to
   // mouse/touch/pen/keyboard. Idempotent; installed once for the whole app.
   React.useEffect(() => {
@@ -262,6 +250,8 @@ export function usePopupMenuRoot(
     const tree = new MenuTreeStore({
       resolver: menuTreeResolver,
       open: defaultOpen,
+      disabled: disabledProp,
+      defaultDisabled,
       onOpenChange: stableOnOpenChange,
       ask,
     })
@@ -269,12 +259,32 @@ export function usePopupMenuRoot(
   }
   const { tree, store } = storesRef.current
 
+  // The root's `disabled`: its prop, or its actions' `setDisabled`, both kept
+  // in the tree for its subscribers (the prop from a layout effect). The gate
+  // below reads the prop as last committed, kept in a ref written from an
+  // insertion effect: it runs as the render commits, before any ref,
+  // `autoFocus` or layout effect of the commit can ask (the tree has the
+  // prop only after those), and never for a render that doesn't commit (a
+  // transition Suspense holds back). Its actions' value is the tree's, which
+  // `setDisabled` writes at once.
+  tree.useSyncedValue('disabledProp', disabledProp)
+  const disabledPropRef = React.useRef(disabledProp)
+  React.useInsertionEffect(() => {
+    disabledPropRef.current = disabledProp
+  }, [disabledProp])
+  const disabledByActions = tree.useState('disabledByActions')
+  const disabled = disabledProp || disabledByActions
+  const setDisabled = React.useCallback(
+    (nextDisabled: boolean) => tree.setDisabled(nextDisabled),
+    [tree],
+  )
+
   // Get current open state for the pointer event listener
   const isOpen = store.useState('open')
 
   // The elements this tree's parts render (triggers, positioners, popups,
   // surfaces), so membership never depends on attributes on the page.
-  const elements = getElementRegistry(tree)
+  const elements = tree.elements
   // Read when the event happens, so the root sets it on each render.
   elements.getExempt = getDismissExemptElements
   // A tree rendered inside another one (a select in a dropdown menu's popup)
@@ -282,10 +292,7 @@ export function usePopupMenuRoot(
   // registry in the outer one's while it's open.
   const outerTree = useMaybeMenuTree()
   React.useEffect(
-    () =>
-      outerTree && isOpen
-        ? getElementRegistry(outerTree).nest(elements)
-        : undefined,
+    () => (outerTree && isOpen ? outerTree.elements.nest(elements) : undefined),
     [outerTree, isOpen, elements],
   )
   const isExemptNode = React.useCallback(
@@ -293,31 +300,9 @@ export function usePopupMenuRoot(
     [elements],
   )
 
-  // The root's own submenus (and subpages), closed when the root closes;
-  // each submenu closes its own the same way. They register from a layout
-  // effect.
-  type SurfaceEntry = {
-    depth: number
-    setOpen: (
-      open: boolean,
-      reason?: PopupMenuOpenChangeReason,
-      event?: Event,
-    ) => void
-  }
-  const surfaceRegistryRef = React.useRef<Map<string, SurfaceEntry>>(new Map())
-
-  // Register a surface (submenu) for closeAll tracking
-  const registerSurface = React.useCallback(
-    (depth: number, setOpen: SurfaceEntry['setOpen']) => {
-      const id = Math.random().toString(36).slice(2)
-      surfaceRegistryRef.current.set(id, { depth, setOpen })
-      return () => {
-        surfaceRegistryRef.current.delete(id)
-      }
-    },
-    [],
-  )
-
+  // The root's own submenus (and subpages) register with the tree
+  // (`tree.registerSurface`, from a layout effect), which closes them when
+  // the root closes; each submenu closes its own the same way.
   // When the root's `open` goes false (whatever closed it: a request, Base
   // UI's dismissal, a controlled `open`), close its open submenus with the
   // cause of the close (`getCloseCause`: the last close the consumer let
@@ -331,9 +316,7 @@ export function usePopupMenuRoot(
       store.observe('open', (open, wasOpen) => {
         if (open || !wasOpen) return
         const cause = getCloseCause(store)
-        for (const surface of [...surfaceRegistryRef.current.values()]) {
-          surface.setOpen(false, cause?.reason ?? REASONS.none, cause?.event)
-        }
+        tree.closeSurfaces(cause?.reason ?? REASONS.none, cause?.event)
         tree.clear()
       }),
     [store, tree],
@@ -456,7 +439,7 @@ export function usePopupMenuRoot(
         reason,
         event,
         level: 'root',
-        disabled,
+        disabled: disabledPropRef.current || tree.select('disabledByActions'),
         engine,
         exempt:
           reason === REASONS.outsidePress
@@ -471,7 +454,7 @@ export function usePopupMenuRoot(
       outsidePointerEventRef.current = null
       return tree.requestOpen(newOpen, decision.reason, decision.event, cause)
     },
-    [tree, disabled, isExemptNode, elements],
+    [tree, isExemptNode, elements],
   )
 
   const handleOpenChange = React.useCallback(
@@ -513,7 +496,7 @@ export function usePopupMenuRoot(
     store,
     focusOwnerStore: tree.focusOwner,
     openChainStore: tree.openChain,
-    registerSurface,
+    registerSurface: tree.registerSurface,
     closeAll,
     virtualization,
     handleOpenChange,

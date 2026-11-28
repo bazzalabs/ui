@@ -11,7 +11,6 @@ import {
   popupActionsOf,
 } from '../../listbox/store/ListboxStore.js'
 import { useMenuTree } from '../contexts/menu-tree-context.js'
-import { getElementRegistry } from '../store/MenuTreeStore.js'
 
 /** The events a press closes a popup on, before its `mousedown` moves focus. */
 const PRESS_EVENTS = new Set(['pointerdown', 'mousedown', 'touchstart'])
@@ -194,7 +193,7 @@ export function useCloseInOneFrame(
     })
   }, [store])
 
-  const registry = getElementRegistry(useMenuTree())
+  const registry = useMenuTree().elements
   const observed = React.useRef<{
     element: Element
     observer: MutationObserver

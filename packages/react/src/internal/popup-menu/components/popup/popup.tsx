@@ -24,7 +24,6 @@ import {
 import { useCloseInOneFrame } from '../../hooks/use-close-in-one-frame.js'
 import { useMenuElement, usePressClaim } from '../../hooks/use-menu-element.js'
 import { useSubpageStackState } from '../../hooks/use-subpage-stack-state.js'
-import { getElementRegistry } from '../../store/MenuTreeStore.js'
 import { PopupMenuPopupDataAttributes } from './popup.data-attrs.js'
 
 // ============================================================================
@@ -223,7 +222,7 @@ export const PopupMenuPopup = React.forwardRef<
 
       // A popup of this tree nested inside this one's DOM claims ownership
       // for itself
-      if (getElementRegistry(tree).surfaceFor(target) !== surfaceId) {
+      if (tree.elements.surfaceFor(target) !== surfaceId) {
         return
       }
 
