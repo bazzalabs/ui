@@ -24,7 +24,7 @@
  * (`store.set(key, …)`, `{ [key]: … }`), and objects built elsewhere
  * (`store.update(changes)`, spreads).
  */
-import { keyName, memberName, unwrap } from './ast.mjs'
+import { keyName, memberName, stringValue, unwrap } from './ast.mjs'
 
 /** Field → how to change it instead. */
 const fields = new Map([
@@ -65,18 +65,6 @@ function isStoreLike(node) {
   if (value?.type === 'ThisExpression') return true
   if (value?.type === 'Identifier') return isStoreName(value.name)
   return value?.type === 'MemberExpression' && isStoreName(memberName(value))
-}
-
-/** A string literal's value, or a template literal's with no expressions. */
-function stringValue(node) {
-  const value = unwrap(node)
-  if (value?.type === 'Literal' && typeof value.value === 'string') {
-    return value.value
-  }
-  if (value?.type === 'TemplateLiteral' && value.expressions.length === 0) {
-    return value.quasis[0].value.cooked
-  }
-  return undefined
 }
 
 export const noRawControlledState = {

@@ -11,6 +11,7 @@ export const bazzaRuleNames = new Set([
   'data-attrs-enum',
   'disable-needs-reason',
   'forward-ref-named',
+  'no-module-side-effects',
   'no-raw-controlled-state',
   'no-spread-style',
   'part-namespace',
@@ -27,6 +28,7 @@ export const partShapeRuleNames = new Set([
   'context-hook-contract',
   'data-attrs-enum',
   'forward-ref-named',
+  'no-module-side-effects',
   'part-namespace',
   'use-client',
 ])

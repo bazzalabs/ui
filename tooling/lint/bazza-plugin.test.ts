@@ -1043,6 +1043,356 @@ export default function useDefault() {
   })
 })
 
+describe('bazza/no-module-side-effects', () => {
+  const lint = (source: string) =>
+    lintWith('bazza/no-module-side-effects', { 'a.tsx': source })
+
+  it('accepts declarations, pure initializers, own writes and dev-only blocks', async () => {
+    const findings = await lint(`'use client'
+import * as React from 'react'
+import { createSelector, Store } from '@base-ui/utils/store'
+import type { Thing } from './thing'
+export { other } from './other'
+export * from './more'
+export interface Props { thing: Thing }
+export type State = Record<string, unknown>
+export enum Attributes { open = 'data-open' }
+export namespace Part { export type Props = State }
+const key: unique symbol = Symbol('key')
+const seen = new WeakMap<object, number>()
+const idle = new Store({})
+const selectors = { open: createSelector((state: State) => state.open) }
+const formats = new Intl.PluralRules('en')
+const keys = Object.values({ a: 1 })
+export const Context = React.createContext<Props | null>(null)
+export const Part = React.forwardRef(function Part() {
+  window.addEventListener('resize', () => {})
+  return null
+})
+export const handler = () => document.body.append('x')
+export function Tooltip() { return null }
+Tooltip.Popup = Part
+if (process.env.NODE_ENV !== 'production') {
+  Context.displayName = 'Context'
+}
+let access: () => void
+export class Store2 {
+  static instances = new Set<Store2>()
+  static {
+    access = () => {}
+  }
+  method() { globalThis.x = 1 }
+}
+export default function Default() { return null }
+`)
+    expect(findings).toEqual([])
+  })
+
+  it('reports code that runs on import and reaches outside the module', async () => {
+    const findings = await lint(`import './styles.css'
+import * as React from 'react'
+import { registry } from './registry'
+window.addEventListener('resize', () => {})
+registry.add('part')
+React.version2 = '1'
+console.log('loaded')
+if (typeof window !== 'undefined') init()
+for (const name of ['a']) registry.add(name)
+export const value = register()
+export const tagged = css\`color: red\`
+export const count = registry.size++
+export class Patch {
+  static {
+    globalThis.patched = true
+  }
+}
+export default register()
+`)
+    expect(lines(findings)).toEqual([1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 18])
+  })
+
+  it('reports a dev-only block that does more than set the module’s own bindings', async () => {
+    const findings = await lint(`import { registry } from './registry'
+if (process.env.NODE_ENV !== 'production') {
+  registry.debug = true
+}
+`)
+    expect(lines(findings)).toEqual([3])
+  })
+
+  // Each case got past the round-1 rule with no finding (the reviewers'
+  // probes): the line it must report is the last number.
+  it.each([
+    [
+      'a write through a name a type annotation mentions',
+      `import { registry } from './registry'
+const local: typeof registry = { items: [] }
+registry.items = []
+`,
+      [3],
+    ],
+    [
+      'a write to the namespace a type annotation reads',
+      `import * as React from 'react'
+export const Part: React.FC = () => null
+React.version = '1'
+`,
+      [3],
+    ],
+    [
+      'a write through a destructured key that isn’t a binding',
+      `const { window: w } = { window: 1 }
+window.patched = true
+`,
+      [2],
+    ],
+    [
+      'a write through an alias of an import',
+      `import { Dialog } from '@base-ui/react/dialog'
+export const CommandMenuPortal = Dialog.Portal
+CommandMenuPortal.displayName = 'CommandMenu.Portal'
+`,
+      [3],
+    ],
+    [
+      'a dev-only write through an alias of an import',
+      `import { Dialog } from '@base-ui/react/dialog'
+export const CommandMenuPortal = Dialog.Portal
+if (process.env.NODE_ENV !== 'production') {
+  CommandMenuPortal.displayName = 'CommandMenu.Portal'
+}
+`,
+      [4],
+    ],
+    [
+      'a write through an alias of a global',
+      `const proto = Element.prototype
+proto.polyfilled = function () {}
+`,
+      [2],
+    ],
+    [
+      'a write through a fresh object into an import it holds',
+      `import { Foo } from './foo'
+export const Parts = { Root: Foo }
+Parts.Root.displayName = 'Root'
+`,
+      [3],
+    ],
+    [
+      'a computed key on an own write',
+      `import { register } from './registry'
+export function Part() { return null }
+Part[register()] = 1
+`,
+      [3],
+    ],
+    [
+      'a dynamic import',
+      `export const lazy = import('./polyfill')
+`,
+      [1],
+    ],
+    [
+      'a top-level await',
+      `import { ready } from './ready'
+export const value = await ready
+`,
+      [2],
+    ],
+    [
+      'a call in a class’s superclass',
+      `import { mixin, Base } from './mixin'
+export class Thing extends mixin(Base) {}
+export default class extends mixin(Base) {}
+`,
+      [2, 3],
+    ],
+    [
+      'a call in a class member’s computed key',
+      `import { registry } from './registry'
+export class Keyed {
+  [registry.add('a')]() {}
+  static [registry.add('b')] = 1
+}
+`,
+      [3, 4],
+    ],
+    [
+      'a member decorator',
+      `import { track } from './track'
+export class Tracked {
+  @track method() {}
+}
+`,
+      [3],
+    ],
+    [
+      'code in a namespace',
+      `import { registry } from './registry'
+export namespace Part {
+  registry.add('part')
+}
+`,
+      [3],
+    ],
+    [
+      'a call in an enum member',
+      `import { register } from './registry'
+export enum Attributes { open = register() }
+`,
+      [2],
+    ],
+    [
+      'a call in a destructuring default',
+      `import { register } from './registry'
+const { a = register() } = {} as { a?: number }
+`,
+      [2],
+    ],
+    [
+      'a call in a destructuring computed key',
+      `import { register } from './registry'
+const { [register()]: b } = {} as Record<string, number>
+`,
+      [2],
+    ],
+    [
+      'Object.freeze of an import',
+      `import { registry } from './registry'
+export const frozen = Object.freeze(registry)
+`,
+      [2],
+    ],
+  ])('reports %s', async (_case, source, expected) => {
+    const findings = await lint(source)
+    expect(lines(findings)).toEqual(expected)
+  })
+
+  // Round-2 minors: each case passed (or, for an accepted one, was
+  // reported by) the round-2 rule.
+  it.each([
+    [
+      'a dev-block const that shadows an owned name with an import’s object',
+      `import { Dialog } from '@base-ui/react/dialog'
+export function Owned() { return null }
+if (process.env.NODE_ENV !== 'production') {
+  const Owned = Dialog.Portal
+  Owned.displayName = 'x'
+}
+`,
+      [5],
+    ],
+    [
+      'a namespace const that shadows an owned name with an import’s object',
+      `import { Dialog } from '@base-ui/react/dialog'
+export function Owned() { return null }
+export namespace Parts {
+  const Owned = Dialog.Portal
+  Owned.displayName = 'x'
+}
+`,
+      [5],
+    ],
+    [
+      'a write to a class’s static setter',
+      `import { registry } from './registry'
+export class C { static set x(v: number) { registry.add(v) } }
+C.x = 1
+`,
+      [3],
+    ],
+    [
+      'a write to an object literal’s setter',
+      `import { registry } from './registry'
+export const o = { set y(v: number) { registry.add(v) } }
+o.y = 2
+`,
+      [3],
+    ],
+    [
+      'a write to a class that may inherit a static setter',
+      `import { Base } from './base'
+export class D extends Base {}
+D.z = 1
+`,
+      [3],
+    ],
+    [
+      'a write to an ambient class or enum',
+      `declare class HTMLElement {}
+HTMLElement.patched = true
+declare enum Flags { A }
+Flags.B = 1
+`,
+      [2, 4],
+    ],
+  ])('reports %s', async (_case, source, expected) => {
+    const findings = await lint(source)
+    expect(lines(findings)).toEqual(expected)
+  })
+
+  it.each([
+    [
+      'writes to a block’s or namespace’s own objects, and to owned names they don’t shadow',
+      `export function Owned() { return null }
+export namespace Parts {
+  export const Local = { a: 1 }
+  Local.b = 2
+  Owned.c = 3
+}
+if (process.env.NODE_ENV !== 'production') {
+  const Fresh = {}
+  Fresh.x = 1
+  Owned.displayName = 'Owned'
+}
+`,
+    ],
+    [
+      'globals that only a type-only binding names',
+      `import type { Map } from './types'
+import { type Set } from './types'
+interface WeakMap<K, V> { extra?: [K, V] }
+type WeakSet = unknown
+export const a = new Map()
+export const b = new Set()
+export const c = new WeakMap()
+export const d = new WeakSet()
+`,
+    ],
+    [
+      'React’s factories through its default import',
+      `import React from 'react'
+export const Context = React.createContext(null)
+export const Part = React.forwardRef(function Part() { return null })
+`,
+    ],
+  ])('accepts %s', async (_case, source) => {
+    expect(await lint(source)).toEqual([])
+  })
+
+  it('names the callee as written, `new` included', async () => {
+    const findings = await lint(`import { registry } from './registry'
+export const a = registry.make()
+export const b = new registry.Thing()
+export const c = (registry.factory)()
+`)
+    expect(findings.map((finding) => finding.message.split('`')[1])).toEqual([
+      'registry.make',
+      'new registry.Thing',
+      'registry.factory',
+    ])
+  })
+
+  it('can be disabled for one statement with a reason', async () => {
+    const findings =
+      await lint(`// oxlint-disable-next-line bazza/no-module-side-effects -- polyfill the app needs on import
+globalThis.polyfilled = true
+`)
+    expect(findings).toEqual([])
+  })
+})
+
 describe('the plugin', () => {
   it('registers exactly the rules listed in bazzaRuleNames', () => {
     expect(Object.keys(plugin.rules).sort()).toEqual([...bazzaRuleNames].sort())
@@ -1084,6 +1434,29 @@ describe('parseDirective / directiveProblem', () => {
 })
 
 describe('repo config', () => {
+  it('checks module side effects in both shipped source trees, not in tests or tooling', async () => {
+    const effect = `console.log('loaded')
+export const a = 1
+`
+    const findings = await lintWithRepoConfig({
+      'packages/react/src/a.ts': effect,
+      'packages/menu-core/src/b.ts': effect,
+      'packages/react/src/a.test.tsx': effect,
+      'packages/react/src/a.test-d.ts': effect,
+      'packages/react/src/x/__tests__/c.ts': effect,
+      'packages/menu-core/src/b.test.ts': effect,
+      'packages/menu-core/src/x/test-helpers.ts': effect,
+      'packages/react/bench/size/d.ts': effect,
+    })
+    const sideEffects = findings.filter(
+      (finding) => finding.rule === 'bazza(no-module-side-effects)',
+    )
+    expect(sideEffects.map((finding) => finding.file).sort()).toEqual([
+      'packages/menu-core/src/b.ts',
+      'packages/react/src/a.ts',
+    ])
+  })
+
   it('reports the rules of hooks in packages/react, including tests', async () => {
     const hook = `import * as React from 'react'
 export function Part({ open }: { open: boolean }) {

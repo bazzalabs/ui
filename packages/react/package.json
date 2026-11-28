@@ -6,6 +6,7 @@
     "access": "public"
   },
   "type": "module",
+  "sideEffects": false,
   "exports": {
     "./dropdown-menu": {
       "types": "./dist/dropdown-menu/index.d.ts",
