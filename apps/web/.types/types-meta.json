@@ -13155,7 +13155,7 @@
             "name": "suppressAutoOpenRef",
             "type": "MutableRefObject<boolean>",
             "required": true,
-            "description": "Latch set by explicit close actions (keyboard ArrowLeft/Ctrl+H/Escape-in-submenu,\nor clicking the open trigger). While set and the trigger remains highlighted,\npointer/keyboard auto-open is suppressed. Reset when highlight leaves the trigger."
+            "description": "Whether an explicit close (keyboard ArrowLeft/Ctrl+H/Escape-in-submenu,\nTab, or clicking the open trigger) suppresses pointer/keyboard auto-open\nwhile the trigger remains highlighted; reset when highlight leaves the\ntrigger. The submenu trigger's controller keeps it: reading `current`\nreads it, setting it to `true` is an explicit close and setting it to\n`false` clears it. A write before the trigger mounts applies when it\ndoes."
           },
           {
             "name": "triggerRef",

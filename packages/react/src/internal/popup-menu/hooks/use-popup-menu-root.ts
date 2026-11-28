@@ -2,7 +2,7 @@
 
 import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect'
 import { useStableCallback } from '@base-ui/utils/useStableCallback'
-import { decideOpenChange } from '@bazza-ui/menu-core'
+import { decideOpenChange, type OpenRequestResult } from '@bazza-ui/menu-core'
 import * as React from 'react'
 import type { ChangeEventDetails } from '../../../utils/events/index.js'
 import { REASONS } from '../../../utils/events/index.js'
@@ -23,7 +23,11 @@ import type { MenuTreeResolver } from '../menu-tree/resolver.js'
 import { createMenuTreeResolver } from '../menu-tree/resolver.js'
 import type { GetResolvedIdFn, PopupMenuIdScope } from '../menu-tree/types.js'
 import type { FocusOwnerStore } from '../store/FocusOwnerStore.js'
-import { getElementRegistry, MenuTreeStore } from '../store/MenuTreeStore.js'
+import {
+  getElementRegistry,
+  MenuTreeStore,
+  type RootAskOptions,
+} from '../store/MenuTreeStore.js'
 import type { OpenChainStore } from '../store/OpenChainStore.js'
 
 // ============================================================================
@@ -228,12 +232,23 @@ export function usePopupMenuRoot(
       onOpenChange?.(open, eventDetails)
     },
   )
-  // The tree's `closeTree`, stable for the same reason; it closes through
-  // the gate below, telling the submenus `cause` (the menu's own keys pass
-  // one)
-  const closeTree = useStableCallback(
-    (reason: PopupMenuOpenChangeReason, event?: Event, cause?: CloseCause) =>
-      requestOpen(false, reason, event, true, cause),
+  // The tree's `ask`, stable for the same reason: the gate below, which
+  // returns what became of the change (root adapters mirror a canceled one
+  // to Base UI's details)
+  const ask = useStableCallback(
+    (
+      open: boolean,
+      reason: PopupMenuOpenChangeReason,
+      event?: Event,
+      options?: RootAskOptions,
+    ): OpenRequestResult =>
+      requestOpen(
+        open,
+        reason,
+        event,
+        options?.engine ?? false,
+        options?.cause,
+      ),
   )
 
   // The menu tree's store (one per root, shared by its submenus) keeps the
@@ -248,7 +263,7 @@ export function usePopupMenuRoot(
       resolver: menuTreeResolver,
       open: defaultOpen,
       onOpenChange: stableOnOpenChange,
-      closeTree,
+      ask,
     })
     storesRef.current = { tree, store: tree.createRootStore() }
   }
@@ -452,9 +467,9 @@ export function usePopupMenuRoot(
           elements.popupFor(focusTarget) !== null,
         outsidePress: outsidePointerEventRef.current ?? undefined,
       })
-      if (decision.type !== 'allow') return
+      if (decision.type !== 'allow') return 'refused'
       outsidePointerEventRef.current = null
-      tree.requestOpen(newOpen, decision.reason, decision.event, cause)
+      return tree.requestOpen(newOpen, decision.reason, decision.event, cause)
     },
     [tree, disabled, isExemptNode, elements],
   )
@@ -464,7 +479,9 @@ export function usePopupMenuRoot(
       newOpen: boolean,
       reason: PopupMenuOpenChangeReason = REASONS.none,
       event?: Event,
-    ) => requestOpen(newOpen, reason, event, false),
+    ) => {
+      requestOpen(newOpen, reason, event, false)
+    },
     [requestOpen],
   )
 

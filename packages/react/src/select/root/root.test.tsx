@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { Select } from '../index.js'
 
@@ -1097,6 +1098,74 @@ describe('<Select.Root />', () => {
           expect(positioner).toHaveAttribute('data-side', 'none')
         })
         expect(positioner).toHaveAttribute('data-align', 'start')
+      } finally {
+        rectSpy.mockRestore()
+        clientHeightSpy.mockRestore()
+        clientWidthSpy.mockRestore()
+      }
+    })
+
+    it.each([
+      ['uncontrolled', false],
+      ['controlled', true],
+    ])('anchors instead of aligning when opened by touch, %s', async (_, controlled) => {
+      const rectSpy = vi
+        .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+        .mockImplementation(function (this: HTMLElement) {
+          switch (this.getAttribute('data-testid')) {
+            case 'trigger':
+              return createRect(100, 100, 220, 32)
+            case 'value':
+              return createRect(116, 106, 120, 20)
+            case 'item-label':
+              return createRect(116, 150, 80, 20)
+            default:
+              return createRect(100, 132, 220, 160)
+          }
+        })
+      const clientHeightSpy = vi
+        .spyOn(document.documentElement, 'clientHeight', 'get')
+        .mockReturnValue(768)
+      const clientWidthSpy = vi
+        .spyOn(document.documentElement, 'clientWidth', 'get')
+        .mockReturnValue(1024)
+
+      function Fixture() {
+        const [open, setOpen] = React.useState(false)
+        return (
+          <Select.Root {...(controlled ? { open, onOpenChange: setOpen } : {})}>
+            <Select.Trigger data-testid="trigger">
+              <Select.Value data-testid="value" placeholder="Select..." />
+            </Select.Trigger>
+            <Select.Portal>
+              <Select.Positioner data-testid="positioner" alignItemWithTrigger>
+                <Select.Popup>
+                  <Select.Surface>
+                    <Select.List>
+                      <Select.Item value="apple">
+                        <Select.ItemLabel data-testid="item-label">
+                          Apple
+                        </Select.ItemLabel>
+                      </Select.Item>
+                    </Select.List>
+                  </Select.Surface>
+                </Select.Popup>
+              </Select.Positioner>
+            </Select.Portal>
+          </Select.Root>
+        )
+      }
+
+      try {
+        render(<Fixture />)
+        const trigger = screen.getByTestId('trigger')
+        fireEvent.pointerDown(trigger, { pointerType: 'touch' })
+        fireEvent.pointerUp(trigger, { pointerType: 'touch' })
+        fireEvent.click(trigger)
+
+        const positioner = await screen.findByTestId('positioner')
+        await new Promise((r) => setTimeout(r, 30))
+        expect(positioner).not.toHaveAttribute('data-side', 'none')
       } finally {
         rectSpy.mockRestore()
         clientHeightSpy.mockRestore()

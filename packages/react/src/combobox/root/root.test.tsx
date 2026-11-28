@@ -287,6 +287,120 @@ describe('<Combobox.Root />', () => {
       ).toEqual([[false, 'escape-key']])
     })
 
+    it('keeps filtering after its consumer cancels a close', async () => {
+      let setInputValue: (value: string) => void = () => {}
+      function Controlled() {
+        const [inputValue, setValue] = React.useState('')
+        setInputValue = setValue
+        return (
+          <Combobox.Root
+            defaultOpen
+            inputValue={inputValue}
+            onInputValueChange={setValue}
+            onOpenChange={(open, details) => {
+              if (!open) details.cancel()
+            }}
+          >
+            <Combobox.Input data-testid="input" />
+            <Combobox.Portal>
+              <Combobox.Positioner>
+                <Combobox.Popup>
+                  <Combobox.Surface data-testid="surface">
+                    <Combobox.List>
+                      <Combobox.Item data-testid="item-apple" value="apple">
+                        Apple
+                      </Combobox.Item>
+                      <Combobox.Item data-testid="item-banana" value="banana">
+                        Banana
+                      </Combobox.Item>
+                    </Combobox.List>
+                  </Combobox.Surface>
+                </Combobox.Popup>
+              </Combobox.Positioner>
+            </Combobox.Portal>
+          </Combobox.Root>
+        )
+      }
+      render(<Controlled />)
+      await waitFor(() => {
+        expect(screen.getByTestId('surface')).toBeInTheDocument()
+      })
+      screen.getByTestId('input').focus()
+
+      // The close is canceled: the combobox stays open, its search live
+      fireEvent.keyDown(screen.getByTestId('input'), { key: 'Escape' })
+      await new Promise((r) => setTimeout(r, 30))
+      expect(screen.getByTestId('surface')).toBeInTheDocument()
+
+      act(() => setInputValue('ban'))
+      await waitFor(() => {
+        expect(screen.queryByTestId('item-apple')).not.toBeInTheDocument()
+      })
+      expect(screen.getByTestId('item-banana')).toBeInTheDocument()
+    })
+
+    // A close clears the input (`clearSearchOnClose`); the list it closes
+    // with keeps the search it had, kept mounted after it closes. (The search
+    // frozen is the uncontrolled input's, as before.)
+    describe.each([
+      ['uncontrolled', 'none'],
+      ['controlled, applied in its handler', 'handler'],
+      ['controlled, applied in a later task', 'later'],
+    ] as const)('freezes its list as it closes, %s', (_, apply) => {
+      it('keeps the search it closed with', async () => {
+        function Fixture() {
+          const [open, setOpen] = React.useState(true)
+          const controlled =
+            apply === 'none'
+              ? { defaultOpen: true }
+              : {
+                  open,
+                  onOpenChange: (next: boolean) => {
+                    if (apply === 'handler') setOpen(next)
+                    else setTimeout(() => setOpen(next), 20)
+                  },
+                }
+          return (
+            <Combobox.Root {...controlled}>
+              <Combobox.Input data-testid="input" />
+              <Combobox.Portal keepMounted>
+                <Combobox.Positioner>
+                  <Combobox.Popup data-testid="popup">
+                    <Combobox.Surface>
+                      <Combobox.List>
+                        <Combobox.Item data-testid="item-apple" value="apple">
+                          Apple
+                        </Combobox.Item>
+                        <Combobox.Item data-testid="item-banana" value="banana">
+                          Banana
+                        </Combobox.Item>
+                      </Combobox.List>
+                    </Combobox.Surface>
+                  </Combobox.Popup>
+                </Combobox.Positioner>
+              </Combobox.Portal>
+            </Combobox.Root>
+          )
+        }
+        render(<Fixture />)
+        const input = await screen.findByTestId('input')
+        await userEvent.type(input, 'ban')
+        await waitFor(() => {
+          expect(screen.queryByTestId('item-apple')).not.toBeInTheDocument()
+        })
+
+        fireEvent.keyDown(input, { key: 'Escape' })
+        await waitFor(() => {
+          expect(screen.getByTestId('popup')).toHaveAttribute('data-closed')
+        })
+        await new Promise((r) => setTimeout(r, 30))
+
+        expect(input).toHaveValue('')
+        expect(screen.queryByTestId('item-apple')).not.toBeInTheDocument()
+        expect(screen.getByTestId('item-banana')).toBeInTheDocument()
+      })
+    })
+
     it('highlights rows and does not request reopening while controlled open', async () => {
       const onOpenChange = vi.fn()
       const user = userEvent.setup()

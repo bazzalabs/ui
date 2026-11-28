@@ -171,8 +171,11 @@ export function usePopupMenuKeyboard(
   const tree = useMaybeMenuTree()
   const closeAllFromKeys = React.useCallback(
     (reason?: PopupMenuOpenChangeReason, event?: Event) => {
-      if (reason === REASONS.escapeKey && tree?.closeTree) {
-        tree.closeTree(REASONS.itemPress, undefined, { reason, event })
+      if (reason === REASONS.escapeKey && tree?.ask) {
+        tree.ask(false, REASONS.itemPress, undefined, {
+          engine: true,
+          cause: { reason, event },
+        })
       } else closeAll(reason, event)
     },
     [closeAll, tree],

@@ -488,15 +488,16 @@ export const PopupMenuSurface = React.forwardRef<
       parentSurfaceId: submenuContext?.parentSurfaceId ?? null,
       close: submenuContext
         ? () => {
-            // Suppress keyboard auto-reopen while the trigger stays
-            // highlighted (same as ArrowLeft/Escape keyboard closes).
-            submenuContext.suppressAutoOpenRef.current = true
+            // An explicit close: keyboard auto-reopen is suppressed while the
+            // trigger stays highlighted (as for ArrowLeft/Escape closes).
+            tier.submenu?.closeExplicitly()
             // Tab moved focus out of the submenu
             submenuContext.setOpen(false, REASONS.focusOut)
           }
         : () => {},
     })
   }, [
+    tier,
     focusZoneRegistry,
     isSurfaceActive,
     popupMenuContext.explicitTabBehavior,

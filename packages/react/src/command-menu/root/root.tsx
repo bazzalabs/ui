@@ -8,12 +8,10 @@ import {
   PopupMenuProviders,
   usePopupMenuRoot,
 } from '../../internal/popup-menu/index.js'
+import { askFromBaseUI } from '../../internal/popup-menu/members.js'
 import { REASONS } from '../../utils/events/index.js'
 import { useHotkey } from '../../utils/keybinding/use-hotkey.js'
-import type {
-  CommandMenuOpenChangeEventDetails,
-  CommandMenuOpenChangeReason,
-} from '../events.js'
+import type { CommandMenuOpenChangeEventDetails } from '../events.js'
 
 export interface CommandMenuRootProps {
   children: React.ReactNode
@@ -156,13 +154,11 @@ export function CommandMenuRoot(props: CommandMenuRoot.Props) {
 
   const handleDialogOpenChange = React.useCallback(
     (nextOpen: boolean, dialogDetails: Dialog.Root.ChangeEventDetails) => {
-      handleOpenChange(
-        nextOpen,
-        dialogDetails.reason as CommandMenuOpenChangeReason,
-        dialogDetails.event,
-      )
+      // Through the root's gate; a change that doesn't go through cancels
+      // Base UI's too, so Base UI skips its dismissal's side effects
+      askFromBaseUI(store, nextOpen, dialogDetails)
     },
-    [handleOpenChange],
+    [store],
   )
 
   const handleDialogOpenChangeComplete = React.useCallback(

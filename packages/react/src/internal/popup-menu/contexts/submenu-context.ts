@@ -1,6 +1,7 @@
 'use client'
 
 import { ReactStore } from '@base-ui/utils/store'
+import type { OpenRequestResult } from '@bazza-ui/menu-core'
 import type * as React from 'react'
 import type { ListboxStore } from '../../listbox/store/ListboxStore.js'
 import type { PopupMenuOpenChangeReason } from '../events.js'
@@ -21,9 +22,13 @@ export interface SubmenuContextValue {
     event?: Event,
   ) => void
   /**
-   * Latch set by explicit close actions (keyboard ArrowLeft/Ctrl+H/Escape-in-submenu,
-   * or clicking the open trigger). While set and the trigger remains highlighted,
-   * pointer/keyboard auto-open is suppressed. Reset when highlight leaves the trigger.
+   * Whether an explicit close (keyboard ArrowLeft/Ctrl+H/Escape-in-submenu,
+   * Tab, or clicking the open trigger) suppresses pointer/keyboard auto-open
+   * while the trigger remains highlighted; reset when highlight leaves the
+   * trigger. The submenu trigger's controller keeps it: reading `current`
+   * reads it, setting it to `true` is an explicit close and setting it to
+   * `false` clears it. A write before the trigger mounts applies when it
+   * does.
    */
   suppressAutoOpenRef: React.MutableRefObject<boolean>
   /** Reference to the trigger element */
@@ -45,6 +50,16 @@ export interface SubmenuContextValue {
 
 interface SubmenuHandleState {
   closeRootOnEsc: boolean
+  /** The trigger controller's suppression, mirrored for `suppressAutoOpenRef`. */
+  suppressed: boolean
+  /**
+   * A suppression the trigger's controller hasn't taken yet (an explicit
+   * close, or a write of `suppressAutoOpenRef`): `suppress` true suppresses,
+   * false clears it. A new object for each, which the trigger's binding
+   * takes and drops (`takeSuppression`); it waits for a trigger that hasn't
+   * mounted.
+   */
+  suppression: { readonly suppress: boolean } | null
 }
 
 /**
@@ -53,9 +68,7 @@ interface SubmenuHandleState {
  * the submenu store's (`store.state.open`). Made by `PopupMenu.SubmenuRoot`.
  */
 export class SubmenuHandle extends ReactStore<SubmenuHandleState> {
-  readonly suppressAutoOpenRef: React.MutableRefObject<boolean> = {
-    current: false,
-  }
+  readonly suppressAutoOpenRef: React.MutableRefObject<boolean>
   readonly triggerRef: React.RefObject<HTMLElement | null> = { current: null }
   readonly contentRef: React.RefObject<HTMLElement | null> = { current: null }
 
@@ -63,11 +76,39 @@ export class SubmenuHandle extends ReactStore<SubmenuHandleState> {
     /** The submenu's store. */
     readonly store: ListboxStore,
     readonly setOpen: SubmenuContextValue['setOpen'],
+    /**
+     * `setOpen`, returning what became of the change: what the trigger's
+     * controller decides on, and what Base UI's details mirror.
+     */
+    readonly request: (
+      open: boolean,
+      reason: PopupMenuOpenChangeReason,
+      event?: Event,
+    ) => OpenRequestResult,
     readonly parentSurfaceId: string,
     readonly childSurfaceId: string,
     closeRootOnEsc: boolean,
   ) {
-    super({ closeRootOnEsc })
+    super({ closeRootOnEsc, suppressed: false, suppression: null })
+    const handle = this
+    this.suppressAutoOpenRef = {
+      get current() {
+        const { suppression, suppressed } = handle.state
+        return suppression ? suppression.suppress : suppressed
+      },
+      set current(value: boolean) {
+        handle.set('suppression', { suppress: value })
+      },
+    }
+  }
+
+  /**
+   * An explicit close of the submenu happened (a key, Tab): its trigger's
+   * controller suppresses reopening on a highlight while the trigger keeps
+   * it.
+   */
+  closeExplicitly() {
+    this.set('suppression', { suppress: true })
   }
 
   #last: SubmenuContextValue | undefined

@@ -1,6 +1,7 @@
 'use client'
 
 import { Popover, type PopoverRootProps } from '@base-ui/react/popover'
+import { useIsoLayoutEffect } from '@base-ui/utils/useIsoLayoutEffect'
 import * as React from 'react'
 import type { VirtualItem } from '../../internal/listbox/index.js'
 import {
@@ -11,7 +12,11 @@ import {
   type UsePopupMenuRootParams,
   usePopupMenuRoot,
 } from '../../internal/popup-menu/index.js'
-import type { PopupMenuOpenChangeReason } from '../../internal/popup-menu/members.js'
+import {
+  askRootOpen,
+  mirrorToBaseUI,
+  type PopupMenuOpenChangeReason,
+} from '../../internal/popup-menu/members.js'
 import { REASONS } from '../../utils/events/index.js'
 import {
   defaultItemEquality,
@@ -455,15 +460,16 @@ export function ComboboxRoot<
   // Get open state from store for Popover
   const open = store.useState('open')
 
-  // Base UI's own changes, through the root's gate (`baseHandleOpenChange`,
-  // the close policy), except a close while the input has focus: this
-  // prevents base-ui's Popover from closing when clicking on the input. It
-  // stays a check of its own: it holds whatever reason Base UI gives, while
-  // the policy's exemptions are for a pressed or focused element.
+  // Base UI's own changes, through the root's gate (the close policy),
+  // except a close while the input has focus: this prevents base-ui's
+  // Popover from closing when clicking on the input. It stays a check of its
+  // own: it holds whatever reason Base UI gives, while the policy's
+  // exemptions are for a pressed or focused element. Returns what became of
+  // the change, or `null` when the input kept it from being asked.
   const handleOpenChange = React.useCallback(
     (
       newOpen: boolean,
-      reason?: ComboboxOpenChangeEventDetails['reason'],
+      reason: ComboboxOpenChangeEventDetails['reason'],
       event?: Event,
     ) => {
       // When trying to close, check if input has focus
@@ -471,17 +477,18 @@ export function ComboboxRoot<
         const activeElement = document.activeElement
         // If the input has focus or will have focus, don't close
         if (activeElement === inputRef.current) {
-          return
+          return null
         }
       }
       // Cast reason - combobox has additional reasons beyond PopupMenu's reasons
-      baseHandleOpenChange(
+      return askRootOpen(
+        store,
         newOpen,
-        reason as Parameters<typeof baseHandleOpenChange>[1],
+        reason as PopupMenuOpenChangeReason,
         event,
       )
     },
-    [baseHandleOpenChange],
+    [store],
   )
 
   // Handle animation complete - clear search and hide input if clearSearchOnClose is 'after-exit'
@@ -504,11 +511,16 @@ export function ComboboxRoot<
   // Wrapper to adapt Popover's event details to our handleOpenChange
   const handlePopoverOpenChange = React.useCallback(
     (nextOpen: boolean, popoverDetails: Popover.Root.ChangeEventDetails) => {
-      // Forward to our internal handler with the reason and event
-      handleOpenChange(
-        nextOpen,
-        popoverDetails.reason as ComboboxOpenChangeEventDetails['reason'],
-        popoverDetails.event,
+      // A change that doesn't go through (the input kept it, the gate
+      // refused it, its consumer canceled it) cancels Base UI's too, so
+      // Base UI skips its dismissal's side effects
+      mirrorToBaseUI(
+        handleOpenChange(
+          nextOpen,
+          popoverDetails.reason as ComboboxOpenChangeEventDetails['reason'],
+          popoverDetails.event,
+        ),
+        popoverDetails,
       )
     },
     [handleOpenChange],
@@ -628,34 +640,56 @@ export function ComboboxRoot<
     }
   }, [menuDisabled, baseHandleOpenChange, multiple, value, setFilterMode])
 
+  // A close the combobox asked for freezes the search once it happens, so
+  // the list doesn't change while it animates out: at once when it applies,
+  // or when a controlled `open` follows. A canceled or refused close leaves
+  // the search as it is.
+  const internalInputValueRef = React.useRef(internalInputValue)
+  internalInputValueRef.current = internalInputValue
+  const freezeOnCloseRef = React.useRef(false)
+  useIsoLayoutEffect(
+    () =>
+      store.observe('open', (isOpen, wasOpen) => {
+        if (isOpen === wasOpen) return
+        const freeze = freezeOnCloseRef.current
+        freezeOnCloseRef.current = false
+        if (isOpen || !freeze) return
+        // The effective search value, by the current filter mode:
+        // - 'active': freeze to current inputValue
+        // - 'showAll': freeze to '' (keep showing all items)
+        // - 'frozen': keep the existing frozen value
+        const currentMode = filterModeRef.current
+        setFilterMode({
+          type: 'frozen',
+          search:
+            currentMode.type === 'active'
+              ? internalInputValueRef.current
+              : currentMode.type === 'showAll'
+                ? ''
+                : currentMode.search,
+        })
+      }),
+    [store, setFilterMode],
+  )
+
   const closeCombobox = React.useCallback(
     (reason?: ComboboxOpenChangeEventDetails['reason'], event?: Event) => {
-      // Freeze the current search state BEFORE closing to prevent filter changes
-      // during exit animations.
-      //
-      // Get the effective search value based on current filter mode:
-      // - 'active': freeze to current inputValue
-      // - 'showAll': freeze to '' (keep showing all items)
-      // - 'frozen': keep the existing frozen value (shouldn't happen, but handle it)
-      const currentMode = filterModeRef.current
-      const searchToFreeze =
-        currentMode.type === 'active'
-          ? internalInputValue
-          : currentMode.type === 'showAll'
-            ? ''
-            : currentMode.search
-
-      setFilterMode({ type: 'frozen', search: searchToFreeze })
+      freezeOnCloseRef.current = true
       // Cast is safe: closeCombobox only receives close-related reasons
       // which are a subset of PopupMenuOpenChangeReason. The combobox closes
       // itself (blur, Escape, a choice): an engine close, which goes
       // through while disabled
-      closeAll(
+      const result = askRootOpen(
+        store,
+        false,
         (reason as PopupMenuOpenChangeReason | undefined) ?? REASONS.none,
         event,
+        { engine: true },
       )
+      // Only a close that's pending waits to freeze
+      if (result !== 'controlled') freezeOnCloseRef.current = false
     },
-    [closeAll, setFilterMode, internalInputValue],
+    [store],
   )
 
   // ===== Combobox Context =====

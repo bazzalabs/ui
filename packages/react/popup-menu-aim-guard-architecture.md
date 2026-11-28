@@ -97,7 +97,7 @@ The trigger binding filters DOM events (consumer `preventDefault`, disabled, non
 2. `pointer.leave`: the pending open is cancelled, then `leave(point)` reads the pointer:
    - no popup rect: release; with `closeOnPointerLeave` on, close an open submenu (now, or after `closeDelay`), otherwise it stays `open`;
    - inside the popup: release; the submenu stays open;
-   - outside, aiming at the popup: hold the guard for 600 ms, keep the trigger highlighted and the submenu open, and track the exit for 600 ms (if the submenu refuses to open, the guard is released and nothing is tracked; until UI-739, a controlled submenu whose `open` prop follows on the next render reads as refused here, and opens when the prop arrives);
+   - outside, aiming at the popup: hold the guard for 600 ms, keep the trigger highlighted and the submenu open, and track the exit for 600 ms (if the submenu's consumer cancels the open, or the close policy refuses it, the guard is released and nothing is tracked; a controlled submenu whose consumer took the open holds the guard and tracks while its `open` prop follows, bounded by the guard's timeout);
    - outside, missing it: release; with `closeOnPointerLeave` on, close an open submenu, or with `closeDelay` wait it out while tracking the exit for that long; with it off, the submenu stays `open` and nothing is tracked.
 3. While tracking, `watch()` adds a second pointer listener (mouse-like moves only), and each move is read by `track(point)`:
    - in `guarded`, moving back by 2 px or more along the anchor axis, or a heading that misses, releases the guard; with `closeOnPointerLeave` on it then closes (or waits out `closeDelay`, tracking for that long), and with it off it stops tracking and stays `open`;

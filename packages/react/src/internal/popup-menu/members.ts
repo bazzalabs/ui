@@ -6,9 +6,15 @@
 // don't change. Members import everything else from `index.js`.
 // See "Layers" in packages/react/AGENTS.md.
 
+export { getRequestReason } from '../listbox/store/ListboxStore.js'
 export {
   DataPopupProvider,
   DataSubpagesContent,
 } from './data-first/data-subpages.js'
 export type { PopupMenuOpenChangeReason } from './events.js'
 export { useMenuElement, usePressClaim } from './hooks/use-menu-element.js'
+export {
+  askFromBaseUI,
+  askRootOpen,
+  mirrorToBaseUI,
+} from './store/MenuTreeStore.js'

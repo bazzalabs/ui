@@ -664,18 +664,19 @@ describe('AimGuardTrigger under a SubmenuController', () => {
     const controller = new SubmenuController({
       clock: t.clock,
       aimGuard: aim,
-      suppressAutoOpen: { current: false },
       settings: {
         delay: { pointer: 0, keyboard: 150 },
         closeDelay: 0,
         closeOnPointerLeave: true,
         openOnHighlight: true,
       },
-      // A controlled or disabled submenu: it stays closed
+      // A disabled submenu, or a consumer canceling the open: it stays closed
       onOpenChange: (open) => {
         changes.push(open)
-        return false
+        return 'canceled'
       },
+      isOpenPending: () => false,
+      onFocus: () => {},
       onHighlight: () => {},
     })
 
