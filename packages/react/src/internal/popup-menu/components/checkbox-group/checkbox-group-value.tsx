@@ -75,13 +75,19 @@ export function PopupMenuCheckboxGroupValue(
     [],
   )
 
-  // Always controlled: `value` syncs into the group's store, which its
-  // items read.
-  const store = useCheckboxGroupStore(value, undefined, onValueChange)
+  // Always controlled: its items read `value` from the context, and it syncs
+  // into the group's store for the events that read it.
+  const store = useCheckboxGroupStore(value, undefined, onValueChange, false)
 
   const contextValue: CheckboxGroupContextValue = React.useMemo(
-    () => ({ groupId, store, disabled, registerItemValue }),
-    [groupId, store, disabled, registerItemValue],
+    () => ({
+      groupId,
+      store,
+      controlledValue: value,
+      disabled,
+      registerItemValue,
+    }),
+    [groupId, store, value, disabled, registerItemValue],
   )
 
   return (

@@ -4,10 +4,6 @@ import { useRender } from '@base-ui/react/use-render'
 import type { RadioGroupFields } from '@bazza-ui/menu-core'
 import * as React from 'react'
 import {
-  createChangeEventDetails,
-  REASONS,
-} from '../../../../utils/events/index.js'
-import {
   resolveClassName,
   resolveStyle,
 } from '../../../../utils/resolve-state-props.js'
@@ -19,12 +15,12 @@ import {
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
 import { usePopupMenuContext } from '../../contexts/popup-menu-context.js'
-import type { RadioValueChangeReason } from '../../events.js'
 import { useGroupVisibility } from '../group/use-group-visibility.js'
 import { PopupMenuRadioGroupDataAttributes } from './radio-group.data-attrs.js'
 import {
   RadioGroupContext,
   type RadioGroupContextValue,
+  useRadioGroupStore,
 } from './radio-group-context.js'
 
 export { PopupMenuRadioGroupDataAttributes }
@@ -108,32 +104,13 @@ export const PopupMenuRadioGroup = React.forwardRef(
 
     const disabled = disabledProp || popupMenuContext.disabled
 
-    // Controlled/uncontrolled state management
-    const [internalValue, setInternalValue] = React.useState<
-      string | undefined
-    >(defaultValue)
-    const isControlled = valueProp !== undefined
-    const value = isControlled ? valueProp : internalValue
-
-    const setValue = React.useCallback(
-      (
-        newValue: string,
-        reason: RadioValueChangeReason = REASONS.itemPress,
-        event?: Event,
-      ) => {
-        const eventDetails = createChangeEventDetails(reason, event)
-
-        // Call user's callback first
-        onValueChange?.(newValue, eventDetails)
-
-        // If canceled, don't update internal state
-        if (eventDetails.isCanceled) return
-
-        if (!isControlled) {
-          setInternalValue(newValue)
-        }
-      },
-      [isControlled, onValueChange],
+    // The selected value lives in the group's own store, which its items
+    // read.
+    const groupStore = useRadioGroupStore(
+      valueProp,
+      defaultValue,
+      onValueChange,
+      true,
     )
 
     const { isVisible, groupContextValue, descriptionElement } =
@@ -154,8 +131,8 @@ export const PopupMenuRadioGroup = React.forwardRef(
 
     // Context values
     const radioGroupContextValue: RadioGroupContextValue = React.useMemo(
-      () => ({ value, setValue, disabled }),
-      [value, setValue, disabled],
+      () => ({ store: groupStore, controlledValue: valueProp, disabled }),
+      [groupStore, valueProp, disabled],
     )
 
     const state: PopupMenuRadioGroup.State = React.useMemo(

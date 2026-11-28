@@ -109,6 +109,7 @@ export const PopupMenuCheckboxGroup = React.forwardRef(
       valueProp,
       defaultValue,
       onValueChange,
+      true,
     )
 
     const valueCountsRef = React.useRef<Map<string, number>>(new Map())
@@ -135,8 +136,14 @@ export const PopupMenuCheckboxGroup = React.forwardRef(
 
     // Context values
     const checkboxGroupContextValue: CheckboxGroupContextValue = React.useMemo(
-      () => ({ groupId, store: groupStore, disabled, registerItemValue }),
-      [groupId, groupStore, disabled, registerItemValue],
+      () => ({
+        groupId,
+        store: groupStore,
+        controlledValue: valueProp,
+        disabled,
+        registerItemValue,
+      }),
+      [groupId, groupStore, valueProp, disabled, registerItemValue],
     )
 
     const state: PopupMenuCheckboxGroup.State = React.useMemo(

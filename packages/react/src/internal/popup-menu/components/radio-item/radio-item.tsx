@@ -1,6 +1,7 @@
 'use client'
 
 import { useRender } from '@base-ui/react/use-render'
+import { useStore } from '@base-ui/utils/store'
 import type { RadioItemFields } from '@bazza-ui/menu-core'
 import * as React from 'react'
 import {
@@ -14,6 +15,7 @@ import {
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
 import { usePopupMenuItem } from '../../hooks/use-popup-menu-item.js'
+import { isSelected } from '../../store/RadioGroupStore.js'
 import { useRadioGroupContext } from '../radio-group/radio-group-context.js'
 import { PopupMenuRadioItemDataAttributes } from './radio-item.data-attrs.js'
 import {
@@ -101,8 +103,15 @@ export const PopupMenuRadioItem = React.forwardRef(function PopupMenuRadioItem(
   // Combine disabled from props and RadioGroup
   const localDisabled = disabledProp || radioGroupContext.disabled
 
-  // Check if this item is selected
-  const checked = radioGroupContext.value === value
+  // Whether this item is selected: in the prop while one controls the group
+  // (from the context, as fresh as this render's props), else in the group's
+  // own value, read by this item's value from its store (a key selector), so
+  // a change re-renders only the item that loses the selection and the one
+  // that takes it.
+  const ownSelected = useStore(radioGroupContext.store, isSelected, value)
+  const { controlledValue } = radioGroupContext
+  const checked =
+    controlledValue === undefined ? ownSelected : controlledValue === value
 
   const item = usePopupMenuItem({
     id,
@@ -124,7 +133,7 @@ export const PopupMenuRadioItem = React.forwardRef(function PopupMenuRadioItem(
   React.useEffect(() => {
     const handleSelect = () => {
       if (disabled) return
-      radioGroupContext.setValue(value)
+      radioGroupContext.store.setValue(value)
       onSelect?.()
     }
     return item.registerSelect(handleSelect)

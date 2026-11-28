@@ -402,6 +402,30 @@ describe('checkbox group', () => {
     expect(['a', 'b', 'c'].map(checkedOf)).toEqual(['false', 'false', 'false'])
   })
 
+  it('unchecks the checked rows a range spans in a controlled group', async () => {
+    function Controlled() {
+      const [value, setValue] = React.useState(['a', 'b', 'c'])
+      return (
+        <DropdownMenu.CheckboxGroup value={value} onValueChange={setValue}>
+          <Checkbox value="a" />
+          <Checkbox value="b" />
+          <Checkbox value="c" />
+        </DropdownMenu.CheckboxGroup>
+      )
+    }
+    render(
+      <Menu>
+        <Controlled />
+      </Menu>,
+    )
+    await act(async () => {})
+    press('a')
+    act(() => {
+      fireEvent.click(screen.getByTestId('c'), { shiftKey: true })
+    })
+    expect(['a', 'b', 'c'].map(checkedOf)).toEqual(['false', 'false', 'false'])
+  })
+
   it('keeps a prop the consumer starts controlling with from inside its callback', async () => {
     function TakesControl() {
       const [value, setValue] = React.useState<string[] | undefined>()
@@ -451,6 +475,36 @@ describe('checkbox group', () => {
     // The later change, made while the first was being decided, stands.
     expect(checkedOf('a')).toBe('false')
     expect(checkedOf('b')).toBe('true')
+  })
+
+  it('keeps its own value under a prop, and goes back to it, in every render, when the prop is dropped', async () => {
+    const rendered: boolean[] = []
+    const className = (state: DropdownMenu.CheckboxItem.State) => {
+      rendered.push(state.checked)
+      return ''
+    }
+    const tree = (value?: string[]) => (
+      <Menu>
+        <DropdownMenu.CheckboxGroup value={value} defaultValue={[]}>
+          <Checkbox value="a" className={className} />
+          <Checkbox value="b" />
+        </DropdownMenu.CheckboxGroup>
+      </Menu>
+    )
+    const { rerender } = render(tree())
+    await act(async () => {})
+    press('a')
+    rerender(tree(['b']))
+    expect(checkedOf('a')).toBe('false')
+    rendered.length = 0
+    rerender(tree())
+    await act(async () => {})
+    // The value the group had before the prop, not its default, in every
+    // render from the first.
+    expect(checkedOf('a')).toBe('true')
+    expect(checkedOf('b')).toBe('false')
+    expect(rendered.length).toBeGreaterThan(0)
+    expect([...new Set(rendered)]).toEqual([true])
   })
 
   it('ignores a later defaultValue', async () => {
