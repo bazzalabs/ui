@@ -1,11 +1,17 @@
 'use client'
 
+import {
+  type LoaderEntry,
+  type LoaderTarget,
+  loaderTarget,
+} from '@bazza-ui/menu-core'
 import * as React from 'react'
 import type { ListboxStore } from '../../listbox/store/ListboxStore.js'
 import { useMaybeStore } from '../hooks/use-maybe-store.js'
 import {
   EMPTY_LOADER_SCOPE,
   type LoaderScope,
+  type MenuTreeState,
   type MenuTreeStore,
   patch,
   selectLoaders,
@@ -118,6 +124,11 @@ export interface AsyncMenuCoordinatorValue {
    * `asyncContentReveal: 'block'` mode `Loading` hides once it has settled.
    */
   rootReveal: RootRevealState
+  /**
+   * Replaces the published reveal until the root data list publishes its own
+   * again. `settled` only holds results back: the reveal is settled only
+   * while the menu's loaders say the root loader has settled too.
+   */
   setRootReveal: (state: RootRevealState) => void
 }
 
@@ -154,15 +165,28 @@ const selectSearch = (state: { normalizedSearch: string }) =>
  */
 export function useMaybeAsyncMenuCoordinator(): AsyncMenuCoordinatorValue | null {
   const handle = React.useContext(LoaderScopeContext)
-  const scope = useMaybeStore(
+  // Subscribed for its search; the value reads it from the store.
+  useMaybeStore(handle?.store, selectSearch, '')
+  // The value itself is selected, so a change to the scope that publishes
+  // nothing new (what a loader is given) doesn't render its readers.
+  return useMaybeStore(
     handle?.tree,
-    selectLoaders,
-    EMPTY_LOADER_SCOPE,
-    handle?.id ?? '',
+    selectCoordinator,
+    null,
+    handle ?? undefined,
   )
-  const searchQuery = useMaybeStore(handle?.store, selectSearch, '')
-  return handle ? handle.coordinator(scope, searchQuery) : null
 }
+
+const selectCoordinator = (
+  state: Pick<MenuTreeState, 'loaders'>,
+  handle: LoaderScopeHandle | undefined,
+): AsyncMenuCoordinatorValue | null =>
+  handle
+    ? handle.coordinator(
+        selectLoaders(state, handle.id),
+        handle.store.state.normalizedSearch,
+      )
+    : null
 
 export function useAsyncMenuCoordinator(): AsyncMenuCoordinatorValue | null {
   return useMaybeAsyncMenuCoordinator()
@@ -183,72 +207,121 @@ type LoaderActions = Pick<
   | 'setRootReveal'
 >
 
-/** `map` with `id` set to `value` (removed when `undefined`), or `map` itself when that changes nothing. */
-function put<V>(map: Map<string, V>, id: string, value: V | undefined) {
-  if (map.get(id) === value && (value !== undefined || !map.has(id))) {
-    return map
+type TreeLoaderEntry = LoaderEntry<
+  NodeDef[],
+  AsyncLoaderResult<NodeDef[]>,
+  AsyncLoaderConfig
+>
+
+/**
+ * The coordinator's actions, over the scope's loaders in the tree's loader
+ * manager. The engine's own loaders report through `useLoaderTarget` and
+ * `LoaderScopeHandle.report`; these are for code that calls the published
+ * actions itself. `setRootReveal` publishes a reveal, as the root list does.
+ */
+function loaderActions(handle: LoaderScopeHandle): LoaderActions {
+  const register = (
+    id: string | null,
+    config: AsyncLoaderConfig,
+    result: AsyncLoaderResult<NodeDef[]>,
+  ) => {
+    handle.start(id, config)
+    handle.reportCurrent(id, result)
   }
-  const next = new Map(map)
-  if (value === undefined) next.delete(id)
-  else next.set(id, value)
-  return next
-}
-
-// Same transitions for every loader: set on a real error, cleared only once
-// the loader is no longer errored.
-function nextError(
-  current: Error | null,
-  result: AsyncLoaderResult<NodeDef[]>,
-) {
-  return result.isError ? (result.error ?? current) : null
-}
-
-/** Each action is one `updateLoaders` recipe; a no-op returns the scope. */
-function loaderActions(tree: MenuTreeStore, scopeId: string): LoaderActions {
-  const update = (recipe: (scope: LoaderScope) => LoaderScope) =>
-    tree.updateLoaders(scopeId, recipe)
   return {
-    registerLoader: (state) =>
-      update((scope) =>
-        patch(scope, { loaders: put(scope.loaders, state.id, state) }),
-      ),
-    unregisterLoader: (id) =>
-      update((scope) =>
-        patch(scope, {
-          loaders: put(scope.loaders, id, undefined),
-          erroredLoaders: put(scope.erroredLoaders, id, undefined),
-        }),
-      ),
-    updateLoaderResult: (id, result) =>
-      update((scope) => {
-        const existing = scope.loaders.get(id)
-        return patch(scope, {
-          loaders: existing
-            ? put(scope.loaders, id, { ...existing, result })
-            : scope.loaders,
-          erroredLoaders: put(
-            scope.erroredLoaders,
-            id,
-            nextError(scope.erroredLoaders.get(id) ?? null, result) ??
-              undefined,
-          ),
-        })
-      }),
-    registerRootLoader: (root) => update((scope) => patch(scope, { root })),
-    unregisterRootLoader: () =>
-      update((scope) => patch(scope, { root: null, rootError: null })),
-    updateRootLoaderResult: (result) =>
-      update((scope) =>
-        patch(scope, {
-          root: scope.root && { ...scope.root, result },
-          rootError: nextError(scope.rootError, result),
-        }),
-      ),
-    setRootReveal: (next) =>
-      update((scope) =>
-        patch(scope, { rootReveal: patch(scope.rootReveal, next) }),
-      ),
+    registerLoader: (state) => register(state.id, state.config, state.result),
+    unregisterLoader: (id) => handle.remove(id),
+    updateLoaderResult: (id, result) => handle.reportCurrent(id, result),
+    registerRootLoader: (root) => register(null, root.config, root.result),
+    unregisterRootLoader: () => handle.remove(null),
+    updateRootLoaderResult: (result) => handle.reportCurrent(null, result),
+    setRootReveal: (next) => handle.setReveal(next),
   }
+}
+
+/**
+ * Reports a loader's result as fetching while it answers an earlier query
+ * than the search asks (a newer one waits out the debounce, or the loader
+ * hasn't reported for it yet): a first load when it shows nothing, a
+ * background one when it does.
+ */
+function asFetching(
+  result: AsyncLoaderResult<NodeDef[]>,
+): AsyncLoaderResult<NodeDef[]> {
+  return {
+    ...result,
+    fetchStatus: 'fetching',
+    isFetching: true,
+    isLoading: !result.hasData,
+    isInitialLoading: !result.hasData,
+    isRefetching: result.hasData,
+    loadingPhase: result.hasData ? 'background' : 'initial',
+  }
+}
+
+// What a loader publishes, kept per result, so a loader whose result and
+// config are unchanged keeps its objects through any other change to it (what
+// it's given, its state's token).
+const fetchingResults = new WeakMap<
+  AsyncLoaderResult<NodeDef[]>,
+  AsyncLoaderResult<NodeDef[]>
+>()
+const publishedStates = new WeakMap<
+  AsyncLoaderResult<NodeDef[]>,
+  AsyncMenuState
+>()
+
+/** A loader's state as the coordinator publishes it; none until it reports. */
+function publishedState(
+  entry: TreeLoaderEntry,
+  id: string,
+): AsyncMenuState | undefined {
+  const { outdated, config } = entry
+  let result = entry.result
+  if (!result) return undefined
+  if (outdated) {
+    let fetching = fetchingResults.get(result)
+    if (!fetching) {
+      fetching = asFetching(result)
+      fetchingResults.set(result, fetching)
+    }
+    result = fetching
+  }
+  let published = publishedStates.get(result)
+  if (!published || published.id !== id || published.config !== config) {
+    published = { id, config, result }
+    publishedStates.set(result, published)
+  }
+  return published
+}
+
+/** Whether two maps hold the same values by key, in the same order. */
+function sameMap<V>(a: Map<string, V>, b: Map<string, V>): boolean {
+  if (a.size !== b.size) return false
+  const right = b.entries()
+  for (const [key, value] of a) {
+    const next = right.next().value
+    if (!next || next[0] !== key || next[1] !== value) return false
+  }
+  return true
+}
+
+/** Whether two coordinator values publish the same thing. */
+function sameCoordinator(
+  a: AsyncMenuCoordinatorValue,
+  b: AsyncMenuCoordinatorValue,
+): boolean {
+  return (
+    a.searchQuery === b.searchQuery &&
+    a.root?.config === b.root?.config &&
+    a.root?.result === b.root?.result &&
+    a.rootError === b.rootError &&
+    a.rootReveal.settled === b.rootReveal.settled &&
+    a.rootReveal.settledOnce === b.rootReveal.settledOnce &&
+    a.rootReveal.block === b.rootReveal.block &&
+    sameMap(a.loaders, b.loaders) &&
+    sameMap(a.erroredLoaders, b.erroredLoaders)
+  )
 }
 
 /** The coordinator value for a loader scope: its loaders and what they add up to. */
@@ -257,7 +330,20 @@ function coordinatorValue(
   searchQuery: string,
   actions: LoaderActions,
 ): AsyncMenuCoordinatorValue {
-  const { loaders, root, erroredLoaders, rootError } = scope
+  const loaders = new Map<string, AsyncMenuState>()
+  const erroredLoaders = new Map<string, Error>()
+  for (const [id, entry] of scope.loaders.branches) {
+    const state = publishedState(entry, id)
+    if (!state) continue
+    loaders.set(id, state)
+    if (entry.error) erroredLoaders.set(id, entry.error)
+  }
+  const rootEntry = scope.loaders.root
+  const rootState = rootEntry && publishedState(rootEntry, '')
+  const root: RootAsyncMenuState | null = rootState
+    ? { config: rootState.config, result: rootState.result }
+    : null
+  const rootError = root ? (rootEntry?.error ?? null) : null
   const all = root ? [root, ...loaders.values()] : [...loaders.values()]
   const any = (
     key: 'isLoading' | 'isFetching' | 'isInitialLoading' | 'isRefetching',
@@ -322,14 +408,21 @@ function coordinatorValue(
     erroredLoaders,
     rootError,
     getAsyncState: () => asyncState,
-    rootReveal: scope.rootReveal,
+    // The list's reveal, which it publishes once its rows are, held back at
+    // once when the root loader stops being settled (a new search).
+    rootReveal: {
+      settled: scope.reveal.settled && (rootEntry?.settled ?? true),
+      settledOnce: scope.reveal.settledOnce,
+      block: scope.reveal.block,
+    },
   }
 }
 
 /**
- * One data surface's loader scope. Its loaders' results live in the menu
- * tree (`MenuTreeStore.updateLoaders`); the coordinator value is derived from
- * them, once per change, for every reader.
+ * One data surface's loader scope. Its loaders live in the menu tree's
+ * `LoaderManager` (`MenuTreeStore.loaderManager()`), and reach the tree's
+ * state with each change; the coordinator value is derived from them, once
+ * per change, for every reader.
  */
 export class LoaderScopeHandle {
   readonly actions: LoaderActions
@@ -346,7 +439,46 @@ export class LoaderScopeHandle {
     /** The data surface's store, whose search the coordinator reports. */
     readonly store: ListboxStore,
   ) {
-    this.actions = loaderActions(tree, id)
+    this.actions = loaderActions(this)
+  }
+
+  /** A loader (`null`: the surface's own) starts, or its config changed. */
+  start(id: string | null, config: AsyncLoaderConfig) {
+    this.tree
+      .loaderManager()
+      .start(this.id, id, config, this.store.state.normalizedSearch)
+  }
+
+  /** The loader stopped. */
+  remove(id: string | null) {
+    this.tree.loaderManager().remove(this.id, id)
+  }
+
+  /** The loader's adapter shows `result` for `given`. */
+  report(
+    id: string | null,
+    given: LoaderTarget,
+    result: AsyncLoaderResult<NodeDef[]>,
+  ) {
+    this.tree.loaderManager().report(this.id, id, given, result)
+  }
+
+  /** `report`, for what the loader has now. */
+  reportCurrent(id: string | null, result: AsyncLoaderResult<NodeDef[]>) {
+    const entry = this.tree.loaderManager().get(this.id, id)
+    if (entry) this.report(id, entry.given, result)
+  }
+
+  /** The loader's adapter stopped reporting. */
+  withdraw(id: string | null) {
+    this.tree.loaderManager().withdraw(this.id, id)
+  }
+
+  /** Publishes the root content's reveal (`LoaderScope.reveal`). */
+  setReveal(reveal: RootRevealState) {
+    this.tree.updateLoaders(this.id, (scope) =>
+      patch(scope, { reveal: patch(scope.reveal, reveal) }),
+    )
   }
 
   coordinator(
@@ -357,7 +489,10 @@ export class LoaderScopeHandle {
     if (last && last.scope === scope && last.searchQuery === searchQuery) {
       return last.value
     }
-    const value = coordinatorValue(scope, searchQuery, this.actions)
+    const next = coordinatorValue(scope, searchQuery, this.actions)
+    // A change that publishes nothing new (what a loader is given, its
+    // state's token) keeps the value, so its readers don't render again.
+    const value = last && sameCoordinator(last.value, next) ? last.value : next
     this.#last = { scope, searchQuery, value }
     return value
   }
@@ -370,7 +505,9 @@ let scopeSessions = 0
  * `enabled`: the Surface shows its data-first content. Each stretch it's
  * enabled gets a scope of its own, and the scope is dropped from the tree
  * when it ends (a subpage hides the Surface, or the Surface unmounts), as
- * when the provider unmounted with the Surface's content.
+ * when the provider unmounted with the Surface's content. Its loaders follow
+ * the Surface's search from the store update that changes it, so they and
+ * the rows render the same search.
  */
 export function useLoaderScope(
   tree: MenuTreeStore,
@@ -385,7 +522,49 @@ export function useLoaderScope(
   )
   React.useLayoutEffect(() => {
     if (!enabled) return undefined
-    return () => tree.dropLoaders(handle.id)
-  }, [enabled, tree, handle])
+    tree.setLoaderSearch(handle.id, store.state.normalizedSearch)
+    const stop = store.observe(selectSearch, (search) =>
+      tree.setLoaderSearch(handle.id, search),
+    )
+    return () => {
+      stop()
+      tree.dropLoaders(handle.id)
+    }
+  }, [enabled, tree, handle, store])
   return handle
+}
+
+/**
+ * What a loader (`null`: the Surface's own `asyncContent`) is given for
+ * `search` while it's mounted with `config`. It runs in the loader scope
+ * around the caller, which holds a new query back for the config's
+ * `debounce`; the first search passes at once.
+ */
+export function useLoaderTarget(
+  id: string | null,
+  config: AsyncLoaderConfig | undefined,
+  search: string,
+): LoaderTarget {
+  const handle = React.useContext(LoaderScopeContext)
+  const scope = useMaybeStore(
+    handle?.tree,
+    selectLoaders,
+    EMPTY_LOADER_SCOPE,
+    handle?.id ?? '',
+  )
+  const entry =
+    id === null ? scope.loaders.root : scope.loaders.branches.get(id)
+  const runs = handle !== null && config !== undefined
+  React.useLayoutEffect(() => {
+    if (handle && config) handle.start(id, config)
+  }, [handle, id, config])
+  React.useLayoutEffect(() => {
+    if (!runs) return undefined
+    return () => handle.remove(id)
+  }, [handle, id, runs])
+  if (entry) return entry.given
+  if (!config) return { query: search, enabled: true }
+  // Before it starts: what the search asks, as the manager works it out.
+  const { query, enabled } = loaderTarget(config, search)
+  return { query, enabled }
 }
