@@ -8,7 +8,10 @@
 import * as React from 'react'
 import { REASONS } from '../../../utils/events/index.js'
 import { type ListboxStore, useListboxKeyboard } from '../../listbox/index.js'
-import { useMaybeCheckboxSelection } from '../contexts/checkbox-selection-context.js'
+import {
+  useCheckboxGestureKind,
+  useCheckboxSelectionSlot,
+} from '../contexts/checkbox-selection-context.js'
 import { useMaybeMenuTree } from '../contexts/menu-tree-context.js'
 import { usePopupMenuContext } from '../contexts/popup-menu-context.js'
 import type { SubmenuContextValue } from '../contexts/submenu-context.js'
@@ -97,14 +100,13 @@ export function usePopupMenuKeyboard(
     closeAll,
     skipFocusOwnerCheck = false,
   } = params
-  const selection = useMaybeCheckboxSelection()
+  // The surface's checkbox selection, null until its first checkbox row
+  // makes it: read in handlers and effects, so making it re-renders nothing.
+  const selectionSlot = useCheckboxSelectionSlot()
   const { rangeSelection } = usePopupMenuContext()
   const focusOwnerIsOwner = focusOwnerStore.useState('isOwner', surfaceId)
   const isOwner = skipFocusOwnerCheck ? true : focusOwnerIsOwner
-  // `selection` is either always null or always a store for a hook instance.
-  const gestureKind = selection
-    ? selection.useState('gesture')?.kind
-    : undefined
+  const gestureKind = useCheckboxGestureKind(selectionSlot)
   const spanActiveAtRender = gestureKind === 'keyboard'
 
   // While a keyboard span is active, listen at the document so releasing
@@ -112,6 +114,7 @@ export function usePopupMenuKeyboard(
   // focus zone, still commits (or cancels) instead of reaching the menu's
   // own dismiss handling.
   React.useEffect(() => {
+    const selection = selectionSlot?.state.current
     if (!selection || !spanActiveAtRender) return
     const onKeyUp = (event: KeyboardEvent) => {
       if (event.key === 'Shift') {
@@ -134,7 +137,7 @@ export function usePopupMenuKeyboard(
       document.removeEventListener('keydown', onKeyDown, true)
       window.removeEventListener('blur', cancel)
     }
-  }, [selection, spanActiveAtRender])
+  }, [selectionSlot, spanActiveAtRender])
 
   // Convert submenu context to the interface expected by the listbox hook
   const submenuInterface = React.useMemo(() => {
@@ -202,6 +205,7 @@ export function usePopupMenuKeyboard(
       onKeyDown?.(event)
       if (event.defaultPrevented) return
       const isComposing = event.nativeEvent.isComposing || event.keyCode === 229
+      const selection = selectionSlot?.state.current ?? null
       const activeGesture = selection?.state.gesture
       const keyboardSpanActive = activeGesture?.kind === 'keyboard'
       if (
@@ -277,7 +281,7 @@ export function usePopupMenuKeyboard(
     [
       onKeyDown,
       rangeSelection,
-      selection,
+      selectionSlot,
       isOwner,
       enabled,
       disabled,

@@ -15,7 +15,6 @@ import {
 import type { ComponentProps } from '../../../../utils/types.js'
 import { ItemContext, useSurfaceContext } from '../../../listbox/index.js'
 import { isPending } from '../../../listbox/store/ListboxStore.js'
-import { useCheckboxSelection } from '../../contexts/checkbox-selection-context.js'
 import {
   getSlotAttribute,
   useMaybeComponentName,
@@ -34,6 +33,7 @@ import {
   CheckboxItemContext,
   type CheckboxItemContextValue,
 } from './checkbox-item-context.js'
+import { useCheckboxRowSelection } from './checkbox-selection.js'
 
 export { PopupMenuCheckboxItemDataAttributes }
 
@@ -212,7 +212,9 @@ export const PopupMenuCheckboxItem = React.forwardRef<
 
   const disabled = item.disabled
 
-  const selection = useCheckboxSelection()
+  // The surface's checkbox selection: made the first time this row changes
+  // it (in an effect or a handler), only read otherwise.
+  const selection = useCheckboxRowSelection()
   const { rangeSelection, dragSelection } = usePopupMenuContext()
   // A range or drag selection previews the opposite of the committed state
   // for each item it would change, in the surface's store.
@@ -246,7 +248,7 @@ export const PopupMenuCheckboxItem = React.forwardRef<
             setValue: groupStore.setValue.bind(groupStore),
           }
         : null
-    return selection.registerRow({
+    return selection.ensure().registerRow({
       id: item.storeId,
       value: value ?? item.storeId,
       owner,
@@ -267,7 +269,7 @@ export const PopupMenuCheckboxItem = React.forwardRef<
       if (disabled) return
       toggleChecked()
       onSelect?.()
-      selection.setAnchor(item.storeId)
+      selection.ensure().setAnchor(item.storeId)
     }
     return item.registerSelect(handleSelect)
   }, [disabled, toggleChecked, onSelect, item, selection])
@@ -290,7 +292,7 @@ export const PopupMenuCheckboxItem = React.forwardRef<
   const toggleFromIndicator = React.useCallback(
     (reason?: CheckedChangeReason, event?: Event) => {
       toggleChecked(reason, event)
-      if (item.storeId) selection.setAnchor(item.storeId)
+      if (item.storeId) selection.ensure().setAnchor(item.storeId)
     },
     [toggleChecked, selection, item.storeId],
   )
@@ -307,23 +309,25 @@ export const PopupMenuCheckboxItem = React.forwardRef<
   // Merge user-provided handlers with item handlers
   const handleClick = React.useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
-      if (selection.consumeClickSuppression()) {
+      if (selection.peek()?.consumeClickSuppression()) {
         event.preventDefault()
         return
       }
       onClick?.(event)
       if (event.defaultPrevented) return
       if (rangeSelection && event.shiftKey && !disabled && item.storeId) {
-        const anchor = selection.getUsableAnchor()
+        const anchor = selection.peek()?.getUsableAnchor() ?? null
         if (anchor !== null) {
           // Range selection: commit through the store and never close the menu.
           event.preventDefault()
-          selection.applyRange(
-            anchor,
-            item.storeId,
-            REASONS.rangeSelection,
-            event.nativeEvent,
-          )
+          selection
+            .ensure()
+            .applyRange(
+              anchor,
+              item.storeId,
+              REASONS.rangeSelection,
+              event.nativeEvent,
+            )
           return
         }
       }
@@ -346,7 +350,7 @@ export const PopupMenuCheckboxItem = React.forwardRef<
       ) {
         return
       }
-      selection.beginPress({
+      selection.ensure().beginPress({
         id: item.storeId,
         pointerId: event.pointerId,
         element: event.currentTarget,
@@ -367,7 +371,7 @@ export const PopupMenuCheckboxItem = React.forwardRef<
   const handlePointerMove = React.useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
       onPointerMove?.(event)
-      if (selection.isPressActive()) return
+      if (selection.peek()?.isPressActive()) return
       if (!event.defaultPrevented) {
         item.handlers.onPointerMove(event)
       }

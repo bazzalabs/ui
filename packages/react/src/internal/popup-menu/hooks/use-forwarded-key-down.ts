@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { useMaybeCheckboxSelection } from '../contexts/checkbox-selection-context.js'
+import { useCheckboxSelectionSlot } from '../contexts/checkbox-selection-context.js'
 import {
   type UsePopupMenuKeyboardParams,
   usePopupMenuKeyboard,
@@ -57,16 +57,16 @@ export function useForwardedKeyDown(
     skipFocusOwnerCheck: true,
   })
 
-  const selection = useMaybeCheckboxSelection()
+  const selectionSlot = useCheckboxSelectionSlot()
   const latestRef = React.useRef({
     handleKeyDown,
     store: params.store,
-    selection,
+    selectionSlot,
   })
-  latestRef.current = { handleKeyDown, store: params.store, selection }
+  latestRef.current = { handleKeyDown, store: params.store, selectionSlot }
 
   return React.useCallback((event: ForwardedKeyboardEvent) => {
-    const { handleKeyDown, store, selection } = latestRef.current
+    const { handleKeyDown, store, selectionSlot } = latestRef.current
     if (event.defaultPrevented || !store.select('open')) return false
 
     const { key, ctrlKey, metaKey, altKey } = event
@@ -78,7 +78,8 @@ export function useForwardedKeyDown(
     if (isNavigation && store.getVisibleItemIds().length === 0) return false
 
     // Enter during a keyboard span commits the span, whatever row is highlighted.
-    const keyboardSpanActive = selection?.state.gesture?.kind === 'keyboard'
+    const keyboardSpanActive =
+      selectionSlot?.state.current?.state.gesture?.kind === 'keyboard'
     if (key === 'Enter' && !keyboardSpanActive) {
       const highlighted = store.getHighlightedItem()
       if (!store.state.highlightedId || highlighted?.activatable === false) {

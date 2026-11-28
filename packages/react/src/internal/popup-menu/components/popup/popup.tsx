@@ -9,7 +9,10 @@ import {
   useMaybeComponentName,
 } from '../../contexts/component-name-context.js'
 import { useFocusOwner } from '../../contexts/focus-owner-context.js'
-import { useMenuTree } from '../../contexts/menu-tree-context.js'
+import {
+  useMaybeMenuTreeTier,
+  useMenuTree,
+} from '../../contexts/menu-tree-context.js'
 import { useMaybePopupMenuContext } from '../../contexts/popup-menu-context.js'
 import { PopupSurfaceIdContext } from '../../contexts/popup-surface-id-context.js'
 import { useMaybeSubmenuContext } from '../../contexts/submenu-context.js'
@@ -18,7 +21,6 @@ import {
   DataPopupProvider,
   DataSubpagesContent,
 } from '../../data-first/data-subpages.js'
-import { useMaybeAimGuard } from '../../hooks/use-aim-guard.js'
 import { useMenuElement, usePressClaim } from '../../hooks/use-menu-element.js'
 import { useSubpageStackState } from '../../hooks/use-subpage-stack-state.js'
 import { getElementRegistry } from '../../store/MenuTreeStore.js'
@@ -95,8 +97,9 @@ export const PopupMenuPopup = React.forwardRef<
   // Get submenu context to set contentRef for aim guard and get childSurfaceId for focus transfer
   const submenuContext = useMaybeSubmenuContext()
 
-  // The tree's aim guard: the pointer over a submenu popup reached it
-  const aimGuard = useMaybeAimGuard()
+  // The tree tier: its aim guard, if it has one, hears the pointer over a
+  // submenu popup reach it
+  const treeTier = useMaybeMenuTreeTier()
 
   // Get focus owner store for transferring ownership
   const focusOwnerStore = useFocusOwner()
@@ -185,8 +188,8 @@ export const PopupMenuPopup = React.forwardRef<
   // The pointer over a submenu popup (or a popup nested in it) reached it:
   // a guard on the way there is released, and its trigger hears of it
   const handlePointerInPopup = React.useCallback(() => {
-    if (submenuContext) aimGuard?.pointerInPopup(surfaceId)
-  }, [submenuContext, aimGuard, surfaceId])
+    if (submenuContext) treeTier?.aimGuard?.pointerInPopup(surfaceId)
+  }, [submenuContext, treeTier, surfaceId])
 
   // Transfer focus ownership when pointer moves inside this submenu popup
   // We ignore events shortly after open to prevent focus transfer when

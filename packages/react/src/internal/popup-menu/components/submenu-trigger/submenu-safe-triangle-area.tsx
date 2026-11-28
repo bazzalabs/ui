@@ -1,5 +1,6 @@
 'use client'
 
+import type { Rect } from '@bazza-ui/menu-core'
 import * as React from 'react'
 import { createPortal } from 'react-dom'
 import type { PopupMenuSafeTriangleAreaDebugSettings } from '../../contexts/popup-menu-debug-context.js'
@@ -13,8 +14,8 @@ export interface PopupMenuSubmenuSafeTriangleAreaProps {
   contentRef: React.RefObject<HTMLElement | null>
   triggerRef: React.RefObject<HTMLElement | null>
   tone: PopupMenuSubmenuSafeTriangleTone
-  contentRectOverride?: DOMRect | null
-  triggerRectOverride?: DOMRect | null
+  contentRectOverride?: Rect | null
+  triggerRectOverride?: Rect | null
   mousePointOverride?: [number, number] | null
 }
 

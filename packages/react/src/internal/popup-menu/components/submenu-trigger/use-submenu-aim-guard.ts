@@ -12,6 +12,7 @@ import {
   type PopupMenuSafeTriangleAreaDebugSettings,
   usePopupMenuDebug,
 } from '../../contexts/popup-menu-debug-context.js'
+import { createAimGuard } from './create-aim-guard.js'
 
 export interface SubmenuAimGuardParams {
   triggerId: string
@@ -56,8 +57,8 @@ export function useSubmenuAimGuard(
     triggerRef,
   } = params
 
-  const guard = useMaybeMenuTreeTier()?.aimGuard
-  if (!guard) {
+  const tier = useMaybeMenuTreeTier()
+  if (!tier) {
     throw new Error('SubmenuTrigger must be used within a menu root')
   }
 
@@ -79,7 +80,11 @@ export function useSubmenuAimGuard(
       triggerRef,
     ],
   )
-  const [aimGuard] = React.useState(() => guard.trigger(options))
+  // The tree's first submenu trigger makes its aim guard: created once, on
+  // the tree tier, with no store or state written.
+  const [aimGuard] = React.useState(() =>
+    tier.ensureAimGuard(createAimGuard).trigger(options),
+  )
   useIsoLayoutEffect(() => {
     aimGuard.configure(options)
   }, [aimGuard, options])
@@ -115,7 +120,10 @@ export function useSubmenuAimGuard(
   )
 
   const safeTriangle = React.useMemo(
-    () => (snapshot ? { config: showSafeTriangleArea, snapshot } : null),
+    () =>
+      snapshot && showSafeTriangleArea.enabled
+        ? { config: showSafeTriangleArea, snapshot }
+        : null,
     [snapshot, showSafeTriangleArea],
   )
 

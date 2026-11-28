@@ -143,7 +143,9 @@ export function resolvePopupMenuSafeTriangleAreaDebugConfig(
 }
 
 /**
- * Debug configuration available on popup-menu roots.
+ * Debug configuration available on popup-menu roots. It works in
+ * development only: a production build (`process.env.NODE_ENV ===
+ * 'production'`) ignores it, and leaves out the overlay and the log lines.
  */
 export interface PopupMenuDebugOptions {
   /**
@@ -164,13 +166,26 @@ export interface PopupMenuDebugOptions {
   logAimGuardEvents?: boolean
 }
 
+/**
+ * The overlay's flag as a root holds it: its settings, or only `enabled:
+ * false` (a production build's, which has no overlay). Read a setting only
+ * once `enabled` has narrowed it to the settings.
+ */
+export type PopupMenuSafeTriangleAreaDebugValue =
+  | PopupMenuSafeTriangleAreaDebugSettings
+  | { readonly enabled: false }
+
 export interface PopupMenuDebugContextValue {
-  showSafeTriangleArea: PopupMenuSafeTriangleAreaDebugSettings
+  showSafeTriangleArea: PopupMenuSafeTriangleAreaDebugValue
   logAimGuardEvents: boolean
 }
 
 export const defaultPopupMenuDebugContextValue: PopupMenuDebugContextValue = {
-  showSafeTriangleArea: defaultPopupMenuSafeTriangleAreaDebugSettings,
+  // A production build has no overlay, so it drops the overlay's defaults.
+  showSafeTriangleArea:
+    process.env.NODE_ENV === 'production'
+      ? { enabled: false }
+      : defaultPopupMenuSafeTriangleAreaDebugSettings,
   logAimGuardEvents: false,
 }
 

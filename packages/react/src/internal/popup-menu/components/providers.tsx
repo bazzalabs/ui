@@ -7,6 +7,7 @@ import type { ListboxStore } from '../../listbox/index.js'
 import { getOpenOwner } from '../../listbox/store/ListboxStore.js'
 import type { ComponentName } from '../contexts/component-name-context.js'
 import {
+  type AimGuardHolder,
   MenuTreeContext,
   MenuTreeSettings,
   MenuTreeTier,
@@ -18,6 +19,7 @@ import {
   type VirtualizationConfig,
 } from '../contexts/popup-menu-context.js'
 import {
+  defaultPopupMenuDebugContextValue,
   type PopupMenuDebugContextValue,
   type PopupMenuDebugOptions,
   resolvePopupMenuSafeTriangleAreaDebugConfig,
@@ -28,7 +30,6 @@ import {
   useMaybeMenuSurfaceTier,
 } from '../contexts/surface-tier-context.js'
 import type { PopupMenuOpenChangeReason } from '../events.js'
-import { createAimGuard } from '../hooks/use-aim-guard.js'
 import type { MenuTreeResolver } from '../menu-tree/resolver.js'
 import type { FocusOwnerStore } from '../store/FocusOwnerStore.js'
 import { FocusZoneRegistry } from '../store/FocusZoneRegistry.js'
@@ -187,14 +188,19 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
     })
   }, [store, openChainStore, focusOwnerStore, menuTreeResolver])
 
+  // The debug flags are development tools: a production build ignores the
+  // `debug` prop, and drops what reads it.
   const debugValue: PopupMenuDebugContextValue = React.useMemo(
-    () => ({
-      showSafeTriangleArea: resolvePopupMenuSafeTriangleAreaDebugConfig(
-        debug?.showSafeTriangleArea,
-        debug?.showSubmenuSafeTriangleArea,
-      ),
-      logAimGuardEvents: debug?.logAimGuardEvents ?? false,
-    }),
+    () =>
+      process.env.NODE_ENV === 'production'
+        ? defaultPopupMenuDebugContextValue
+        : {
+            showSafeTriangleArea: resolvePopupMenuSafeTriangleAreaDebugConfig(
+              debug?.showSafeTriangleArea,
+              debug?.showSubmenuSafeTriangleArea,
+            ),
+            logAimGuardEvents: debug?.logAimGuardEvents ?? false,
+          },
     [
       debug?.showSafeTriangleArea,
       debug?.showSubmenuSafeTriangleArea,
@@ -207,12 +213,15 @@ export function PopupMenuProviders(props: PopupMenuProvidersProps) {
     () => new MenuTreeSettings({ debug: debugValue }),
   )
   settings.useSyncedValue('debug', debugValue)
-  const [aimGuard] = React.useState(() => createAimGuard(settings))
   const [focusZones] = React.useState(() => new FocusZoneRegistry())
-  React.useEffect(() => () => aimGuard.dispose(), [aimGuard])
+  // The root's aim guard, made by its first submenu trigger. It lives as
+  // long as the root: a tier made again (a new tree) shares the guard the
+  // mounted triggers hold, and it's disposed only when the root unmounts.
+  const [aimGuard] = React.useState<AimGuardHolder>(() => ({ current: null }))
+  React.useEffect(() => () => aimGuard.current?.dispose(), [aimGuard])
   const treeTier = React.useMemo(
-    () => new MenuTreeTier(tree, componentName, settings, aimGuard, focusZones),
-    [tree, componentName, settings, aimGuard, focusZones],
+    () => new MenuTreeTier(tree, componentName, settings, focusZones, aimGuard),
+    [tree, componentName, settings, focusZones, aimGuard],
   )
 
   // The root surface's tier. A root nested in another menu's content keeps
