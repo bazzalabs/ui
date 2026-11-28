@@ -1,6 +1,5 @@
 'use client'
 
-import { useRender } from '@base-ui/react/use-render'
 import type { ItemFields } from '@bazza-ui/menu-core'
 import * as React from 'react'
 import {
@@ -8,6 +7,7 @@ import {
   resolveStyle,
 } from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
+import { usePart } from '../../../../utils/use-part.js'
 import { ItemContext } from '../../../listbox/index.js'
 import {
   getSlotAttribute,
@@ -75,9 +75,7 @@ export const PopupMenuItem = React.forwardRef<
     render,
     className,
     style,
-    onClick,
     onPointerDown,
-    onPointerMove,
     children,
     'aria-describedby': ariaDescribedBy,
     ...rest
@@ -113,15 +111,15 @@ export const PopupMenuItem = React.forwardRef<
     [item.isHighlighted, disabled, item.positional],
   )
 
-  // Merge user-provided handlers with item handlers
+  // The item's own handlers. They run after the consumer's (`usePart`), and
+  // a consumer's `preventDefault()` or `preventBaseUIHandler()` skips them.
   const handleClick = React.useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
-      onClick?.(event)
       if (!event.defaultPrevented) {
         item.handlers.onClick(event)
       }
     },
-    [onClick, item.handlers],
+    [item.handlers],
   )
 
   const handlePointerDown = React.useCallback(
@@ -134,12 +132,11 @@ export const PopupMenuItem = React.forwardRef<
 
   const handlePointerMove = React.useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
-      onPointerMove?.(event)
       if (!event.defaultPrevented) {
         item.handlers.onPointerMove(event)
       }
     },
-    [onPointerMove, item.handlers],
+    [item.handlers],
   )
 
   // Wrap children with ItemContext.Provider so child components can access item state
@@ -153,13 +150,13 @@ export const PopupMenuItem = React.forwardRef<
   const componentName = useMaybeComponentName()
   const slotAttr = getSlotAttribute(componentName, 'item')
 
-  return useRender({
+  return usePart({
     render,
     ref: [item.ref, item.rowRef, forwardedRef],
     state,
     stateAttributesMapping,
+    consumer: rest,
     props: {
-      ...rest,
       ...(slotAttr ? { [slotAttr]: '' } : {}),
       id: item.id,
       role: 'option',

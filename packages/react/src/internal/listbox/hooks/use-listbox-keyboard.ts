@@ -3,6 +3,7 @@
 import { decideOpenChange } from '@bazza-ui/menu-core'
 import * as React from 'react'
 import { REASONS } from '../../../utils/events/index.js'
+import { useComposedHandler } from '../../../utils/use-part.js'
 import type { PopupMenuOpenChangeReason } from '../events.js'
 import {
   getRegistration,
@@ -137,11 +138,10 @@ export function useListboxKeyboard(
   // Skip this check for Combobox where input is outside Surface
   const isOwner = skipFocusOwnerCheck ? true : focusOwnerIsOwner
 
-  const handleKeyDown = React.useCallback(
+  // The consumer's handler runs first (`useComposedHandler`, below); its
+  // `preventDefault()` or `preventBaseUIHandler()` skips everything here.
+  const handleOwnKeyDown = React.useCallback(
     (event: React.KeyboardEvent) => {
-      // Call user's handler first
-      onKeyDown?.(event)
-
       if (event.defaultPrevented) return
 
       // Only handle keyboard if enabled and this surface owns focus
@@ -373,7 +373,6 @@ export function useListboxKeyboard(
       }
     },
     [
-      onKeyDown,
       enabled,
       isOwner,
       enableTypeToSearch,
@@ -387,5 +386,6 @@ export function useListboxKeyboard(
     ],
   )
 
+  const handleKeyDown = useComposedHandler(onKeyDown, handleOwnKeyDown)
   return { handleKeyDown }
 }

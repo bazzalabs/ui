@@ -8,6 +8,7 @@ import {
 } from '../../internal/popup-menu/index.js'
 import { REASONS } from '../../utils/events/index.js'
 import { resolveLabel } from '../../utils/resolve-value-label.js'
+import { useComposedHandler } from '../../utils/use-part.js'
 import type { ComboboxContextValue } from '../contexts/combobox-context.js'
 import type { ComboboxInputCursorBehavior } from './input.js'
 
@@ -238,10 +239,12 @@ export function useComboboxInputBehavior(
     [comboboxContext, store],
   )
 
+  // Each handler below runs after the consumer's (`useComposedHandler`), and a
+  // consumer's `preventDefault()` or `preventBaseUIHandler()` skips it.
+
   // Handle focus
-  const handleFocus = React.useCallback(
+  const handleOwnFocus = React.useCallback(
     (event: React.FocusEvent<HTMLInputElement>) => {
-      onFocus?.(event)
       if (event.defaultPrevented) return
 
       const isOpen = store.select('open')
@@ -266,13 +269,13 @@ export function useComboboxInputBehavior(
         comboboxContext.openCombobox()
       }
     },
-    [onFocus, comboboxContext, disabled, store, hasValue, getValueText],
+    [comboboxContext, disabled, store, hasValue, getValueText],
   )
+  const handleFocus = useComposedHandler(onFocus, handleOwnFocus)
 
   // Handle blur - close combobox when focus moves outside
-  const handleBlur = React.useCallback(
+  const handleOwnBlur = React.useCallback(
     (event: React.FocusEvent<HTMLInputElement>) => {
-      onBlur?.(event)
       if (event.defaultPrevented) return
 
       // Use requestAnimationFrame to check where focus moved to
@@ -300,13 +303,13 @@ export function useComboboxInputBehavior(
         }
       })
     },
-    [onBlur, comboboxContext],
+    [comboboxContext],
   )
+  const handleBlur = useComposedHandler(onBlur, handleOwnBlur)
 
   // Handle click
-  const handleClick = React.useCallback(
+  const handleOwnClick = React.useCallback(
     (event: React.MouseEvent<HTMLInputElement>) => {
-      onClick?.(event)
       if (event.defaultPrevented) return
 
       const isOpen = store.select('open')
@@ -341,22 +344,13 @@ export function useComboboxInputBehavior(
         wasAlreadyFocusedRef.current = true
       }
     },
-    [
-      onClick,
-      comboboxContext,
-      disabled,
-      store,
-      cursorBehavior,
-      hasValue,
-      getValueText,
-    ],
+    [comboboxContext, disabled, store, cursorBehavior, hasValue, getValueText],
   )
+  const handleClick = useComposedHandler(onClick, handleOwnClick)
 
   // Handle keyboard when popup is closed (opening it) or Escape to close
-  const handleKeyDownWhenClosed = React.useCallback(
+  const handleOwnKeyDownWhenClosed = React.useCallback(
     (event: React.KeyboardEvent<HTMLInputElement>) => {
-      // Let user handler run first
-      onKeyDown?.(event)
       if (event.defaultPrevented) return
 
       // Handle Escape to close popup (input stays focused)
@@ -389,7 +383,11 @@ export function useComboboxInputBehavior(
         }
       }
     },
-    [open, comboboxContext, onKeyDown, hasValue, getValueText],
+    [open, comboboxContext, hasValue, getValueText],
+  )
+  const handleKeyDownWhenClosed = useComposedHandler(
+    onKeyDown,
+    handleOwnKeyDownWhenClosed,
   )
 
   // The keyboard hook closes the menu with no reason of its own here (the

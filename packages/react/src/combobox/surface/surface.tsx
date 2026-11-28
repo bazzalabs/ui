@@ -6,6 +6,7 @@ import {
   type PopupMenuSurfaceProps,
 } from '../../internal/popup-menu/index.js'
 import { stringifyAsValue } from '../../utils/resolve-value-label.js'
+import { useComposedHandler } from '../../utils/use-part.js'
 import { useComboboxContext } from '../contexts/combobox-context.js'
 import { ComboboxSurfaceDataAttributes } from './surface.data-attrs.js'
 
@@ -57,17 +58,18 @@ export const ComboboxSurface = React.forwardRef<
 
   // Focus the input when cursor moves inside the popup
   // This allows users to immediately type to filter after hovering
-  const handlePointerMove = React.useCallback(
-    (event: React.PointerEvent<HTMLDivElement>) => {
-      onPointerMoveProp?.(event)
-
-      // Focus the input if it's not already focused
-      const input = comboboxContext.inputRef.current
-      if (input && document.activeElement !== input) {
-        input.focus()
-      }
-    },
-    [onPointerMoveProp, comboboxContext.inputRef],
+  // after the consumer's handler, which `preventBaseUIHandler()` in skips it
+  // (`useComposedHandler`)
+  const handleOwnPointerMove = React.useCallback(() => {
+    // Focus the input if it's not already focused
+    const input = comboboxContext.inputRef.current
+    if (input && document.activeElement !== input) {
+      input.focus()
+    }
+  }, [comboboxContext.inputRef])
+  const handlePointerMove = useComposedHandler(
+    onPointerMoveProp,
+    handleOwnPointerMove,
   )
 
   // Resolve autoHighlightFirst:

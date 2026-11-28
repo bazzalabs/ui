@@ -1,6 +1,5 @@
 'use client'
 
-import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import { useMenuElement } from '../../internal/popup-menu/members.js'
 import {
@@ -8,6 +7,7 @@ import {
   resolveStyle,
 } from '../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../utils/types.js'
+import { usePart } from '../../utils/use-part.js'
 import { useContextMenuInternal } from '../root/root.js'
 import { ContextMenuTriggerDataAttributes } from './trigger.data-attrs.js'
 
@@ -63,11 +63,6 @@ export const ContextMenuTrigger = React.forwardRef<
     render,
     className,
     style,
-    onContextMenu,
-    onTouchStart,
-    onTouchMove,
-    onTouchEnd,
-    onTouchCancel,
     children,
     ...rest
   } = props
@@ -107,8 +102,6 @@ export const ContextMenuTrigger = React.forwardRef<
   // Handle right-click (contextmenu event)
   const handleContextMenu = React.useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
-      onContextMenu?.(event)
-
       if (event.defaultPrevented) return
       if (disabled) return
 
@@ -121,14 +114,12 @@ export const ContextMenuTrigger = React.forwardRef<
       // Open the menu
       openMenu(event.nativeEvent)
     },
-    [onContextMenu, disabled, setAnchorPosition, openMenu],
+    [disabled, setAnchorPosition, openMenu],
   )
 
   // Handle touch start (begin long-press detection)
   const handleTouchStart = React.useCallback(
     (event: React.TouchEvent<HTMLDivElement>) => {
-      onTouchStart?.(event)
-
       if (event.defaultPrevented) return
       if (disabled) return
 
@@ -159,14 +150,12 @@ export const ContextMenuTrigger = React.forwardRef<
         touchStartPosRef.current = null
       }, LONG_PRESS_DELAY)
     },
-    [onTouchStart, disabled, setAnchorPosition, openMenu],
+    [disabled, setAnchorPosition, openMenu],
   )
 
   // Handle touch move (cancel if moved too far)
   const handleTouchMove = React.useCallback(
     (event: React.TouchEvent<HTMLDivElement>) => {
-      onTouchMove?.(event)
-
       if (!touchStartPosRef.current) return
 
       const touch = event.touches[0]
@@ -183,28 +172,20 @@ export const ContextMenuTrigger = React.forwardRef<
         touchStartPosRef.current = null
       }
     },
-    [onTouchMove, clearLongPressTimeout],
+    [clearLongPressTimeout],
   )
 
   // Handle touch end (cleanup)
-  const handleTouchEnd = React.useCallback(
-    (event: React.TouchEvent<HTMLDivElement>) => {
-      onTouchEnd?.(event)
-      clearLongPressTimeout()
-      touchStartPosRef.current = null
-    },
-    [onTouchEnd, clearLongPressTimeout],
-  )
+  const handleTouchEnd = React.useCallback(() => {
+    clearLongPressTimeout()
+    touchStartPosRef.current = null
+  }, [clearLongPressTimeout])
 
   // Handle touch cancel (cleanup)
-  const handleTouchCancel = React.useCallback(
-    (event: React.TouchEvent<HTMLDivElement>) => {
-      onTouchCancel?.(event)
-      clearLongPressTimeout()
-      touchStartPosRef.current = null
-    },
-    [onTouchCancel, clearLongPressTimeout],
-  )
+  const handleTouchCancel = React.useCallback(() => {
+    clearLongPressTimeout()
+    touchStartPosRef.current = null
+  }, [clearLongPressTimeout])
 
   const state: ContextMenuTrigger.State = React.useMemo(
     () => ({
@@ -217,13 +198,13 @@ export const ContextMenuTrigger = React.forwardRef<
 
   const triggerRef = useMenuElement('trigger')
 
-  return useRender({
+  return usePart({
     render,
     ref: [forwardedRef, triggerRef],
     state,
     stateAttributesMapping,
+    consumer: rest,
     props: {
-      ...rest,
       [ContextMenuTriggerDataAttributes.slot]: '',
       onContextMenu: handleContextMenu,
       onTouchStart: handleTouchStart,

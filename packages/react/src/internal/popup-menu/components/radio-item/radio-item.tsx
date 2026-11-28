@@ -1,6 +1,5 @@
 'use client'
 
-import { useRender } from '@base-ui/react/use-render'
 import { useStore } from '@base-ui/utils/store'
 import type { RadioItemFields } from '@bazza-ui/menu-core'
 import * as React from 'react'
@@ -9,6 +8,7 @@ import {
   resolveStyle,
 } from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
+import { usePart } from '../../../../utils/use-part.js'
 import { ItemContext } from '../../../listbox/index.js'
 import {
   getSlotAttribute,
@@ -90,9 +90,7 @@ export const PopupMenuRadioItem = React.forwardRef(function PopupMenuRadioItem(
     render,
     className,
     style,
-    onClick,
     onPointerDown,
-    onPointerMove,
     children,
     'aria-describedby': ariaDescribedBy,
     ...rest
@@ -160,15 +158,15 @@ export const PopupMenuRadioItem = React.forwardRef(function PopupMenuRadioItem(
     [item.contextValue, checked],
   )
 
-  // Merge user-provided handlers with item handlers
+  // The item's own handlers. They run after the consumer's (`usePart`), and
+  // a consumer's `preventDefault()` or `preventBaseUIHandler()` skips them.
   const handleClick = React.useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
-      onClick?.(event)
       if (!event.defaultPrevented) {
         item.handlers.onClick(event)
       }
     },
-    [onClick, item.handlers],
+    [item.handlers],
   )
 
   const handlePointerDown = React.useCallback(
@@ -181,25 +179,24 @@ export const PopupMenuRadioItem = React.forwardRef(function PopupMenuRadioItem(
 
   const handlePointerMove = React.useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
-      onPointerMove?.(event)
       if (!event.defaultPrevented) {
         item.handlers.onPointerMove(event)
       }
     },
-    [onPointerMove, item.handlers],
+    [item.handlers],
   )
 
   // Get component name for slot attribute
   const componentName = useMaybeComponentName()
   const slotAttr = getSlotAttribute(componentName, 'radio-item')
 
-  const element = useRender({
+  const element = usePart({
     render,
     ref: [item.ref, item.rowRef, forwardedRef],
     state,
     stateAttributesMapping,
+    consumer: rest,
     props: {
-      ...rest,
       ...(slotAttr ? { [slotAttr]: '' } : {}),
       id: item.id,
       role: 'menuitemradio',

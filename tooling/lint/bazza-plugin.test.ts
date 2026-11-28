@@ -284,6 +284,31 @@ ${extra}`
     expect(findings).toEqual([])
   })
 
+  it('reads `state` from a `usePart` call as from `useRender`', async () => {
+    const usePartPart = (namespace: string) => `import * as React from 'react'
+import { usePart as renderPart } from '../../utils/use-part.js'
+export interface PartState extends Record<string, unknown> {}
+export interface PartProps {}
+export const Part = React.forwardRef<HTMLDivElement, Part.Props>(function Part(props, forwardedRef) {
+  const state: PartState = {}
+  return renderPart({ ref: forwardedRef, state, consumer: props, defaultTagName: 'div' })
+})
+${namespace}
+`
+    const findings = await lintWith('bazza/part-namespace', {
+      'with-state.tsx': usePartPart(`export namespace Part {
+  export type State = PartState
+  export interface Props extends PartProps {}
+}`),
+      'no-state.tsx': usePartPart(
+        'export namespace Part { export interface Props extends PartProps {} }',
+      ),
+    })
+    expect(
+      findings.map((f) => [f.file, f.message.match(/has no (.+?) type/)?.[1]]),
+    ).toEqual([['no-state.tsx', '`Part.State`']])
+  })
+
   it('reports a missing namespace, a missing Props, and a missing State', async () => {
     const findings = await lintWith('bazza/part-namespace', {
       'none.tsx': part(''),
@@ -729,6 +754,45 @@ export const Other = React.forwardRef(OtherImpl)
       [
         20,
         "Can't tell whether this value carries the part's unresolved `className` or `style`",
+      ],
+    ])
+  })
+
+  it('checks `usePart`’s `props` and `consumer` as `useRender`’s `props`', async () => {
+    const findings = await lintWith('bazza/resolve-state-props', {
+      'a.tsx': `import * as React from 'react'
+import { usePart } from '../utils/use-part.js'
+import { resolveClassName, resolveStyle } from '../utils/resolve-state-props.js'
+export const Good = React.forwardRef(function Good(props: { className?: string; style?: object; onClick?: () => void }, ref: React.Ref<HTMLDivElement>) {
+  const { className, style, ...rest } = props
+  const state = {}
+  return usePart({
+    ref,
+    state,
+    consumer: rest,
+    props: { className: resolveClassName(className, state), style: resolveStyle(style, state), onClick: () => {} },
+  })
+})
+export const Bad = React.forwardRef(function Bad(props: { className?: string; style?: object }, ref: React.Ref<HTMLDivElement>) {
+  const { className, ...others } = props
+  return usePart({
+    ref,
+    consumer: others,
+    props: { className },
+  })
+})
+export const Unread = React.forwardRef(function Unread(props: object, ref: React.Ref<HTMLDivElement>) {
+  const options = { ref, consumer: props }
+  return usePart(options)
+})
+`,
+    })
+    expect(findings.map((f) => [f.line, f.message.split('.')[0]])).toEqual([
+      [18, "`others` still holds the part's `className` or `style`"],
+      [19, "`className` is the part's unresolved `className`"],
+      [
+        24,
+        "Can't tell whether `usePart`'s options carries the part's unresolved `className` or `style`",
       ],
     ])
   })

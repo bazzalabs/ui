@@ -1,6 +1,5 @@
 'use client'
 
-import { useRender } from '@base-ui/react/use-render'
 import type { LinkItemFields } from '@bazza-ui/menu-core'
 import * as React from 'react'
 import {
@@ -8,6 +7,7 @@ import {
   resolveStyle,
 } from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
+import { useComposedHandler, usePart } from '../../../../utils/use-part.js'
 import { ItemContext, useListboxContext } from '../../../listbox/index.js'
 import {
   getSlotAttribute,
@@ -66,7 +66,6 @@ export const PopupMenuLinkItem = React.forwardRef<
     style,
     onClick,
     onPointerDown,
-    onPointerMove,
     children,
     'aria-describedby': ariaDescribedBy,
     ...rest
@@ -107,14 +106,14 @@ export const PopupMenuLinkItem = React.forwardRef<
     }),
     [item.isHighlighted, disabled, item.positional],
   )
-  const handleClick = React.useCallback(
+  // The link's own click handling runs after the consumer's, which
+  // `preventDefault()` or `preventBaseUIHandler()` in skips it. A disabled
+  // link never navigates, whatever the consumer's handler did: that guard
+  // isn't skippable.
+  const handleOwnClick = React.useCallback(
     (event: React.MouseEvent<HTMLAnchorElement>) => {
-      onClick?.(event)
       if (event.defaultPrevented) return
-      if (disabled) {
-        event.preventDefault()
-        return
-      }
+      if (disabled) return
       onSelect?.()
       if (
         closeOnClick &&
@@ -126,7 +125,15 @@ export const PopupMenuLinkItem = React.forwardRef<
         closeAll()
       }
     },
-    [onClick, disabled, onSelect, closeOnClick, closeAll],
+    [disabled, onSelect, closeOnClick, closeAll],
+  )
+  const composedClick = useComposedHandler(onClick, handleOwnClick)
+  const handleClick = React.useCallback(
+    (event: React.MouseEvent<HTMLAnchorElement>) => {
+      composedClick(event)
+      if (disabled) event.preventDefault()
+    },
+    [composedClick, disabled],
   )
   const handlePointerDown = React.useCallback(
     (event: React.PointerEvent<HTMLAnchorElement>) => {
@@ -139,14 +146,13 @@ export const PopupMenuLinkItem = React.forwardRef<
   )
   const handlePointerMove = React.useCallback(
     (event: React.PointerEvent<HTMLAnchorElement>) => {
-      onPointerMove?.(event)
       if (!event.defaultPrevented) {
         item.handlers.onPointerMove(
           event as unknown as React.PointerEvent<HTMLDivElement>,
         )
       }
     },
-    [onPointerMove, item.handlers],
+    [item.handlers],
   )
   const wrappedChildren = (
     <ItemContext.Provider value={item.contextValue}>
@@ -156,7 +162,7 @@ export const PopupMenuLinkItem = React.forwardRef<
   const componentName = useMaybeComponentName()
   const slotAttr = getSlotAttribute(componentName, 'link-item')
 
-  return useRender({
+  return usePart({
     render,
     ref: [
       item.ref as React.Ref<HTMLAnchorElement>,
@@ -166,8 +172,8 @@ export const PopupMenuLinkItem = React.forwardRef<
     ],
     state,
     stateAttributesMapping,
+    consumer: rest,
     props: {
-      ...rest,
       ...(slotAttr ? { [slotAttr]: '' } : {}),
       id: item.id,
       role: 'option',

@@ -6,6 +6,7 @@ import * as React from 'react'
 import { useMaybePopupMenuContext } from '../../internal/popup-menu/index.js'
 import { useMenuElement } from '../../internal/popup-menu/members.js'
 import { REASONS } from '../../utils/events/index.js'
+import { useComposedHandler } from '../../utils/use-part.js'
 
 export interface CommandMenuBackdropProps extends Dialog.Backdrop.Props {}
 export type CommandMenuBackdropState = Dialog.Backdrop.State
@@ -28,12 +29,12 @@ export const CommandMenuBackdrop = React.forwardRef<
   // the consumer prevents it), not an outside press.
   const backdropRef = useMergedRefs(forwardedRef, useMenuElement('backdrop'))
 
-  const handlePointerDown = React.useCallback<
+  // After the consumer's handler (`useComposedHandler`): its
+  // `preventDefault()` or `preventBaseUIHandler()` keeps the menu open.
+  const handleOwnPointerDown = React.useCallback<
     NonNullable<Dialog.Backdrop.Props['onPointerDown']>
   >(
     (event) => {
-      onPointerDown?.(event)
-
       if (event.defaultPrevented) {
         return
       }
@@ -42,7 +43,11 @@ export const CommandMenuBackdrop = React.forwardRef<
         popupMenuContext.closeAll(REASONS.outsidePress, event.nativeEvent)
       }
     },
-    [onPointerDown, popupMenuContext],
+    [popupMenuContext],
+  )
+  const handlePointerDown = useComposedHandler(
+    onPointerDown,
+    handleOwnPointerDown,
   )
 
   return (

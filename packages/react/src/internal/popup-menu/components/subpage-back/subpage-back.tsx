@@ -1,12 +1,12 @@
 'use client'
 
-import { useRender } from '@base-ui/react/use-render'
 import * as React from 'react'
 import {
   resolveClassName,
   resolveStyle,
 } from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
+import { usePart } from '../../../../utils/use-part.js'
 import {
   getSlotAttribute,
   useMaybeComponentName,
@@ -53,7 +53,6 @@ export const PopupMenuSubpageBack = React.forwardRef<
     render,
     className,
     style,
-    onClick,
     children,
     ...rest
   } = props
@@ -67,7 +66,6 @@ export const PopupMenuSubpageBack = React.forwardRef<
 
   const handleClick = React.useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
-      onClick?.(event)
       if (event.defaultPrevented || disabled) {
         return
       }
@@ -77,7 +75,7 @@ export const PopupMenuSubpageBack = React.forwardRef<
         focusOwnerStore.setOwnerId(subpageContext.parentSurfaceId)
       }
     },
-    [onClick, disabled, subpageContext, focusOwnerStore],
+    [disabled, subpageContext, focusOwnerStore],
   )
 
   const state: PopupMenuSubpageBack.State = React.useMemo(
@@ -91,13 +89,13 @@ export const PopupMenuSubpageBack = React.forwardRef<
   const componentName = useMaybeComponentName()
   const slotAttr = getSlotAttribute(componentName, 'subpage-back')
 
-  return useRender({
+  return usePart({
     render,
     ref: forwardedRef,
     state,
     stateAttributesMapping,
+    consumer: rest,
     props: {
-      ...rest,
       ...(slotAttr ? { [slotAttr]: '' } : {}),
       type: 'button',
       disabled,

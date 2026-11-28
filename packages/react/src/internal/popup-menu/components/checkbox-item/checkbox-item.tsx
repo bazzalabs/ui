@@ -1,6 +1,5 @@
 'use client'
 
-import { useRender } from '@base-ui/react/use-render'
 import { useStore } from '@base-ui/utils/store'
 import type { CheckboxItemFields } from '@bazza-ui/menu-core'
 import * as React from 'react'
@@ -13,6 +12,7 @@ import {
   resolveStyle,
 } from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
+import { useComposedHandler, usePart } from '../../../../utils/use-part.js'
 import { ItemContext, useSurfaceContext } from '../../../listbox/index.js'
 import { isPending } from '../../../listbox/store/ListboxStore.js'
 import {
@@ -112,7 +112,6 @@ export const PopupMenuCheckboxItem = React.forwardRef<
     style,
     onClick,
     onPointerDown,
-    onPointerMove,
     children,
     'aria-describedby': ariaDescribedBy,
     ...rest
@@ -306,14 +305,12 @@ export const PopupMenuCheckboxItem = React.forwardRef<
     [item.contextValue, displayChecked, toggleFromIndicator],
   )
 
-  // Merge user-provided handlers with item handlers
-  const handleClick = React.useCallback(
+  // The click a drag's release fires is suppressed before the consumer sees
+  // it. Any other click reaches the consumer's handler first, then the row's
+  // (`useComposedHandler`), which a consumer's `preventDefault()` or
+  // `preventBaseUIHandler()` skips.
+  const handleOwnClick = React.useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
-      if (selection.peek()?.consumeClickSuppression()) {
-        event.preventDefault()
-        return
-      }
-      onClick?.(event)
       if (event.defaultPrevented) return
       if (rangeSelection && event.shiftKey && !disabled && item.storeId) {
         const anchor = selection.peek()?.getUsableAnchor() ?? null
@@ -333,7 +330,18 @@ export const PopupMenuCheckboxItem = React.forwardRef<
       }
       item.handlers.onClick(event)
     },
-    [onClick, rangeSelection, disabled, item.storeId, item.handlers, selection],
+    [rangeSelection, disabled, item.storeId, item.handlers, selection],
+  )
+  const composedClick = useComposedHandler(onClick, handleOwnClick)
+  const handleClick = React.useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      if (selection.peek()?.consumeClickSuppression()) {
+        event.preventDefault()
+        return
+      }
+      composedClick(event)
+    },
+    [composedClick, selection],
   )
 
   const handlePointerDown = React.useCallback(
@@ -370,26 +378,25 @@ export const PopupMenuCheckboxItem = React.forwardRef<
 
   const handlePointerMove = React.useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
-      onPointerMove?.(event)
       if (selection.peek()?.isPressActive()) return
       if (!event.defaultPrevented) {
         item.handlers.onPointerMove(event)
       }
     },
-    [onPointerMove, item.handlers, selection],
+    [item.handlers, selection],
   )
 
   // Get component name for slot attribute
   const componentName = useMaybeComponentName()
   const slotAttr = getSlotAttribute(componentName, 'checkbox-item')
 
-  const element = useRender({
+  const element = usePart({
     render,
     ref: [item.ref, item.rowRef, forwardedRef],
     state,
     stateAttributesMapping,
+    consumer: rest,
     props: {
-      ...rest,
       ...(slotAttr ? { [slotAttr]: '' } : {}),
       id: item.id,
       role: 'menuitemcheckbox',

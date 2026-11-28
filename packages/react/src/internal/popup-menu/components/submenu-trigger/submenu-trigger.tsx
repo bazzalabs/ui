@@ -9,6 +9,7 @@ import {
   resolveStyle,
 } from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
+import { composeHandlers } from '../../../../utils/use-part.js'
 import {
   ItemContext,
   useListboxContext,
@@ -218,12 +219,10 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
 
   // Unlike usePopupMenuItem's handler, the controller lets the guarded
   // trigger highlight itself
-  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    // Also covers a pointer that was already over the trigger when it mounted
-    holdHoverTrail()
-
-    onPointerMove?.(event)
-
+  // Each pointer handler holds or releases the hover trail whatever the
+  // consumer's handler does; the rest runs after it (`composeHandlers`), and
+  // a consumer's `preventDefault()` or `preventBaseUIHandler()` skips it.
+  const handleOwnPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.defaultPrevented) return
     if (disabled) return
     if (!isMouseLikePointerType(event.pointerType)) return
@@ -237,24 +236,35 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
 
     controller.send({ type: 'pointer.move' })
   }
-
-  const handlePointerEnter = (event: React.PointerEvent<HTMLDivElement>) => {
+  const composedPointerMove = composeHandlers(
+    onPointerMove,
+    handleOwnPointerMove,
+  )
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    // Also covers a pointer that was already over the trigger when it mounted
     holdHoverTrail()
+    composedPointerMove(event)
+  }
 
-    onPointerEnter?.(event)
-
+  const handleOwnPointerEnter = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.defaultPrevented) return
     if (disabled) return
     if (!isMouseLikePointerType(event.pointerType)) return
 
     controller.send({ type: 'pointer.enter' })
   }
+  const composedPointerEnter = composeHandlers(
+    onPointerEnter,
+    handleOwnPointerEnter,
+  )
+  const handlePointerEnter = (event: React.PointerEvent<HTMLDivElement>) => {
+    holdHoverTrail()
+    composedPointerEnter(event)
+  }
 
   // The trail is released after the controller reads the leave, which may
   // track the exit (holding the trail itself)
-  const handlePointerLeave = (event: React.PointerEvent<HTMLDivElement>) => {
-    onPointerLeave?.(event)
-
+  const handleOwnPointerLeave = (event: React.PointerEvent<HTMLDivElement>) => {
     if (
       !event.defaultPrevented &&
       !disabled &&
@@ -265,7 +275,13 @@ export const PopupMenuSubmenuTrigger = React.forwardRef<
         point: { x: event.clientX, y: event.clientY },
       })
     }
-
+  }
+  const composedPointerLeave = composeHandlers(
+    onPointerLeave,
+    handleOwnPointerLeave,
+  )
+  const handlePointerLeave = (event: React.PointerEvent<HTMLDivElement>) => {
+    composedPointerLeave(event)
     releaseHoverTrail()
   }
 

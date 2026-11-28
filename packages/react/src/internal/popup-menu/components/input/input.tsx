@@ -7,6 +7,7 @@ import {
   resolveStyle,
 } from '../../../../utils/resolve-state-props.js'
 import type { ComponentProps } from '../../../../utils/types.js'
+import { useComposedHandler } from '../../../../utils/use-part.js'
 import { useListboxContext, useSurfaceContext } from '../../../listbox/index.js'
 import {
   getSlotAttribute,
@@ -149,17 +150,19 @@ export const PopupMenuInput = React.forwardRef<
   // A direct press on the input is an explicit "enter" action: make its
   // surface the focus owner synchronously — the move-based reclaim in Surface
   // is not guaranteed to have fired (e.g. a stationary click).
-  const handlePointerDown = React.useCallback(
-    (event: React.PointerEvent<HTMLInputElement>) => {
-      onPointerDown?.(event)
-      if (disabled) {
-        return
-      }
-      if (focusOwnerStore.state.ownerId !== surfaceId) {
-        focusOwnerStore.setOwnerId(surfaceId)
-      }
-    },
-    [onPointerDown, disabled, focusOwnerStore, surfaceId],
+  // It runs after the consumer's handler, which `preventBaseUIHandler()` in
+  // skips it (`useComposedHandler`).
+  const handleOwnPointerDown = React.useCallback(() => {
+    if (disabled) {
+      return
+    }
+    if (focusOwnerStore.state.ownerId !== surfaceId) {
+      focusOwnerStore.setOwnerId(surfaceId)
+    }
+  }, [disabled, focusOwnerStore, surfaceId])
+  const handlePointerDown = useComposedHandler(
+    onPointerDown,
+    handleOwnPointerDown,
   )
 
   // Use centralized keyboard navigation hook
